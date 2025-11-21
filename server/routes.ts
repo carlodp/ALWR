@@ -784,6 +784,104 @@ startxref
     }
   });
 
+  // ============================================================================
+  // ADMIN SUBSCRIPTION ROUTES
+  // ============================================================================
+
+  // List all subscriptions (admin)
+  app.get("/api/admin/subscriptions", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const subscriptions = await storage.listAllSubscriptions(100, 0);
+      res.json(subscriptions);
+    } catch (error) {
+      console.error("Error listing subscriptions:", error);
+      res.status(500).json({ message: "Failed to fetch subscriptions" });
+    }
+  });
+
+  // Get single subscription (admin)
+  app.get("/api/admin/subscriptions/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const subscription = await storage.getSubscriptionById(id);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      res.json(subscription);
+    } catch (error) {
+      console.error("Error getting subscription:", error);
+      res.status(500).json({ message: "Failed to fetch subscription" });
+    }
+  });
+
+  // Update subscription (admin)
+  app.patch("/api/admin/subscriptions/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status, renewalDate, endDate } = req.body;
+
+      const subscription = await storage.getSubscriptionById(id);
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      const updates: any = {};
+      if (status) updates.status = status;
+      if (renewalDate) updates.renewalDate = new Date(renewalDate);
+      if (endDate) updates.endDate = new Date(endDate);
+
+      const updated = await storage.updateSubscription(id, updates);
+
+      // Log the update
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'subscription_update',
+        resourceType: 'subscription',
+        resourceId: id,
+        details: updates,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating subscription:", error);
+      res.status(500).json({ message: "Failed to update subscription" });
+    }
+  });
+
+  // Cancel subscription (admin)
+  app.post("/api/admin/subscriptions/:id/cancel", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const subscription = await storage.getSubscriptionById(id);
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      const updated = await storage.updateSubscription(id, { status: 'cancelled' });
+
+      // Log the cancellation
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'subscription_update',
+        resourceType: 'subscription',
+        resourceId: id,
+        details: { status: 'cancelled', reason: 'Admin cancellation' },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error cancelling subscription:", error);
+      res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
   // Get audit logs (admin)
   app.get("/api/admin/audit-logs", requireAdmin, async (req: any, res: Response) => {
     try {
