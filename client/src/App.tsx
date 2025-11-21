@@ -78,7 +78,7 @@ function Router() {
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Sidebar configuration for authenticated users
+  // Sidebar configuration - responsive for mobile
   const sidebarStyle = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -90,9 +90,11 @@ function AppContent() {
         <SidebarProvider style={sidebarStyle as React.CSSProperties}>
           <div className="flex h-screen w-full">
             <AppSidebar />
-            <main className="flex-1 overflow-auto">
-              <Router />
-            </main>
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <main className="flex-1 overflow-auto">
+                <Router />
+              </main>
+            </div>
           </div>
         </SidebarProvider>
       ) : (
