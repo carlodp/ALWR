@@ -28,15 +28,6 @@ import EmergencyAccess from "@/pages/emergency-access";
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();
 
-  // Component that redirects root path based on user role
-  function RootDashboard() {
-    if (isLoading) return null;
-    if (isAdmin) {
-      return <AdminDashboard />;
-    }
-    return <CustomerDashboard />;
-  }
-
   return (
     <Switch>
       {/* Public Routes */}
@@ -47,18 +38,10 @@ function Router() {
         </>
       )}
 
-      {/* Authenticated Routes */}
-      {isAuthenticated && (
+      {/* Admin Routes - must come before customer routes */}
+      {isAuthenticated && isAdmin && (
         <>
-          <Route path="/" component={RootDashboard} />
-          <Route path="/customer/dashboard" component={CustomerDashboard} />
-          <Route path="/customer/documents" component={CustomerDocuments} />
-          <Route path="/customer/profile" component={CustomerProfile} />
-          <Route path="/customer/subscription" component={CustomerSubscription} />
-          <Route path="/customer/payments" component={CustomerPayments} />
-          <Route path="/customer/id-card" component={CustomerIdCard} />
-          
-          {/* Admin Routes */}
+          <Route path="/" component={AdminDashboard} />
           <Route path="/admin/dashboard" component={AdminDashboard} />
           <Route path="/admin/customers" component={AdminCustomers} />
           <Route path="/admin/customers/new" component={AdminCreateCustomer} />
@@ -68,8 +51,20 @@ function Router() {
           <Route path="/admin/reports" component={AdminReports} />
           <Route path="/admin/user-roles" component={AdminUserRoles} />
           <Route path="/admin/audit-logs" component={AdminAuditLogs} />
-          
-          {/* Emergency Access - available to all */}
+          <Route path="/emergency-access" component={EmergencyAccess} />
+        </>
+      )}
+
+      {/* Customer Routes */}
+      {isAuthenticated && !isAdmin && (
+        <>
+          <Route path="/" component={CustomerDashboard} />
+          <Route path="/customer/dashboard" component={CustomerDashboard} />
+          <Route path="/customer/documents" component={CustomerDocuments} />
+          <Route path="/customer/profile" component={CustomerProfile} />
+          <Route path="/customer/subscription" component={CustomerSubscription} />
+          <Route path="/customer/payments" component={CustomerPayments} />
+          <Route path="/customer/id-card" component={CustomerIdCard} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
       )}
