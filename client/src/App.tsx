@@ -26,7 +26,16 @@ import AdminAuditLogs from "@/pages/admin-audit-logs";
 import EmergencyAccess from "@/pages/emergency-access";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin } = useAuth();
+
+  // Component that redirects root path based on user role
+  function RootDashboard() {
+    if (isLoading) return null;
+    if (isAdmin) {
+      return <AdminDashboard />;
+    }
+    return <CustomerDashboard />;
+  }
 
   return (
     <Switch>
@@ -41,7 +50,7 @@ function Router() {
       {/* Authenticated Routes */}
       {isAuthenticated && (
         <>
-          <Route path="/" component={CustomerDashboard} />
+          <Route path="/" component={RootDashboard} />
           <Route path="/customer/dashboard" component={CustomerDashboard} />
           <Route path="/customer/documents" component={CustomerDocuments} />
           <Route path="/customer/profile" component={CustomerProfile} />
