@@ -5,6 +5,7 @@ import { Users, FileText, CreditCard, TrendingUp, AlertCircle } from "lucide-rea
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 type DashboardStats = {
   totalCustomers: number;
@@ -22,6 +23,7 @@ type DashboardStats = {
 export default function AdminDashboard() {
   const { user, isLoading: authLoading, isAdmin } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -54,9 +56,13 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      {/* Metrics Cards */}
+      {/* Metrics Cards - All Clickable */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card data-testid="card-total-customers">
+        <Card 
+          data-testid="card-total-customers"
+          className="cursor-pointer hover-elevate transition-all"
+          onClick={() => setLocation("/admin/customers")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -77,7 +83,11 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-active-subscriptions">
+        <Card 
+          data-testid="card-active-subscriptions"
+          className="cursor-pointer hover-elevate transition-all"
+          onClick={() => setLocation("/admin/subscriptions")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -98,7 +108,11 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-total-documents">
+        <Card 
+          data-testid="card-total-documents"
+          className="cursor-pointer hover-elevate transition-all"
+          onClick={() => setLocation("/admin/customers")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Documents Stored</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -119,7 +133,11 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-expiring-subscriptions">
+        <Card 
+          data-testid="card-expiring-subscriptions"
+          className="cursor-pointer hover-elevate transition-all"
+          onClick={() => setLocation("/admin/renewal-reminders")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
