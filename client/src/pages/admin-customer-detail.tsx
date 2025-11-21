@@ -1,4 +1,4 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X } from "lucide-react";
+import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft } from "lucide-react";
 import type { Customer, User, Document, Subscription } from "@shared/schema";
 
 interface CustomerNote {
@@ -53,6 +53,7 @@ type EditCustomerData = z.infer<typeof editCustomerSchema>;
 
 export default function AdminCustomerDetail() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { isAdmin } = useAuth();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -160,24 +161,46 @@ export default function AdminCustomerDetail() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4 space-y-8">
-      <div className="flex justify-between items-start">
-        <div className="space-y-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/admin/customers")}
+          className="sm:hidden -ml-2"
+          data-testid="button-back-mobile"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div className="space-y-2 w-full sm:w-auto">
           <h1 className="text-3xl font-bold">
             {customer.user.firstName} {customer.user.lastName}
           </h1>
           <p className="text-muted-foreground">Customer ID: {customer.id.substring(0, 8)}</p>
         </div>
-        {!isEditMode && (
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => setIsEditMode(true)}
-            data-testid="button-edit-customer"
+            onClick={() => setLocation("/admin/customers")}
+            className="hidden sm:inline-flex"
+            data-testid="button-back"
           >
-            <Edit2 className="h-4 w-4 mr-2" />
-            Edit
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
-        )}
+          {!isEditMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditMode(true)}
+              data-testid="button-edit-customer"
+            >
+              <Edit2 className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
