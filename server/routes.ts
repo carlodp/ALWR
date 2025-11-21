@@ -1019,6 +1019,76 @@ startxref
     }
   });
 
+  // ============================================================================
+  // ADMIN RENEWAL REMINDER ROUTES
+  // ============================================================================
+
+  // Get subscriptions expiring soon (for renewal reminders)
+  app.get("/api/admin/renewal-reminders", requireAdmin, async (req: any, res: Response) => {
+    try {
+      // Get subscriptions expiring within 30 days
+      const expiringSubscriptions = await storage.listExpiringSubscriptions(30);
+      
+      // Enrich with customer data
+      const enriched = await Promise.all(
+        expiringSubscriptions.map(async (sub) => {
+          const customer = await storage.getCustomerById(sub.customerId);
+          const user = await storage.getUser(customer?.userId || '');
+          
+          return {
+            ...sub,
+            customer: { ...customer, user },
+          };
+        })
+      );
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error getting renewal reminders:", error);
+      res.status(500).json({ message: "Failed to fetch renewal reminders" });
+    }
+  });
+
+  // Send renewal reminder for a subscription
+  app.post("/api/admin/renewal-reminders/:id/send", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const subscription = await storage.getSubscriptionById(id);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      // For MVP: just mark the reminder as sent
+      // In production, you'd send an actual email via SendGrid, AWS SES, etc.
+      const updated = await storage.updateSubscription(id, { renewalReminderSent: true });
+
+      // Log the reminder send
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'subscription_update',
+        resourceType: 'subscription',
+        resourceId: id,
+        details: { 
+          action: 'renewal_reminder_sent',
+          customerName: `${subscription.customer.user.firstName} ${subscription.customer.user.lastName}`,
+          expiryDate: subscription.endDate,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Renewal reminder sent successfully",
+        subscription: updated,
+      });
+    } catch (error) {
+      console.error("Error sending renewal reminder:", error);
+      res.status(500).json({ message: "Failed to send renewal reminder" });
+    }
+  });
+
   // Get audit logs (admin)
   app.get("/api/admin/audit-logs", requireAdmin, async (req: any, res: Response) => {
     try {
