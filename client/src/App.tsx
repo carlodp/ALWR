@@ -12,6 +12,7 @@ import CustomerDashboard from "@/pages/customer-dashboard";
 import CustomerDocuments from "@/pages/customer-documents";
 import CustomerProfile from "@/pages/customer-profile";
 import CustomerSubscription from "@/pages/customer-subscription";
+import CustomerPayments from "@/pages/customer-payments";
 import CustomerIdCard from "@/pages/customer-id-card";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminCustomers from "@/pages/admin-customers";
@@ -42,6 +43,7 @@ function Router() {
           <Route path="/customer/documents" component={CustomerDocuments} />
           <Route path="/customer/profile" component={CustomerProfile} />
           <Route path="/customer/subscription" component={CustomerSubscription} />
+          <Route path="/customer/payments" component={CustomerPayments} />
           <Route path="/customer/id-card" component={CustomerIdCard} />
           
           {/* Admin Routes */}

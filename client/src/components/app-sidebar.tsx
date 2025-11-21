@@ -53,14 +53,19 @@ export function AppSidebar() {
       icon: CreditCard,
     },
     {
-      title: "Profile",
-      url: "/customer/profile",
-      icon: User,
-    },
-    {
       title: "Subscription",
       url: "/customer/subscription",
       icon: CreditCard,
+    },
+    {
+      title: "Payments",
+      url: "/customer/payments",
+      icon: CreditCard,
+    },
+    {
+      title: "Profile",
+      url: "/customer/profile",
+      icon: User,
     },
   ];
 

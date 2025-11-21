@@ -150,6 +150,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get customer payment history
+  app.get("/api/customer/payments", requireAuth, async (req: any, res: Response) => {
+    try {
+      const customer = await storage.getCustomer(req.user.dbUser.id);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const subscription = await storage.getSubscription(customer.id);
+      
+      // Build payment history from subscription(s)
+      const paymentHistory = subscription ? [
+        {
+          id: subscription.id,
+          date: subscription.startDate,
+          amount: subscription.amount,
+          currency: subscription.currency,
+          status: 'completed',
+          description: `${subscription.status === 'active' ? 'Active' : 'Inactive'} Subscription`,
+          invoiceNumber: `INV-${subscription.id.substring(0, 8).toUpperCase()}`,
+        }
+      ] : [];
+
+      res.json({
+        customer: {
+          firstName: req.user.dbUser.firstName,
+          lastName: req.user.dbUser.lastName,
+          email: req.user.dbUser.email,
+        },
+        payments: paymentHistory,
+      });
+    } catch (error) {
+      console.error("Error getting payment history:", error);
+      res.status(500).json({ message: "Failed to fetch payment history" });
+    }
+  });
+
+  // Generate invoice PDF
+  app.get("/api/customer/invoices/:id/download", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomer(req.user.dbUser.id);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const subscription = await storage.getSubscription(customer.id);
+      if (!subscription || subscription.id !== id) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Generate simple PDF invoice
+      const invoiceNumber = `INV-${subscription.id.substring(0, 8).toUpperCase()}`;
+      const invoiceDate = new Date(subscription.startDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const amount = (subscription.amount / 100).toFixed(2);
+      
+      const pdfContent = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>
+endobj
+4 0 obj
+<< /Length 1200 >>
+stream
+BT
+/F1 24 Tf
+50 750 Td
+(ALWR Invoice) Tj
+0 -40 Td
+/F2 12 Tf
+(Invoice Number: ${invoiceNumber}) Tj
+0 -20 Td
+(Date: ${invoiceDate}) Tj
+0 -60 Td
+/F1 14 Tf
+(Bill To) Tj
+/F2 12 Tf
+0 -20 Td
+(${req.user.dbUser.firstName} ${req.user.dbUser.lastName}) Tj
+0 -20 Td
+(${req.user.dbUser.email}) Tj
+0 -20 Td
+(${customer.address || ''}) Tj
+0 -20 Td
+(${customer.city || ''}, ${customer.state || ''} ${customer.zipCode || ''}) Tj
+0 -60 Td
+/F1 14 Tf
+(Description) Tj
+/F2 12 Tf
+0 -20 Td
+(America Living Will Registry - Annual Subscription) Tj
+0 -60 Td
+/F1 12 Tf
+(Amount: \\$$${amount}) Tj
+/F2 11 Tf
+0 -20 Td
+(Currency: ${subscription.currency.toUpperCase()}) Tj
+0 -40 Td
+/F1 12 Tf
+(Status: PAID) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000263 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+1517
+%%EOF`;
+
+      const pdfBuffer = Buffer.from(pdfContent, 'utf8');
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${invoiceNumber}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating invoice:", error);
+      res.status(500).json({ message: "Failed to generate invoice" });
+    }
+  });
+
   // Create Stripe Checkout Session
   app.post("/api/checkout", requireAuth, async (req: any, res: Response) => {
     try {
