@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -14,8 +15,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useEffect } from "react";
-import { Shield, Users, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Shield, Users, AlertCircle, Search } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type User = {
@@ -30,6 +31,8 @@ type User = {
 export default function AdminUserRoles() {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -47,6 +50,17 @@ export default function AdminUserRoles() {
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
     enabled: isAdmin,
+  });
+
+  const filteredUsers = users?.filter((user) => {
+    const matchesSearch =
+      user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesRole = !roleFilter || user.role === roleFilter;
+    
+    return matchesSearch && matchesRole;
   });
 
   const updateRoleMutation = useMutation({
@@ -169,8 +183,35 @@ export default function AdminUserRoles() {
       {/* Users Table */}
       <Card data-testid="card-users-table">
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>View and manage user roles</CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div>
+              <CardTitle>All Users</CardTitle>
+              <CardDescription>View and manage user roles</CardDescription>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search-users"
+                />
+              </div>
+              <select
+                value={roleFilter || ''}
+                onChange={(e) => setRoleFilter(e.target.value || null)}
+                className="px-3 py-2 border border-input rounded-md bg-background text-sm"
+                data-testid="filter-user-role"
+              >
+                <option value="">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="agent">Agent</option>
+                <option value="customer">Customer</option>
+              </select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -179,7 +220,7 @@ export default function AdminUserRoles() {
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
-          ) : users && users.length > 0 ? (
+          ) : filteredUsers && filteredUsers.length > 0 ? (
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -192,7 +233,7 @@ export default function AdminUserRoles() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <TableRow
                       key={user.id}
                       className="hover-elevate"

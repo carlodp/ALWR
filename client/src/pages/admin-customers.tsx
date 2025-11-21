@@ -21,18 +21,24 @@ export default function AdminCustomers() {
   const { isAdmin } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [subscriptionFilter, setSubscriptionFilter] = useState<string | null>(null);
 
   const { data: customers, isLoading } = useQuery<CustomerWithUser[]>({
     queryKey: ["/api/admin/customers"],
     enabled: isAdmin,
   });
 
-  const filteredCustomers = customers?.filter((customer) =>
-    customer.user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.user.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.idCardNumber?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCustomers = customers?.filter((customer) => {
+    const matchesSearch =
+      customer.user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.user.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.idCardNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesSubscription = !subscriptionFilter || customer.subscriptionStatus === subscriptionFilter;
+    
+    return matchesSearch && matchesSubscription;
+  });
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "destructive" | "secondary"> = {
@@ -78,6 +84,20 @@ export default function AdminCustomers() {
                   data-testid="input-search"
                 />
               </div>
+              <select
+                value={subscriptionFilter || ''}
+                onChange={(e) => setSubscriptionFilter(e.target.value || null)}
+                className="px-3 py-2 border border-input rounded-md bg-background text-sm"
+                data-testid="filter-subscription-status"
+              >
+                <option value="">All Subscriptions</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="trial">Trial</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="pending">Pending</option>
+                <option value="none">None</option>
+              </select>
               <Button
                 onClick={() => setLocation("/admin/customers/new")}
                 data-testid="button-create-customer"
@@ -167,11 +187,11 @@ export default function AdminCustomers() {
                     <TableCell colSpan={7} className="text-center py-12">
                       <div className="space-y-2">
                         <p className="font-medium">
-                          {searchQuery ? 'No customers found' : 'No customers yet'}
+                          {searchQuery || subscriptionFilter ? 'No customers found' : 'No customers yet'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {searchQuery
-                            ? 'Try adjusting your search query'
+                          {searchQuery || subscriptionFilter
+                            ? 'Try adjusting your search or filters'
                             : 'Customers will appear here once they register'
                           }
                         </p>
