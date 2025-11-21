@@ -516,10 +516,10 @@ export default function AdminCustomerDetail() {
               <CardDescription>Internal note for admin reference</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmitNote)} className="space-y-4">
+              <Form {...noteForm}>
+                <form onSubmit={noteForm.handleSubmit(onSubmitNote)} className="space-y-4">
                   <FormField
-                    control={form.control}
+                    control={noteForm.control}
                     name="noteText"
                     render={({ field }) => (
                       <FormItem>
