@@ -21,7 +21,8 @@ import {
   ClipboardList,
   LayoutDashboard,
   Bell,
-  BarChart3
+  BarChart3,
+  Lock
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -97,6 +98,11 @@ export function AppSidebar() {
       title: "Reports",
       url: "/admin/reports",
       icon: BarChart3,
+    },
+    {
+      title: "User Roles",
+      url: "/admin/user-roles",
+      icon: Lock,
     },
     {
       title: "Audit Logs",

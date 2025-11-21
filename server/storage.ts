@@ -14,6 +14,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(userId: string, role: 'customer' | 'admin' | 'agent'): Promise<void>;
+  listAllUsers(limit?: number, offset?: number): Promise<User[]>;
 
   // Customer Operations
   getCustomer(userId: string): Promise<Customer | undefined>;
@@ -101,6 +102,15 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ role, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  async listAllUsers(limit: number = 1000, offset: number = 0): Promise<User[]> {
+    const result = await db.query.users.findMany({
+      limit,
+      offset,
+      orderBy: (users) => desc(users.createdAt),
+    });
+    return result;
   }
 
   // ============================================================================

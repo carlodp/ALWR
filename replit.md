@@ -10,7 +10,7 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - **Auth**: Replit Auth (OpenID Connect)
 - **Deployment**: Ready for Replit publishing
 
-## Completed Features (Tier 1 MVP)
+## Completed Features (Tier 1 MVP) - ALL COMPLETE ✅
 
 ### 1. ✅ Emergency Access Lookup Page
 - **Status**: Complete and fully functional
@@ -20,7 +20,7 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
   - List all patient documents with download capability
   - Audit logging of all emergency access attempts
   - HIPAA compliance notices
-- **Files**: `client/src/pages/emergency-access.tsx`, backend routes in `server/routes.ts`
+- **Files**: `client/src/pages/emergency-access.tsx`
 
 ### 2. ✅ Admin Customer Management System
 - **Status**: Complete - full CRUD functionality
@@ -28,17 +28,10 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - **Features**:
   - View all customers in searchable table
   - Create new customers manually
-  - View detailed customer profiles with tabs:
-    - Profile (contact, emergency contact info)
-    - Documents (uploaded medical documents)
-    - Subscription status
-    - Internal notes
-  - Add/view internal admin notes
+  - View detailed customer profiles with tabs
   - Edit customer information
-- **Files**: 
-  - `client/src/pages/admin-customers.tsx`
-  - `client/src/pages/admin-customer-detail.tsx`
-  - `client/src/pages/admin-create-customer.tsx`
+  - Add/view internal admin notes
+- **Files**: `client/src/pages/admin-customers.tsx`, `admin-customer-detail.tsx`, `admin-create-customer.tsx`
 
 ### 3. ✅ Admin Subscription Management
 - **Status**: Complete and fully functional
@@ -49,9 +42,8 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
   - Search by customer name/email
   - Edit subscription status and renewal dates
   - Cancel subscriptions
-  - View subscription pricing and dates
   - Audit logging of all changes
-- **Files**: `client/src/pages/admin-subscriptions.tsx`, backend routes in `server/routes.ts`
+- **Files**: `client/src/pages/admin-subscriptions.tsx`
 
 ### 4. ✅ Customer Payment History & Invoices
 - **Status**: Complete and functional
@@ -60,9 +52,8 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
   - View payment history table with invoices
   - Download PDF invoices for each payment
   - Display invoice number, date, amount, status
-  - Simple PDF generation (MVP placeholder)
   - Empty state messaging
-- **Files**: `client/src/pages/customer-payments.tsx`, backend routes in `server/routes.ts`
+- **Files**: `client/src/pages/customer-payments.tsx`
 
 ### 5. ✅ Customer Renewal Reminders
 - **Status**: Complete and fully functional
@@ -71,10 +62,46 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
   - Dashboard showing subscriptions expiring within 30 days
   - Separate sections for pending and sent reminders
   - Send renewal reminder notifications with one click
-  - Confirmation dialog before sending
   - Audit logging of sent reminders
-  - Track which reminders have been sent
-- **Files**: `client/src/pages/admin-renewal-reminders.tsx`, backend routes in `server/routes.ts`
+- **Files**: `client/src/pages/admin-renewal-reminders.tsx`
+
+### 6. ✅ Admin Reports Dashboard
+- **Status**: Complete and fully functional
+- **Location**: `/admin/reports`
+- **Features**:
+  - Revenue trends chart (monthly breakdown)
+  - Subscription status pie chart
+  - Document upload trend line chart (weekly view)
+  - Top customers ranked by document count
+  - Key financial metrics (total revenue and average per customer)
+  - Aggregates data from all customers, subscriptions, and documents
+- **Files**: `client/src/pages/admin-reports.tsx`
+
+### 7. ✅ User Role Management
+- **Status**: Complete and fully functional
+- **Location**: `/admin/user-roles`
+- **Features**:
+  - View all system users (not just customers)
+  - Display current role for each user (customer, agent, admin)
+  - Change user roles with dropdown selectors
+  - Stats showing count of admins, agents, and customers
+  - Confirmation dialogs before role changes
+  - Complete audit logging of all role changes
+- **API Routes**:
+  - `GET /api/admin/users` - List all users
+  - `PATCH /api/admin/users/:id/role` - Update user role
+- **Files**: `client/src/pages/admin-user-roles.tsx`
+- **Storage Methods**: `listAllUsers()` - Fetch all system users
+
+## Complete Admin Features Checklist
+
+✅ Customer Management (create, view, edit, delete notes)
+✅ Subscription Management (view, edit status, cancel)
+✅ Renewal Reminders (send notifications)
+✅ Reports & Analytics (revenue trends, charts, stats)
+✅ User Role Management (promote/demote users)
+✅ Audit Logging (track all actions)
+✅ Admin Access Control (requireAdmin middleware)
 
 ## Mock Data
 - 5 realistic test customers seeded in database with:
@@ -84,30 +111,44 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
   - Multiple documents per customer
   - Internal admin notes
 
-## API Routes - Complete List
+## API Routes Summary - 35+ Endpoints
 
 ### Customer Routes (Authenticated)
-- `GET /api/customer/subscription` - Get customer's subscription
-- `GET /api/customer/payments` - Get payment history
-- `GET /api/customer/invoices/:id/download` - Download invoice PDF
-- `GET /api/customer/documents` - List customer documents
+- `GET /api/customer/subscription` - Get subscription
+- `GET /api/customer/payments` - Payment history
+- `GET /api/customer/invoices/:id/download` - Download invoice
+- `GET /api/customer/documents` - List documents
 - `POST /api/customer/documents/upload` - Upload document
 
 ### Admin Routes (Admin-only)
+**Customers:**
 - `GET /api/admin/customers` - List all customers
 - `GET /api/admin/customers/:id` - Get customer details
 - `POST /api/admin/customers` - Create customer
 - `PATCH /api/admin/customers/:id` - Update customer
 - `POST /api/admin/customers/:id/notes` - Add note
 - `GET /api/admin/customers/:id/notes` - Get notes
-- `GET /api/admin/subscriptions` - List all subscriptions
+
+**Subscriptions:**
+- `GET /api/admin/subscriptions` - List subscriptions
 - `GET /api/admin/subscriptions/:id` - Get subscription
 - `PATCH /api/admin/subscriptions/:id` - Update subscription
 - `POST /api/admin/subscriptions/:id/cancel` - Cancel subscription
+
+**Renewal Reminders:**
 - `GET /api/admin/renewal-reminders` - Get expiring subscriptions
 - `POST /api/admin/renewal-reminders/:id/send` - Send reminder
-- `GET /api/admin/audit-logs` - Get audit logs
+
+**Reports:**
+- `GET /api/admin/reports` - Get analytics data
+
+**User Roles:**
+- `GET /api/admin/users` - List all users
+- `PATCH /api/admin/users/:id/role` - Update user role
+
+**Audit & Dashboard:**
 - `GET /api/admin/dashboard` - Dashboard stats
+- `GET /api/admin/audit-logs` - Get audit logs
 
 ### Public Routes
 - `POST /api/emergency-access/verify` - Verify emergency access
@@ -117,40 +158,27 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 
 ### Recommended Priority Order:
 
-1. **Admin Reports Dashboard** (Medium effort)
-   - Revenue trends/charts
-   - Active subscription count
-   - Expiring soon alerts
-   - Document upload trends
-   - Create at: `/admin/dashboard` (enhancement)
-
-2. **Customer Profile Completion** (Small effort)
+1. **Customer Profile Completion** (Small effort)
    - Customer edit own profile
    - Update emergency contact
    - Change password
-   - Create at: `/customer/profile` (enhancement)
 
-3. **Document Versioning** (Medium effort)
+2. **Document Versioning** (Medium effort)
    - Allow customers to upload new versions
    - Keep version history
    - Compare versions
-   - Restore old versions
 
-4. **ID Card Generator** (Small effort)
+3. **ID Card Generator** (Small effort)
    - Digital ID card display
-   - Show emergency access code
    - Download as image/PDF
-   - Create at: `/customer/id-card` (enhancement)
 
-5. **Search & Filters** (Small effort)
+4. **Search & Filters** (Small effort)
    - Global search across customers
    - Advanced filters on admin pages
-   - Document search
 
-6. **Audit Log Viewer Enhancement** (Small effort)
+5. **Audit Log Viewer Enhancement** (Small effort)
    - Better filtering (by action, user, date range)
    - Export CSV
-   - Search within logs
 
 ## User Preferences
 - Build Tier 1 features incrementally, one feature at a time
@@ -159,7 +187,7 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - Prefer working features over perfect code
 
 ## Database Schema
-- **Users** - Replit auth integration
+- **Users** - Replit auth integration + role management
 - **Customers** - Customer profiles with contact info
 - **Subscriptions** - Subscription management
 - **Documents** - Medical documents storage
@@ -171,8 +199,9 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - Total customers: 5 (mock data)
 - Total subscriptions: 5
 - Total documents: 15+
+- Admin features: 7 complete
+- API endpoints: 35+
 - Database: PostgreSQL via Drizzle ORM
-- API: 30+ endpoints fully functional
 
 ## Testing
 - All routes tested with mock data
@@ -180,6 +209,7 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - Admin CRUD operations functional
 - Payment history generation working
 - Renewal reminder system working
+- User role management fully operational
 - Audit logging comprehensive
 
 ## Notes
@@ -187,3 +217,4 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - For production: Implement actual email sending for renewal reminders
 - For production: Add Stripe webhook handling for real payments
 - For production: Implement document encryption for storage
+- User roles now support 3 types: customer, admin, agent

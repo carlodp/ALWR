@@ -1187,6 +1187,65 @@ startxref
     }
   });
 
+  // Get all users (admin)
+  app.get("/api/admin/users", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const users = await storage.listAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error getting users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Update user role (admin)
+  app.patch("/api/admin/users/:id/role", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      // Validate role
+      if (!["customer", "admin", "agent"].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user role
+      await storage.updateUserRole(id, role);
+
+      // Log the role change
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: "profile_update",
+        resourceType: "user",
+        resourceId: id,
+        details: {
+          action: "role_change",
+          userName: `${user.firstName} ${user.lastName}`,
+          oldRole: user.role,
+          newRole: role,
+        },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers["user-agent"] || undefined,
+      });
+
+      res.json({
+        success: true,
+        message: "User role updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
   // Get audit logs (admin)
   app.get("/api/admin/audit-logs", requireAdmin, async (req: any, res: Response) => {
     try {

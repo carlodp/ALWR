@@ -21,6 +21,7 @@ import AdminCreateCustomer from "@/pages/admin-create-customer";
 import AdminSubscriptions from "@/pages/admin-subscriptions";
 import AdminRenewalReminders from "@/pages/admin-renewal-reminders";
 import AdminReports from "@/pages/admin-reports";
+import AdminUserRoles from "@/pages/admin-user-roles";
 import AdminAuditLogs from "@/pages/admin-audit-logs";
 import EmergencyAccess from "@/pages/emergency-access";
 
@@ -56,6 +57,7 @@ function Router() {
           <Route path="/admin/subscriptions" component={AdminSubscriptions} />
           <Route path="/admin/renewal-reminders" component={AdminRenewalReminders} />
           <Route path="/admin/reports" component={AdminReports} />
+          <Route path="/admin/user-roles" component={AdminUserRoles} />
           <Route path="/admin/audit-logs" component={AdminAuditLogs} />
           
           {/* Emergency Access - available to all */}
