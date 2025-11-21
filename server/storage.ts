@@ -227,6 +227,36 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async listAllSubscriptions(limit: number = 100, offset: number = 0): Promise<any[]> {
+    const result = await db.query.subscriptions.findMany({
+      limit,
+      offset,
+      orderBy: desc(subscriptions.createdAt),
+      with: {
+        customer: {
+          with: {
+            user: true,
+          },
+        },
+      },
+    });
+    return result;
+  }
+
+  async getSubscriptionById(subscriptionId: string): Promise<any> {
+    const result = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.id, subscriptionId),
+      with: {
+        customer: {
+          with: {
+            user: true,
+          },
+        },
+      },
+    });
+    return result;
+  }
+
   // ============================================================================
   // DOCUMENT OPERATIONS
   // ============================================================================
