@@ -734,7 +734,7 @@ startxref
     }
   });
 
-  // List all customers (admin)
+  // List all customers (admin) - Only users with 'customer' role
   app.get("/api/admin/customers", requireAdmin, async (req: any, res: Response) => {
     try {
       const customers = await storage.listCustomers(100, 0);
@@ -755,7 +755,10 @@ startxref
         })
       );
 
-      res.json(enriched);
+      // Filter to only show customers with role='customer'
+      const customersOnly = enriched.filter(c => c.user?.role === 'customer');
+
+      res.json(customersOnly);
     } catch (error) {
       console.error("Error listing customers:", error);
       res.status(500).json({ message: "Failed to fetch customers" });
