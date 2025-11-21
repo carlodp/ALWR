@@ -1,5 +1,4 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useLocation } from "wouter";
 
 export function MobileHeader() {
@@ -27,12 +26,11 @@ export function MobileHeader() {
 
   return (
     <header className="md:hidden sticky top-0 z-50 bg-background border-b">
-      <div className="flex items-center justify-between h-14 px-4 gap-2">
-        <SidebarTrigger data-testid="button-mobile-menu" />
-        <h1 className="text-sm font-semibold flex-1 text-center truncate">
+      <div className="flex items-center justify-center h-14 px-4">
+        <SidebarTrigger className="absolute left-4" data-testid="button-mobile-menu" />
+        <h1 className="text-sm font-semibold text-center truncate">
           {getPageTitle()}
         </h1>
-        <ThemeToggle />
       </div>
     </header>
   );
