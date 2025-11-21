@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { MobileHeader } from "@/components/mobile-header";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -88,9 +89,10 @@ function AppContent() {
     <TooltipProvider>
       {isAuthenticated && !isLoading ? (
         <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-          <div className="flex h-screen w-full">
+          <div className="flex h-screen w-full flex-col md:flex-row">
             <AppSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
+              <MobileHeader />
               <main className="flex-1 overflow-auto">
                 <Router />
               </main>
