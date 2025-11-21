@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,18 +72,20 @@ export default function AdminCustomerDetail() {
   });
 
   // Update edit form when customer data loads
-  if (customer && editForm.formState.isDirty === false && !isEditMode) {
-    editForm.reset({
-      phone: customer.phone || "",
-      address: customer.address || "",
-      city: customer.city || "",
-      state: customer.state || "",
-      zipCode: customer.zipCode || "",
-      emergencyContactName: customer.emergencyContactName || "",
-      emergencyContactPhone: customer.emergencyContactPhone || "",
-      emergencyContactRelationship: customer.emergencyContactRelationship || "",
-    });
-  }
+  useEffect(() => {
+    if (customer && !isEditMode) {
+      editForm.reset({
+        phone: customer.phone || "",
+        address: customer.address || "",
+        city: customer.city || "",
+        state: customer.state || "",
+        zipCode: customer.zipCode || "",
+        emergencyContactName: customer.emergencyContactName || "",
+        emergencyContactPhone: customer.emergencyContactPhone || "",
+        emergencyContactRelationship: customer.emergencyContactRelationship || "",
+      });
+    }
+  }, [customer, isEditMode, editForm]);
 
   const notesMutation = useMutation({
     mutationFn: async (noteText: string) => {
