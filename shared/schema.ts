@@ -164,6 +164,9 @@ export const documents = pgTable("documents", {
   description: text("description"),
   uploadedBy: varchar("uploaded_by").references(() => users.id).notNull(),
   
+  // Versioning
+  currentVersion: integer("current_version").default(1).notNull(),
+  
   // Access Tracking
   accessCount: integer("access_count").default(0),
   lastAccessedAt: timestamp("last_accessed_at"),
@@ -173,6 +176,31 @@ export const documents = pgTable("documents", {
 }, (table) => [
   index("idx_document_customer_id").on(table.customerId),
   index("idx_document_uploaded_by").on(table.uploadedBy),
+]);
+
+// Document versions - track all versions of documents
+export const documentVersions = pgTable("document_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").references(() => documents.id).notNull(),
+  version: integer("version").notNull(),
+  
+  // File Details
+  fileName: varchar("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: varchar("mime_type").notNull(),
+  
+  // Storage
+  storageKey: varchar("storage_key").notNull(),
+  encryptionKey: varchar("encryption_key"),
+  
+  // Metadata
+  uploadedBy: varchar("uploaded_by").references(() => users.id).notNull(),
+  changeNotes: text("change_notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_document_version_document_id").on(table.documentId),
+  index("idx_document_version_uploaded_by").on(table.uploadedBy),
 ]);
 
 // ============================================================================
