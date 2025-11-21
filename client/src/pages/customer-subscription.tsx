@@ -1,16 +1,18 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, XCircle, Clock, CreditCard, AlertCircle, ExternalLink } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, CreditCard, AlertCircle, ExternalLink, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { Subscription } from "@shared/schema";
 
 export default function CustomerSubscription() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const { data: subscription, isLoading } = useQuery<Subscription>({

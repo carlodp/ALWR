@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, Download, AlertCircle, Phone, Globe } from "lucide-react";
+import { CreditCard, Download, AlertCircle, Phone, Globe, ArrowLeft } from "lucide-react";
 import type { Customer } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function CustomerIdCard() {
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
 
   const { data: customer, isLoading } = useQuery<Customer>({
@@ -36,11 +38,23 @@ export default function CustomerIdCard() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4 space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold">Registry ID Card</h1>
-        <p className="text-muted-foreground text-lg">
-          Your ALWR identification card for emergency access
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/")}
+          className="sm:hidden -ml-2"
+          data-testid="button-back-mobile"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div className="space-y-2 flex-1">
+          <h1 className="text-3xl md:text-4xl font-bold">Registry ID Card</h1>
+          <p className="text-muted-foreground text-lg">
+            Your ALWR identification card for emergency access
+          </p>
+        </div>
       </div>
 
       {!hasIdCard && (

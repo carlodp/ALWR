@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useAuth } from "@/hooks/useAuth";
+import { ArrowLeft } from "lucide-react";
 import type { Customer } from "@shared/schema";
 
 export default function CustomerProfile() {
+  const [, setLocation] = useLocation();
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
@@ -110,11 +113,23 @@ export default function CustomerProfile() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4 space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold">Profile Settings</h1>
-        <p className="text-muted-foreground text-lg">
-          Manage your personal information and emergency contacts
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/")}
+          className="sm:hidden -ml-2"
+          data-testid="button-back-mobile"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div className="space-y-2 flex-1">
+          <h1 className="text-3xl md:text-4xl font-bold">Profile Settings</h1>
+          <p className="text-muted-foreground text-lg">
+            Manage your personal information and emergency contacts
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
