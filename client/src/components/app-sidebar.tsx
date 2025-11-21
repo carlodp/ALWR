@@ -20,7 +20,8 @@ import {
   Users,
   ClipboardList,
   LayoutDashboard,
-  Bell
+  Bell,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -91,6 +92,11 @@ export function AppSidebar() {
       title: "Renewal Reminders",
       url: "/admin/renewal-reminders",
       icon: Bell,
+    },
+    {
+      title: "Reports",
+      url: "/admin/reports",
+      icon: BarChart3,
     },
     {
       title: "Audit Logs",
