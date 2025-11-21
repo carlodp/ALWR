@@ -214,6 +214,21 @@ export const emergencyAccessLogs = pgTable("emergency_access_logs", {
 ]);
 
 // ============================================================================
+// CUSTOMER NOTES
+// ============================================================================
+
+export const customerNotes = pgTable("customer_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").references(() => customers.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  noteText: text("note_text").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_customer_notes_customer_id").on(table.customerId),
+  index("idx_customer_notes_created_at").on(table.createdAt),
+]);
+
+// ============================================================================
 // AUDIT LOGGING (HIPAA Compliance)
 // ============================================================================
 
@@ -272,6 +287,7 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   subscriptions: many(subscriptions),
   documents: many(documents),
   emergencyAccessLogs: many(emergencyAccessLogs),
+  notes: many(customerNotes),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
@@ -296,6 +312,17 @@ export const emergencyAccessLogsRelations = relations(emergencyAccessLogs, ({ on
   customer: one(customers, {
     fields: [emergencyAccessLogs.customerId],
     references: [customers.id],
+  }),
+}));
+
+export const customerNotesRelations = relations(customerNotes, ({ one }) => ({
+  customer: one(customers, {
+    fields: [customerNotes.customerId],
+    references: [customers.id],
+  }),
+  user: one(users, {
+    fields: [customerNotes.userId],
+    references: [users.id],
   }),
 }));
 
@@ -343,6 +370,11 @@ export const insertEmergencyAccessLogSchema = createInsertSchema(emergencyAccess
   notificationSentAt: true,
 });
 
+export const insertCustomerNoteSchema = createInsertSchema(customerNotes).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
   createdAt: true,
@@ -366,6 +398,9 @@ export type Document = typeof documents.$inferSelect;
 
 export type InsertEmergencyAccessLog = z.infer<typeof insertEmergencyAccessLogSchema>;
 export type EmergencyAccessLog = typeof emergencyAccessLogs.$inferSelect;
+
+export type InsertCustomerNote = z.infer<typeof insertCustomerNoteSchema>;
+export type CustomerNote = typeof customerNotes.$inferSelect;
 
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;

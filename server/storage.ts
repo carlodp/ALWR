@@ -1,10 +1,10 @@
 import { db } from "./db";
 import { 
-  users, customers, subscriptions, documents, emergencyAccessLogs, auditLogs,
+  users, customers, subscriptions, documents, emergencyAccessLogs, auditLogs, customerNotes,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type EmergencyAccessLog, type InsertEmergencyAccessLog,
-  type AuditLog, type InsertAuditLog
+  type AuditLog, type InsertAuditLog, type CustomerNote, type InsertCustomerNote
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -17,11 +17,16 @@ export interface IStorage {
 
   // Customer Operations
   getCustomer(userId: string): Promise<Customer | undefined>;
+  getCustomerById(customerId: string): Promise<Customer | undefined>;
   getCustomerByStripeId(stripeCustomerId: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(customerId: string, data: Partial<Customer>): Promise<Customer | undefined>;
   listCustomers(limit?: number, offset?: number): Promise<Customer[]>;
   searchCustomers(query: string): Promise<Customer[]>;
+
+  // Customer Notes Operations
+  createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote>;
+  listCustomerNotes(customerId: string): Promise<CustomerNote[]>;
 
   // Subscription Operations
   getSubscription(customerId: string): Promise<Subscription | undefined>;
@@ -109,6 +114,13 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getCustomerById(customerId: string): Promise<Customer | undefined> {
+    const result = await db.query.customers.findFirst({
+      where: eq(customers.id, customerId),
+    });
+    return result;
+  }
+
   async getCustomerByStripeId(stripeCustomerId: string): Promise<Customer | undefined> {
     const result = await db.query.customers.findFirst({
       where: eq(customers.stripeCustomerId, stripeCustomerId),
@@ -148,6 +160,26 @@ export class DatabaseStorage implements IStorage {
       limit: 50,
     });
     return result;
+  }
+
+  // ============================================================================
+  // CUSTOMER NOTES OPERATIONS
+  // ============================================================================
+
+  async createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote> {
+    const [created] = await db.insert(customerNotes).values(note).returning();
+    return created;
+  }
+
+  async listCustomerNotes(customerId: string): Promise<CustomerNote[]> {
+    const result = await db.query.customerNotes.findMany({
+      where: eq(customerNotes.customerId, customerId),
+      orderBy: desc(customerNotes.createdAt),
+      with: {
+        user: true,
+      },
+    });
+    return result as CustomerNote[];
   }
 
   // ============================================================================

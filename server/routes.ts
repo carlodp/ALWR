@@ -556,6 +556,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual customer (admin)
+  app.get("/api/admin/customers/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomerById(id);
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const user = await storage.getUser(customer.userId);
+      const subscription = await storage.getSubscription(customer.id);
+      const documents = await storage.listDocumentsByCustomer(customer.id);
+      const notes = await storage.listCustomerNotes(customer.id);
+      const emergencyLogs = await storage.listEmergencyAccessLogs(customer.id);
+
+      res.json({
+        ...customer,
+        user,
+        subscription,
+        documents,
+        notes,
+        emergencyAccessLogs: emergencyLogs,
+      });
+    } catch (error) {
+      console.error("Error getting customer:", error);
+      res.status(500).json({ message: "Failed to fetch customer" });
+    }
+  });
+
+  // Create new customer (admin)
+  app.post("/api/admin/customers", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { email, firstName, lastName, phone, address, city, state, zipCode, emergencyContactName, emergencyContactPhone, emergencyContactRelationship } = req.body;
+
+      // Validate required fields
+      if (!email || !firstName || !lastName) {
+        return res.status(400).json({ message: "Email, first name, and last name are required" });
+      }
+
+      // Check if user with email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Create user account
+      const user = await storage.upsertUser({
+        email,
+        firstName,
+        lastName,
+        role: 'customer',
+      });
+
+      // Create customer profile
+      const customer = await storage.createCustomer({
+        userId: user.id,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        emergencyContactName,
+        emergencyContactPhone,
+        emergencyContactRelationship,
+      });
+
+      // Log the creation
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'customer_create',
+        resourceType: 'customer',
+        resourceId: customer.id,
+        details: { email, firstName, lastName },
+      });
+
+      res.status(201).json({ ...customer, user });
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      res.status(500).json({ message: "Failed to create customer" });
+    }
+  });
+
+  // Update customer (admin)
+  app.put("/api/admin/customers/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      const customer = await storage.getCustomerById(id);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Update customer profile
+      const updatedCustomer = await storage.updateCustomer(id, updates);
+
+      // Log the update
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'customer_update',
+        resourceType: 'customer',
+        resourceId: id,
+        details: updates,
+      });
+
+      res.json(updatedCustomer);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      res.status(500).json({ message: "Failed to update customer" });
+    }
+  });
+
+  // Add customer note (admin)
+  app.post("/api/admin/customers/:id/notes", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { noteText } = req.body;
+
+      if (!noteText || noteText.trim() === '') {
+        return res.status(400).json({ message: "Note text is required" });
+      }
+
+      const customer = await storage.getCustomerById(id);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const note = await storage.createCustomerNote({
+        customerId: id,
+        userId: req.user.dbUser.id,
+        noteText: noteText.trim(),
+      });
+
+      // Return note with user info
+      const user = await storage.getUser(req.user.dbUser.id);
+      res.status(201).json({ ...note, user });
+    } catch (error) {
+      console.error("Error creating customer note:", error);
+      res.status(500).json({ message: "Failed to create note" });
+    }
+  });
+
+  // Get customer notes (admin)
+  app.get("/api/admin/customers/:id/notes", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const notes = await storage.listCustomerNotes(id);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error getting customer notes:", error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
   // Get audit logs (admin)
   app.get("/api/admin/audit-logs", requireAdmin, async (req: any, res: Response) => {
     try {
