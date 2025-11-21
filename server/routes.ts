@@ -395,6 +395,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================================================
+  // DOCUMENT DOWNLOAD ROUTE
+  // ============================================================================
+
+  // Download document content
+  app.get("/api/documents/:id/content", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const document = await storage.getDocument(id);
+
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Increment access count
+      await storage.incrementDocumentAccess(id);
+
+      // For MVP: return a placeholder PDF
+      // In production, you'd fetch from S3 or cloud storage
+      const placeholderPDF = Buffer.from(
+        `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>
+endobj
+4 0 obj
+<< /Length 100 >>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+(${document.fileName}) Tj
+0 -20 Td
+(Type: ${document.fileType}) Tj
+0 -20 Td
+(Size: ${(document.fileSize / 1024).toFixed(1)} KB) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000263 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+415
+%%EOF`,
+        'utf8'
+      );
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+      res.setHeader('Content-Length', placeholderPDF.length);
+      res.send(placeholderPDF);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      res.status(500).json({ message: "Failed to download document" });
+    }
+  });
+
+  // ============================================================================
   // EMERGENCY ACCESS ROUTES
   // ============================================================================
 
