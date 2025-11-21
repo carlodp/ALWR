@@ -17,6 +17,7 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import AdminCustomers from "@/pages/admin-customers";
 import AdminCustomerDetail from "@/pages/admin-customer-detail";
 import AdminCreateCustomer from "@/pages/admin-create-customer";
+import AdminSubscriptions from "@/pages/admin-subscriptions";
 import AdminAuditLogs from "@/pages/admin-audit-logs";
 import EmergencyAccess from "@/pages/emergency-access";
 
@@ -48,6 +49,7 @@ function Router() {
           <Route path="/admin/customers" component={AdminCustomers} />
           <Route path="/admin/customers/new" component={AdminCreateCustomer} />
           <Route path="/admin/customers/:id" component={AdminCustomerDetail} />
+          <Route path="/admin/subscriptions" component={AdminSubscriptions} />
           <Route path="/admin/audit-logs" component={AdminAuditLogs} />
           
           {/* Emergency Access - available to all */}

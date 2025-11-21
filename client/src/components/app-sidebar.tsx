@@ -77,6 +77,11 @@ export function AppSidebar() {
       icon: Users,
     },
     {
+      title: "Subscriptions",
+      url: "/admin/subscriptions",
+      icon: CreditCard,
+    },
+    {
       title: "Audit Logs",
       url: "/admin/audit-logs",
       icon: ClipboardList,
