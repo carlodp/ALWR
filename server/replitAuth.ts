@@ -1,4 +1,11 @@
-import { Request, Response, NextFunction } from "express";
+import * as client from "openid-client";
+import { Strategy, type VerifyFunction } from "openid-client/passport";
+
+import passport from "passport";
+import session from "express-session";
+import type { Express, RequestHandler } from "express";
+import memoize from "memoizee";
+import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import type { User } from "@shared/schema";
 
@@ -6,21 +13,171 @@ import type { User } from "@shared/schema";
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: any;
     }
   }
 }
 
-// Middleware to load user from session
-export async function loadUser(req: Request, res: Response, next: NextFunction) {
+const getOidcConfig = memoize(
+  async () => {
+    return await client.discovery(
+      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      process.env.REPL_ID!
+    );
+  },
+  { maxAge: 3600 * 1000 }
+);
+
+export function getSession() {
+  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const pgStore = connectPg(session);
+  const sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: false,
+    ttl: sessionTtl,
+    tableName: "sessions",
+  });
+  return session({
+    secret: process.env.SESSION_SECRET!,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      maxAge: sessionTtl,
+    },
+  });
+}
+
+function updateUserSession(
+  user: any,
+  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
+) {
+  user.claims = tokens.claims();
+  user.access_token = tokens.access_token;
+  user.refresh_token = tokens.refresh_token;
+  user.expires_at = user.claims?.exp;
+}
+
+async function upsertUser(
+  claims: any,
+) {
+  await storage.upsertUser({
+    id: claims["sub"],
+    email: claims["email"],
+    firstName: claims["first_name"],
+    lastName: claims["last_name"],
+    profileImageUrl: claims["profile_image_url"],
+  });
+}
+
+export async function setupAuth(app: Express) {
+  app.set("trust proxy", 1);
+  app.use(getSession());
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  const config = await getOidcConfig();
+
+  const verify: VerifyFunction = async (
+    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
+    verified: passport.AuthenticateCallback
+  ) => {
+    const user = {};
+    updateUserSession(user, tokens);
+    await upsertUser(tokens.claims());
+    verified(null, user);
+  };
+
+  // Keep track of registered strategies
+  const registeredStrategies = new Set<string>();
+
+  // Helper function to ensure strategy exists for a domain
+  const ensureStrategy = (domain: string) => {
+    const strategyName = `replitauth:${domain}`;
+    if (!registeredStrategies.has(strategyName)) {
+      const strategy = new Strategy(
+        {
+          name: strategyName,
+          config,
+          scope: "openid email profile offline_access",
+          callbackURL: `https://${domain}/api/callback`,
+        },
+        verify,
+      );
+      passport.use(strategy);
+      registeredStrategies.add(strategyName);
+    }
+  };
+
+  passport.serializeUser((user: Express.User, cb) => cb(null, user));
+  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+  app.get("/api/login", (req, res, next) => {
+    ensureStrategy(req.hostname);
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
+  });
+
+  app.get("/api/callback", (req, res, next) => {
+    ensureStrategy(req.hostname);
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      successReturnToOrRedirect: "/",
+      failureRedirect: "/api/login",
+    })(req, res, next);
+  });
+
+  app.get("/api/logout", (req, res) => {
+    req.logout(() => {
+      res.redirect(
+        client.buildEndSessionUrl(config, {
+          client_id: process.env.REPL_ID!,
+          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+        }).href
+      );
+    });
+  });
+}
+
+export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  const user = req.user as any;
+
+  if (!req.isAuthenticated() || !user.expires_at) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now <= user.expires_at) {
+    return next();
+  }
+
+  const refreshToken = user.refresh_token;
+  if (!refreshToken) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
   try {
-    // Replit Auth stores the user ID in the session
-    const userId = (req as any).session?.userId;
-    
-    if (userId) {
-      const user = await storage.getUser(userId);
-      if (user) {
-        req.user = user;
+    const config = await getOidcConfig();
+    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+    updateUserSession(user, tokenResponse);
+    return next();
+  } catch (error) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+};
+
+// Middleware to load user from session for backward compatibility
+export async function loadUser(req: any, res: any, next: any) {
+  try {
+    if (req.user?.claims?.sub) {
+      const dbUser = await storage.getUser(req.user.claims.sub);
+      if (dbUser) {
+        req.user.dbUser = dbUser;
       }
     }
     next();
@@ -31,35 +188,20 @@ export async function loadUser(req: Request, res: Response, next: NextFunction) 
 }
 
 // Middleware to require authentication
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
+export function requireAuth(req: any, res: any, next: any) {
+  if (!req.user?.dbUser) {
     return res.status(401).json({ message: "Unauthorized - Authentication required" });
   }
   next();
 }
 
-// Middleware to require specific role
-export function requireRole(role: 'customer' | 'admin' | 'agent') {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized - Authentication required" });
-    }
-    
-    if (req.user.role !== role) {
-      return res.status(403).json({ message: `Forbidden - ${role} role required` });
-    }
-    
-    next();
-  };
-}
-
 // Middleware to require admin role
-export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
+export function requireAdmin(req: any, res: any, next: any) {
+  if (!req.user?.dbUser) {
     return res.status(401).json({ message: "Unauthorized - Authentication required" });
   }
   
-  if (req.user.role !== 'admin') {
+  if (req.user.dbUser.role !== 'admin') {
     return res.status(403).json({ message: "Forbidden - Admin access required" });
   }
   

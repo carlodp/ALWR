@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { loadUser, requireAuth, requireAdmin } from "./replitAuth";
+import { setupAuth, loadUser, requireAuth, requireAdmin } from "./replitAuth";
 import { getUncachableStripeClient, getProductByPriceId } from "./stripeClient";
 import multer from "multer";
 import { randomUUID } from "crypto";
@@ -44,6 +44,9 @@ function generateIdCardNumber(): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication first
+  await setupAuth(app);
+  
   // Apply loadUser middleware to all routes
   app.use(loadUser);
 
@@ -52,23 +55,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Get current user
-  app.get("/api/auth/user", async (req: Request, res: Response) => {
+  app.get("/api/auth/user", async (req: any, res: Response) => {
     try {
-      if (!req.user) {
+      if (!req.user?.dbUser) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      res.json(req.user);
+      res.json(req.user.dbUser);
     } catch (error) {
       console.error("Error getting user:", error);
       res.status(500).json({ message: "Internal server error" });
     }
-  });
-
-  // Logout
-  app.post("/api/logout", (req: Request, res: Response) => {
-    (req as any).session?.destroy(() => {
-      res.json({ success: true });
-    });
   });
 
   // ============================================================================
@@ -76,14 +72,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Get customer profile
-  app.get("/api/customer/profile", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/customer/profile", requireAuth, async (req: any, res: Response) => {
     try {
-      let customer = await storage.getCustomer(req.user!.id);
+      let customer = await storage.getCustomer(req.user.dbUser.id);
       
       // Auto-create customer profile if it doesn't exist
       if (!customer) {
         customer = await storage.createCustomer({
-          userId: req.user!.id,
+          userId: req.user.dbUser.id,
           idCardNumber: generateIdCardNumber(),
           idCardIssuedDate: new Date(),
         });
@@ -97,9 +93,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update customer profile
-  app.put("/api/customer/profile", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/customer/profile", requireAuth, async (req: any, res: Response) => {
     try {
-      const customer = await storage.getCustomer(req.user!.id);
+      const customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -112,9 +108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log profile update
       await storage.createAuditLog({
-        userId: req.user!.id,
-        actorName: `${req.user!.firstName} ${req.user!.lastName}`,
-        actorRole: req.user!.role,
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
         action: 'profile_update',
         resourceType: 'customer',
         resourceId: customer.id,
@@ -139,9 +135,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Get customer subscription
-  app.get("/api/customer/subscription", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/customer/subscription", requireAuth, async (req: any, res: Response) => {
     try {
-      const customer = await storage.getCustomer(req.user!.id);
+      const customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -155,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create Stripe Checkout Session
-  app.post("/api/checkout", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/checkout", requireAuth, async (req: any, res: Response) => {
     try {
       // Validate request body
       const checkoutSchema = z.object({
@@ -168,10 +164,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid price ID" });
       }
 
-      let customer = await storage.getCustomer(req.user!.id);
+      let customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer) {
         customer = await storage.createCustomer({
-          userId: req.user!.id,
+          userId: req.user.dbUser.id,
           idCardNumber: generateIdCardNumber(),
           idCardIssuedDate: new Date(),
         });
@@ -184,10 +180,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let stripeCustomerId = customer.stripeCustomerId;
       if (!stripeCustomerId) {
         const stripeCustomer = await stripe.customers.create({
-          email: req.user!.email || undefined,
-          name: `${req.user!.firstName} ${req.user!.lastName}`,
+          email: req.user.dbUser.email || undefined,
+          name: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
           metadata: {
-            userId: req.user!.id,
+            userId: req.user.dbUser.id,
             customerId: customer.id,
           },
         });
@@ -208,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success_url: `${process.env.REPL_HOME || 'http://localhost:5000'}/customer/subscription?success=true`,
         cancel_url: `${process.env.REPL_HOME || 'http://localhost:5000'}/customer/subscription?canceled=true`,
         metadata: {
-          userId: req.user!.id,
+          userId: req.user.dbUser.id,
           customerId: customer.id,
         },
       });
@@ -224,9 +220,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create Customer Portal Session
-  app.post("/api/customer/subscription/portal", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/customer/subscription/portal", requireAuth, async (req: any, res: Response) => {
     try {
-      const customer = await storage.getCustomer(req.user!.id);
+      const customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer?.stripeCustomerId) {
         return res.status(400).json({ message: "No Stripe customer found" });
       }
@@ -249,13 +245,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Upload document
-  app.post("/api/customer/documents/upload", requireAuth, upload.single('file'), async (req: Request, res: Response) => {
+  app.post("/api/customer/documents/upload", requireAuth, upload.single('file'), async (req: any, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const customer = await storage.getCustomer(req.user!.id);
+      const customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -279,14 +275,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeType: req.file.mimetype,
         storageKey,
         description: description || null,
-        uploadedBy: req.user!.id,
+        uploadedBy: req.user.dbUser.id,
       });
 
       // Log document upload
       await storage.createAuditLog({
-        userId: req.user!.id,
-        actorName: `${req.user!.firstName} ${req.user!.lastName}`,
-        actorRole: req.user!.role,
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
         action: 'document_upload',
         resourceType: 'document',
         resourceId: document.id,
@@ -307,9 +303,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // List customer documents
-  app.get("/api/customer/documents", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/customer/documents", requireAuth, async (req: any, res: Response) => {
     try {
-      const customer = await storage.getCustomer(req.user!.id);
+      const customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer) {
         return res.json([]);
       }
@@ -323,14 +319,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download document
-  app.get("/api/customer/documents/:id/download", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/customer/documents/:id/download", requireAuth, async (req: any, res: Response) => {
     try {
       const document = await storage.getDocument(req.params.id);
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
       }
 
-      const customer = await storage.getCustomer(req.user!.id);
+      const customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer || document.customerId !== customer.id) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -338,9 +334,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log document access
       await storage.incrementDocumentAccess(document.id);
       await storage.createAuditLog({
-        userId: req.user!.id,
-        actorName: `${req.user!.firstName} ${req.user!.lastName}`,
-        actorRole: req.user!.role,
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
         action: 'document_download',
         resourceType: 'document',
         resourceId: document.id,
@@ -363,14 +359,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete document
-  app.delete("/api/customer/documents/:id", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/customer/documents/:id", requireAuth, async (req: any, res: Response) => {
     try {
       const document = await storage.getDocument(req.params.id);
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
       }
 
-      const customer = await storage.getCustomer(req.user!.id);
+      const customer = await storage.getCustomer(req.user.dbUser.id);
       if (!customer || document.customerId !== customer.id) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -379,9 +375,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log document deletion
       await storage.createAuditLog({
-        userId: req.user!.id,
-        actorName: `${req.user!.firstName} ${req.user!.lastName}`,
-        actorRole: req.user!.role,
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
         action: 'document_delete',
         resourceType: 'document',
         resourceId: document.id,
@@ -510,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Admin dashboard stats
-  app.get("/api/admin/dashboard", requireAdmin, async (req: Request, res: Response) => {
+  app.get("/api/admin/dashboard", requireAdmin, async (req: any, res: Response) => {
     try {
       const stats = await storage.getDashboardStats();
       
@@ -533,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // List all customers (admin)
-  app.get("/api/admin/customers", requireAdmin, async (req: Request, res: Response) => {
+  app.get("/api/admin/customers", requireAdmin, async (req: any, res: Response) => {
     try {
       const customers = await storage.listCustomers(100, 0);
       
@@ -561,7 +557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get audit logs (admin)
-  app.get("/api/admin/audit-logs", requireAdmin, async (req: Request, res: Response) => {
+  app.get("/api/admin/audit-logs", requireAdmin, async (req: any, res: Response) => {
     try {
       const logs = await storage.listAuditLogs(100, 0);
       res.json(logs);
