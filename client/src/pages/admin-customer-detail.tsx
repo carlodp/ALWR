@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +15,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileText, Mail, Phone, MapPin, AlertCircle, Save } from "lucide-react";
-import type { Customer, User, Document, Subscription, CustomerNote } from "@shared/schema";
+import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X } from "lucide-react";
+import type { Customer, User, Document, Subscription } from "@shared/schema";
 
-interface CustomerDetail extends Customer {
+interface CustomerNote {
+  id: string;
+  createdAt: Date;
+  userId: string;
+  customerId: string;
+  noteText: string;
+}
+
+interface CustomerDetail extends Omit<Customer, 'notes'> {
   user: User;
   documents: Document[];
   subscription?: Subscription;
@@ -28,22 +37,53 @@ const noteSchema = z.object({
   noteText: z.string().min(1, "Note cannot be empty").max(1000, "Note is too long"),
 });
 
+const editCustomerSchema = z.object({
+  phone: z.string().optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")),
+  city: z.string().optional().or(z.literal("")),
+  state: z.string().optional().or(z.literal("")),
+  zipCode: z.string().optional().or(z.literal("")),
+  emergencyContactName: z.string().optional().or(z.literal("")),
+  emergencyContactPhone: z.string().optional().or(z.literal("")),
+  emergencyContactRelationship: z.string().optional().or(z.literal("")),
+});
+
 type NoteFormData = z.infer<typeof noteSchema>;
+type EditCustomerData = z.infer<typeof editCustomerSchema>;
 
 export default function AdminCustomerDetail() {
   const { id } = useParams();
   const { toast } = useToast();
   const { isAdmin } = useAuth();
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  const form = useForm<NoteFormData>({
+  const noteForm = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
     defaultValues: { noteText: "" },
+  });
+
+  const editForm = useForm<EditCustomerData>({
+    resolver: zodResolver(editCustomerSchema),
   });
 
   const { data: customer, isLoading } = useQuery<CustomerDetail>({
     queryKey: [`/api/admin/customers/${id}`],
     enabled: !!id && isAdmin,
   });
+
+  // Update edit form when customer data loads
+  if (customer && editForm.formState.isDirty === false && !isEditMode) {
+    editForm.reset({
+      phone: customer.phone || "",
+      address: customer.address || "",
+      city: customer.city || "",
+      state: customer.state || "",
+      zipCode: customer.zipCode || "",
+      emergencyContactName: customer.emergencyContactName || "",
+      emergencyContactPhone: customer.emergencyContactPhone || "",
+      emergencyContactRelationship: customer.emergencyContactRelationship || "",
+    });
+  }
 
   const notesMutation = useMutation({
     mutationFn: async (noteText: string) => {
@@ -52,7 +92,7 @@ export default function AdminCustomerDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${id}`] });
-      form.reset();
+      noteForm.reset();
       toast({ title: "Note added successfully" });
     },
     onError: () => {
@@ -60,8 +100,28 @@ export default function AdminCustomerDetail() {
     },
   });
 
+  const editMutation = useMutation({
+    mutationFn: async (data: EditCustomerData) => {
+      const res = await apiRequest("PUT", `/api/admin/customers/${id}`, data);
+      if (!res.ok) throw new Error("Failed to update customer");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${id}`] });
+      toast({ title: "Customer updated successfully" });
+      setIsEditMode(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update customer", variant: "destructive" });
+    },
+  });
+
   const onSubmitNote = async (data: NoteFormData) => {
     notesMutation.mutate(data.noteText);
+  };
+
+  const onSubmitEdit = async (data: EditCustomerData) => {
+    editMutation.mutate(data);
   };
 
   if (isLoading) {
@@ -98,11 +158,24 @@ export default function AdminCustomerDetail() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4 space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">
-          {customer.user.firstName} {customer.user.lastName}
-        </h1>
-        <p className="text-muted-foreground">Customer ID: {customer.id.substring(0, 8)}</p>
+      <div className="flex justify-between items-start">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">
+            {customer.user.firstName} {customer.user.lastName}
+          </h1>
+          <p className="text-muted-foreground">Customer ID: {customer.id.substring(0, 8)}</p>
+        </div>
+        {!isEditMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditMode(true)}
+            data-testid="button-edit-customer"
+          >
+            <Edit2 className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
@@ -115,62 +188,220 @@ export default function AdminCustomerDetail() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-              <CardDescription>Customer details and emergency contact</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex gap-2 items-start">
-                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Email</p>
-                    <p className="font-medium">{customer.user.email}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 items-start">
-                  <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Phone</p>
-                    <p className="font-medium">{customer.phone || "—"}</p>
-                  </div>
-                </div>
-              </div>
+          {isEditMode ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Edit Customer Information</CardTitle>
+                <CardDescription>Update customer contact and emergency information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...editForm}>
+                  <form onSubmit={editForm.handleSubmit(onSubmitEdit)} className="space-y-6">
+                    {/* Contact Information */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Contact Information</h3>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={editForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl>
+                                <Input placeholder="(555) 123-4567" {...field} data-testid="input-edit-phone" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address</FormLabel>
+                              <FormControl>
+                                <Input placeholder="123 Main St" {...field} data-testid="input-edit-address" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-              <div className="flex gap-2 items-start">
-                <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Address</p>
-                  <p className="font-medium">
-                    {customer.address && `${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode}`}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <FormField
+                          control={editForm.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl>
+                                <Input placeholder="New York" {...field} data-testid="input-edit-city" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <FormControl>
+                                <Input placeholder="NY" {...field} data-testid="input-edit-state" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="zipCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ZIP Code</FormLabel>
+                              <FormControl>
+                                <Input placeholder="10001" {...field} data-testid="input-edit-zipCode" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Emergency Contact</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Name</p>
-                  <p className="font-medium">{customer.emergencyContactName || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Relationship</p>
-                  <p className="font-medium">{customer.emergencyContactRelationship || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Phone</p>
-                  <p className="font-medium">{customer.emergencyContactPhone || "—"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    {/* Emergency Contact */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="font-medium">Emergency Contact</h3>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={editForm.control}
+                          name="emergencyContactName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Jane Smith" {...field} data-testid="input-edit-ecName" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="emergencyContactRelationship"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Relationship</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Spouse" {...field} data-testid="input-edit-ecRelationship" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={editForm.control}
+                        name="emergencyContactPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone</FormLabel>
+                            <FormControl>
+                              <Input placeholder="(555) 123-4568" {...field} data-testid="input-edit-ecPhone" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-4 pt-4 border-t">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditMode(false);
+                          editForm.reset();
+                        }}
+                        data-testid="button-cancel-edit"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={editMutation.isPending} data-testid="button-save-customer">
+                        <Save className="h-4 w-4 mr-2" />
+                        {editMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Contact Information</CardTitle>
+                  <CardDescription>Customer details and emergency contact</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex gap-2 items-start">
+                      <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Email</p>
+                        <p className="font-medium">{customer.user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                        <p className="font-medium">{customer.phone || "—"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 items-start">
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-muted-foreground">Address</p>
+                      <p className="font-medium">
+                        {customer.address && `${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode}`}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Emergency Contact</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Name</p>
+                      <p className="font-medium">{customer.emergencyContactName || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Relationship</p>
+                      <p className="font-medium">{customer.emergencyContactRelationship || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                      <p className="font-medium">{customer.emergencyContactPhone || "—"}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           <Card>
             <CardHeader>
@@ -323,7 +554,7 @@ export default function AdminCustomerDetail() {
                     <div key={note.id} className="p-3 rounded-lg border space-y-1">
                       <p className="text-sm font-medium">{note.noteText}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(note.createdAt).toLocaleString()}
+                        {note.createdAt ? new Date(note.createdAt).toLocaleString() : "Unknown date"}
                       </p>
                     </div>
                   ))}
