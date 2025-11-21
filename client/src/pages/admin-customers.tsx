@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, FileText, CreditCard, User as UserIcon } from "lucide-react";
+import { Search, Eye, FileText, CreditCard, User as UserIcon, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Customer, User } from "@shared/schema";
 
@@ -18,6 +19,7 @@ type CustomerWithUser = Customer & {
 
 export default function AdminCustomers() {
   const { isAdmin } = useAuth();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: customers, isLoading } = useQuery<CustomerWithUser[]>({
@@ -65,15 +67,24 @@ export default function AdminCustomers() {
                 {customers?.length || 0} total customer{customers?.length !== 1 ? 's' : ''}
               </CardDescription>
             </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search customers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-                data-testid="input-search"
-              />
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search customers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search"
+                />
+              </div>
+              <Button
+                onClick={() => setLocation("/admin/customers/new")}
+                data-testid="button-create-customer"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Customer
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -143,12 +154,10 @@ export default function AdminCustomers() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          asChild
+                          onClick={() => setLocation(`/admin/customers/${customer.id}`)}
                           data-testid={`button-view-${customer.id}`}
                         >
-                          <a href={`/admin/customers/${customer.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </a>
+                          <Eye className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>

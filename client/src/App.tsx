@@ -15,6 +15,8 @@ import CustomerSubscription from "@/pages/customer-subscription";
 import CustomerIdCard from "@/pages/customer-id-card";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminCustomers from "@/pages/admin-customers";
+import AdminCustomerDetail from "@/pages/admin-customer-detail";
+import AdminCreateCustomer from "@/pages/admin-create-customer";
 import AdminAuditLogs from "@/pages/admin-audit-logs";
 import EmergencyAccess from "@/pages/emergency-access";
 
@@ -44,6 +46,8 @@ function Router() {
           {/* Admin Routes */}
           <Route path="/admin/dashboard" component={AdminDashboard} />
           <Route path="/admin/customers" component={AdminCustomers} />
+          <Route path="/admin/customers/new" component={AdminCreateCustomer} />
+          <Route path="/admin/customers/:id" component={AdminCustomerDetail} />
           <Route path="/admin/audit-logs" component={AdminAuditLogs} />
           
           {/* Emergency Access - available to all */}
