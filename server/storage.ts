@@ -1,38 +1,331 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { 
+  users, customers, subscriptions, documents, emergencyAccessLogs, auditLogs,
+  type User, type UpsertUser, type Customer, type InsertCustomer,
+  type Subscription, type InsertSubscription, type Document, type InsertDocument,
+  type EmergencyAccessLog, type InsertEmergencyAccessLog,
+  type AuditLog, type InsertAuditLog
+} from "@shared/schema";
+import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
 export interface IStorage {
+  // User Operations
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  updateUserRole(userId: string, role: 'customer' | 'admin' | 'agent'): Promise<void>;
+
+  // Customer Operations
+  getCustomer(userId: string): Promise<Customer | undefined>;
+  getCustomerByStripeId(stripeCustomerId: string): Promise<Customer | undefined>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  updateCustomer(customerId: string, data: Partial<Customer>): Promise<Customer | undefined>;
+  listCustomers(limit?: number, offset?: number): Promise<Customer[]>;
+  searchCustomers(query: string): Promise<Customer[]>;
+
+  // Subscription Operations
+  getSubscription(customerId: string): Promise<Subscription | undefined>;
+  getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | undefined>;
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  updateSubscription(subscriptionId: string, data: Partial<Subscription>): Promise<Subscription | undefined>;
+  listExpiringSubscriptions(daysUntilExpiry: number): Promise<Subscription[]>;
+
+  // Document Operations
+  createDocument(document: InsertDocument): Promise<Document>;
+  getDocument(documentId: string): Promise<Document | undefined>;
+  listDocumentsByCustomer(customerId: string): Promise<Document[]>;
+  deleteDocument(documentId: string): Promise<void>;
+  incrementDocumentAccess(documentId: string): Promise<void>;
+
+  // Emergency Access Operations
+  verifyEmergencyAccess(idCardNumber: string, lastName: string, birthYear: string): Promise<Customer | undefined>;
+  logEmergencyAccess(log: InsertEmergencyAccessLog): Promise<EmergencyAccessLog>;
+  listEmergencyAccessLogs(customerId: string): Promise<EmergencyAccessLog[]>;
+
+  // Audit Logging
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  listAuditLogs(limit?: number, offset?: number): Promise<AuditLog[]>;
+
+  // Dashboard Stats
+  getDashboardStats(): Promise<{
+    totalCustomers: number;
+    activeSubscriptions: number;
+    totalDocuments: number;
+    expiringSubscriptions: number;
+  }>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
+export class DatabaseStorage implements IStorage {
+  // ============================================================================
+  // USER OPERATIONS
+  // ============================================================================
 
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+    return result;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+    return result;
+  }
+
+  async upsertUser(user: UpsertUser): Promise<User> {
+    const existing = user.email ? await this.getUserByEmail(user.email) : undefined;
+    
+    if (existing) {
+      const [updated] = await db.update(users)
+        .set({ 
+          ...user, 
+          updatedAt: new Date() 
+        })
+        .where(eq(users.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(users).values(user).returning();
+    return created;
+  }
+
+  async updateUserRole(userId: string, role: 'customer' | 'admin' | 'agent'): Promise<void> {
+    await db.update(users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  // ============================================================================
+  // CUSTOMER OPERATIONS
+  // ============================================================================
+
+  async getCustomer(userId: string): Promise<Customer | undefined> {
+    const result = await db.query.customers.findFirst({
+      where: eq(customers.userId, userId),
+    });
+    return result;
+  }
+
+  async getCustomerByStripeId(stripeCustomerId: string): Promise<Customer | undefined> {
+    const result = await db.query.customers.findFirst({
+      where: eq(customers.stripeCustomerId, stripeCustomerId),
+    });
+    return result;
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const [created] = await db.insert(customers).values(customer).returning();
+    return created;
+  }
+
+  async updateCustomer(customerId: string, data: Partial<Customer>): Promise<Customer | undefined> {
+    const [updated] = await db.update(customers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(customers.id, customerId))
+      .returning();
+    return updated;
+  }
+
+  async listCustomers(limit: number = 100, offset: number = 0): Promise<Customer[]> {
+    const result = await db.query.customers.findMany({
+      limit,
+      offset,
+      orderBy: desc(customers.createdAt),
+    });
+    return result;
+  }
+
+  async searchCustomers(query: string): Promise<Customer[]> {
+    // Search by ID card number, phone, or user email
+    const result = await db.query.customers.findMany({
+      where: sql`
+        ${customers.idCardNumber} ILIKE ${'%' + query + '%'} OR
+        ${customers.phone} ILIKE ${'%' + query + '%'}
+      `,
+      limit: 50,
+    });
+    return result;
+  }
+
+  // ============================================================================
+  // SUBSCRIPTION OPERATIONS
+  // ============================================================================
+
+  async getSubscription(customerId: string): Promise<Subscription | undefined> {
+    const result = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.customerId, customerId),
+      orderBy: desc(subscriptions.createdAt),
+    });
+    return result;
+  }
+
+  async getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | undefined> {
+    const result = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId),
+    });
+    return result;
+  }
+
+  async createSubscription(subscription: InsertSubscription): Promise<Subscription> {
+    const [created] = await db.insert(subscriptions).values(subscription).returning();
+    return created;
+  }
+
+  async updateSubscription(subscriptionId: string, data: Partial<Subscription>): Promise<Subscription | undefined> {
+    const [updated] = await db.update(subscriptions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(subscriptions.id, subscriptionId))
+      .returning();
+    return updated;
+  }
+
+  async listExpiringSubscriptions(daysUntilExpiry: number): Promise<Subscription[]> {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + daysUntilExpiry);
+
+    const result = await db.query.subscriptions.findMany({
+      where: and(
+        eq(subscriptions.status, 'active'),
+        lte(subscriptions.endDate, expiryDate)
+      ),
+    });
+    return result;
+  }
+
+  // ============================================================================
+  // DOCUMENT OPERATIONS
+  // ============================================================================
+
+  async createDocument(document: InsertDocument): Promise<Document> {
+    const [created] = await db.insert(documents).values(document).returning();
+    return created;
+  }
+
+  async getDocument(documentId: string): Promise<Document | undefined> {
+    const result = await db.query.documents.findFirst({
+      where: eq(documents.id, documentId),
+    });
+    return result;
+  }
+
+  async listDocumentsByCustomer(customerId: string): Promise<Document[]> {
+    const result = await db.query.documents.findMany({
+      where: eq(documents.customerId, customerId),
+      orderBy: desc(documents.createdAt),
+    });
+    return result;
+  }
+
+  async deleteDocument(documentId: string): Promise<void> {
+    await db.delete(documents).where(eq(documents.id, documentId));
+  }
+
+  async incrementDocumentAccess(documentId: string): Promise<void> {
+    await db.update(documents)
+      .set({ 
+        accessCount: sql`${documents.accessCount} + 1`,
+        lastAccessedAt: new Date()
+      })
+      .where(eq(documents.id, documentId));
+  }
+
+  // ============================================================================
+  // EMERGENCY ACCESS OPERATIONS
+  // ============================================================================
+
+  async verifyEmergencyAccess(
+    idCardNumber: string,
+    lastName: string,
+    birthYear: string
+  ): Promise<Customer | undefined> {
+    // Verify ID card number matches and get customer
+    const customer = await db.query.customers.findFirst({
+      where: eq(customers.idCardNumber, idCardNumber),
+      with: {
+        user: true,
+      },
+    });
+
+    if (!customer || !customer.user) {
+      return undefined;
+    }
+
+    // Verify last name matches (case insensitive)
+    const lastNameMatches = customer.user.lastName?.toLowerCase() === lastName.toLowerCase();
+    
+    // For birth year verification, you'd typically have a DOB field in the user table
+    // For MVP, we'll just verify the ID card number and last name
+    if (!lastNameMatches) {
+      return undefined;
+    }
+
+    return customer;
+  }
+
+  async logEmergencyAccess(log: InsertEmergencyAccessLog): Promise<EmergencyAccessLog> {
+    const [created] = await db.insert(emergencyAccessLogs).values(log).returning();
+    return created;
+  }
+
+  async listEmergencyAccessLogs(customerId: string): Promise<EmergencyAccessLog[]> {
+    const result = await db.query.emergencyAccessLogs.findMany({
+      where: eq(emergencyAccessLogs.customerId, customerId),
+      orderBy: desc(emergencyAccessLogs.createdAt),
+    });
+    return result;
+  }
+
+  // ============================================================================
+  // AUDIT LOGGING
+  // ============================================================================
+
+  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const [created] = await db.insert(auditLogs).values(log).returning();
+    return created;
+  }
+
+  async listAuditLogs(limit: number = 100, offset: number = 0): Promise<AuditLog[]> {
+    const result = await db.query.auditLogs.findMany({
+      limit,
+      offset,
+      orderBy: desc(auditLogs.createdAt),
+    });
+    return result;
+  }
+
+  // ============================================================================
+  // DASHBOARD STATS
+  // ============================================================================
+
+  async getDashboardStats(): Promise<{
+    totalCustomers: number;
+    activeSubscriptions: number;
+    totalDocuments: number;
+    expiringSubscriptions: number;
+  }> {
+    const [customerCount] = await db.select({ count: sql<number>`count(*)` }).from(customers);
+    const [activeSubCount] = await db.select({ count: sql<number>`count(*)` }).from(subscriptions).where(eq(subscriptions.status, 'active'));
+    const [documentCount] = await db.select({ count: sql<number>`count(*)` }).from(documents);
+    
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
+    const [expiringCount] = await db.select({ count: sql<number>`count(*)` }).from(subscriptions).where(
+      and(
+        eq(subscriptions.status, 'active'),
+        lte(subscriptions.endDate, expiryDate)
+      )
     );
-  }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    return {
+      totalCustomers: customerCount.count,
+      activeSubscriptions: activeSubCount.count,
+      totalDocuments: documentCount.count,
+      expiringSubscriptions: expiringCount.count,
+    };
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

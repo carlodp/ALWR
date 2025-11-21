@@ -1,0 +1,336 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileText, Upload, Download, Trash2, Search, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import type { Document } from "@shared/schema";
+
+export default function CustomerDocuments() {
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState<string>("living_will");
+  const [description, setDescription] = useState("");
+
+  const { data: documents, isLoading } = useQuery<Document[]>({
+    queryKey: ["/api/customer/documents"],
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await apiRequest("POST", "/api/customer/documents/upload", formData);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document uploaded",
+        description: "Your document has been securely uploaded.",
+      });
+      setSelectedFile(null);
+      setDescription("");
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/documents"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload document. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      await apiRequest("DELETE", `/api/customer/documents/${documentId}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document deleted",
+        description: "Your document has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/documents"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Deletion failed",
+        description: error.message || "Failed to delete document. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Maximum file size is 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("fileType", documentType);
+    formData.append("description", description);
+
+    uploadMutation.mutate(formData);
+  };
+
+  const filteredDocuments = documents?.filter((doc) =>
+    doc.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  return (
+    <div className="container mx-auto max-w-6xl py-8 px-4 space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl md:text-4xl font-bold">My Documents</h1>
+        <p className="text-muted-foreground text-lg">
+          Manage your medical documents and healthcare directives
+        </p>
+      </div>
+
+      {/* Upload Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload New Document</CardTitle>
+          <CardDescription>
+            Add a new medical document to your secure registry
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpload} className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="file-upload">Document File *</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileSelect}
+                    required
+                    data-testid="input-file-upload"
+                  />
+                </div>
+                {selectedFile && (
+                  <p className="text-sm text-muted-foreground" data-testid="text-selected-file">
+                    Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Accepted formats: PDF, DOC, DOCX (Max 10MB)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="document-type">Document Type *</Label>
+                <Select value={documentType} onValueChange={setDocumentType} required>
+                  <SelectTrigger id="document-type" data-testid="select-document-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="living_will">Living Will</SelectItem>
+                    <SelectItem value="healthcare_directive">Healthcare Directive</SelectItem>
+                    <SelectItem value="power_of_attorney">Power of Attorney</SelectItem>
+                    <SelectItem value="dnr">Do Not Resuscitate (DNR)</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                placeholder="Add notes about this document..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                data-testid="input-description"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={!selectedFile || uploadMutation.isPending}
+              data-testid="button-submit-upload"
+            >
+              {uploadMutation.isPending ? (
+                <>Uploading...</>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Documents List */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div>
+              <CardTitle>Your Documents</CardTitle>
+              <CardDescription>
+                {documents?.length || 0} document{documents?.length !== 1 ? 's' : ''} stored securely
+              </CardDescription>
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search documents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+                data-testid="input-search"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <Skeleton className="h-12 w-12" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <Skeleton className="h-9 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : filteredDocuments && filteredDocuments.length > 0 ? (
+            <div className="space-y-3">
+              {filteredDocuments.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg hover-elevate"
+                  data-testid={`document-card-${doc.id}`}
+                >
+                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 flex-shrink-0">
+                    <FileText className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate" data-testid={`text-filename-${doc.id}`}>
+                      {doc.fileName}
+                    </h3>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      <span className="capitalize">{doc.fileType.replace(/_/g, ' ')}</span>
+                      <span>{formatFileSize(doc.fileSize)}</span>
+                      <span>Uploaded {new Date(doc.createdAt!).toLocaleDateString()}</span>
+                    </div>
+                    {doc.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{doc.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      data-testid={`button-download-${doc.id}`}
+                    >
+                      <a href={`/api/customer/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this document?')) {
+                          deleteMutation.mutate(doc.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                      data-testid={`button-delete-${doc.id}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 space-y-4">
+              <FileText className="h-16 w-16 text-muted-foreground mx-auto opacity-50" />
+              <div className="space-y-2">
+                <p className="font-medium text-lg">
+                  {searchQuery ? 'No documents found' : 'No documents yet'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {searchQuery
+                    ? 'Try adjusting your search query'
+                    : 'Upload your first medical document to get started'
+                  }
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* HIPAA Notice */}
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription className="text-sm">
+          <strong>HIPAA Compliance:</strong> All documents are encrypted and stored securely.
+          Access to your documents is logged and you'll be notified of any emergency access.
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+}
