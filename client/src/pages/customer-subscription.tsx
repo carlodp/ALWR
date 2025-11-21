@@ -132,11 +132,23 @@ export default function CustomerSubscription() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4 space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold">Subscription</h1>
-        <p className="text-muted-foreground text-lg">
-          Manage your ALWR membership and billing
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/")}
+          className="sm:hidden -ml-2"
+          data-testid="button-back-mobile"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div className="space-y-2 flex-1">
+          <h1 className="text-3xl md:text-4xl font-bold">Subscription</h1>
+          <p className="text-muted-foreground text-lg">
+            Manage your ALWR membership and billing
+          </p>
+        </div>
       </div>
 
       {/* Current Subscription */}
