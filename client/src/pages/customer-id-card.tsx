@@ -5,9 +5,60 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Download, AlertCircle, Phone, Globe, ArrowLeft, Printer } from "lucide-react";
+import { CreditCard, Download, AlertCircle, Phone, Globe, ArrowLeft, Printer, FileText } from "lucide-react";
 import type { Customer } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
+
+// Simple PDF generation library
+function generateSimplePDF(cardContent: string, fileName: string) {
+  // Create a simple PDF document
+  const pdfContent = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>
+endobj
+4 0 obj
+<< /Length 800 >>
+stream
+BT
+/F1 24 Tf
+50 700 Td
+(America Living Will Registry) Tj
+0 -40 Td
+/F1 16 Tf
+(Digital ID Card) Tj
+0 -40 Td
+/F1 12 Tf
+${cardContent.split('\n').map((line: string, i: number) => `(${line}) Tj\\n0 -20 Td`).join('\n')}
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000263 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+1100
+%%EOF`;
+
+  const blob = new Blob([pdfContent], { type: 'application/pdf' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
 
 export default function CustomerIdCard() {
   const [, setLocation] = useLocation();
@@ -70,6 +121,25 @@ export default function CustomerIdCard() {
     printWindow.print();
     
     toast({ title: "Print dialog opened" });
+  };
+
+  const handleDownloadPDF = () => {
+    if (!customer?.idCardNumber || !user) return;
+    
+    const cardInfo = [
+      "America Living Will Registry",
+      "Digital ID Card",
+      "",
+      `Registry Number: ${customer.idCardNumber}`,
+      `Name: ${user.firstName} ${user.lastName}`,
+      `Issued: ${customer.idCardIssuedDate ? new Date(customer.idCardIssuedDate).toLocaleDateString() : 'N/A'}`,
+      "",
+      "Emergency Access: alwr.org/emergency",
+      "24/7 Support Available"
+    ].join('\n');
+    
+    generateSimplePDF(cardInfo, `alwr-id-card-${customer.idCardNumber}.pdf`);
+    toast({ title: "ID Card downloaded as PDF" });
   };
 
   if (isLoading) {
@@ -196,14 +266,22 @@ export default function CustomerIdCard() {
               </div>
 
               {/* Download & Print Buttons */}
-              <div className="flex gap-4 mt-8 flex-col sm:flex-row justify-center">
+              <div className="flex gap-4 mt-8 flex-col sm:flex-row justify-center flex-wrap">
                 <Button 
                   variant="outline" 
                   onClick={handleDownloadCard}
-                  data-testid="button-download-card"
+                  data-testid="button-download-card-png"
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Download
+                  Download (PNG)
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleDownloadPDF}
+                  data-testid="button-download-card-pdf"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download (PDF)
                 </Button>
                 <Button 
                   variant="outline" 
