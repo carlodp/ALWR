@@ -59,6 +59,8 @@ ALWR is built with a modern web stack. The frontend utilizes **React** for dynam
 - ✅ Direct print functionality for each card
 - ✅ Integrated with "Ready to Print" customer list
 - ✅ Batch operations support
+- ✅ **Search bar** to find customers by card ID - searchable in real-time
+- ✅ **Full customer list** available (not limited to first 5)
 
 ### UI/UX Decisions:
 - Utilizes **shadcn/ui** for consistent, accessible components.

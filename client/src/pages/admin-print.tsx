@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Printer, Download, Copy, CreditCard, Phone, Globe, FileText, X } from "lucide-react";
+import { Printer, Download, Copy, CreditCard, Phone, Globe, FileText, X, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Customer } from "@shared/schema";
@@ -65,12 +66,20 @@ export default function AdminPrint() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedCard, setSelectedCard] = useState<Customer | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/admin/customers"],
   });
 
-  const printReady = customers?.slice(0, 5) || [];
+  // Filter customers based on search query
+  const filteredCustomers = customers?.filter(customer => {
+    const searchLower = searchQuery.toLowerCase();
+    const idCardMatch = customer.idCardNumber?.toLowerCase().includes(searchLower);
+    return idCardMatch;
+  }) || [];
+
+  const printReady = filteredCustomers;
   const printed = customers?.slice(5, 10) || [];
 
   const handleDownloadCardPNG = (customer: Customer) => {
@@ -196,14 +205,26 @@ export default function AdminPrint() {
           </Card>
 
           <Tabs defaultValue="print-ready" className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="print-ready">
-                Ready to Print ({printReady.length})
-              </TabsTrigger>
-              <TabsTrigger value="printed">
-                Printed ({printed.length})
-              </TabsTrigger>
-            </TabsList>
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by card ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="border-0 focus-visible:ring-0 focus-visible:outline-none"
+                  data-testid="input-search-card"
+                />
+              </div>
+              <TabsList className="w-full">
+                <TabsTrigger value="print-ready" className="flex-1">
+                  Ready to Print ({printReady.length})
+                </TabsTrigger>
+                <TabsTrigger value="printed" className="flex-1">
+                  Printed ({printed.length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="print-ready">
               {printReady.length === 0 ? (
