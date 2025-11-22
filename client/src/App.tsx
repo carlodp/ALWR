@@ -24,6 +24,9 @@ import AdminRenewalReminders from "@/pages/admin-renewal-reminders";
 import AdminReports from "@/pages/admin-reports";
 import AdminUserRoles from "@/pages/admin-user-roles";
 import AdminAuditLogs from "@/pages/admin-audit-logs";
+import AdminEmailTemplates from "@/pages/admin-email-templates";
+import AdminPhysicalCardOrders from "@/pages/admin-physical-card-orders";
+import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
 
 function Router() {
@@ -52,6 +55,8 @@ function Router() {
           <Route path="/admin/reports" component={AdminReports} />
           <Route path="/admin/user-roles" component={AdminUserRoles} />
           <Route path="/admin/audit-logs" component={AdminAuditLogs} />
+          <Route path="/admin/email-templates" component={AdminEmailTemplates} />
+          <Route path="/admin/physical-card-orders" component={AdminPhysicalCardOrders} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
       )}
@@ -66,6 +71,7 @@ function Router() {
           <Route path="/customer/subscription" component={CustomerSubscription} />
           <Route path="/customer/payments" component={CustomerPayments} />
           <Route path="/customer/id-card" component={CustomerIdCard} />
+          <Route path="/customer/physical-card-order" component={CustomerPhysicalCardOrder} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
       )}

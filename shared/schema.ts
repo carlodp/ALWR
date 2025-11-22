@@ -96,6 +96,11 @@ export const customers = pgTable("customers", {
   // ID Card Information
   idCardNumber: varchar("id_card_number").unique(),
   idCardIssuedDate: timestamp("id_card_issued_date"),
+  currentVersion: integer("current_version").default(1),
+  
+  // Referral Tracking
+  referralCode: varchar("referral_code").unique(),
+  referredByCustomerId: varchar("referred_by_customer_id").references(() => customers.id),
   
   // Stripe Integration
   stripeCustomerId: varchar("stripe_customer_id").unique(),
@@ -107,7 +112,78 @@ export const customers = pgTable("customers", {
 }, (table) => [
   index("idx_customer_user_id").on(table.userId),
   index("idx_customer_stripe_id").on(table.stripeCustomerId),
+  index("idx_customer_referral_code").on(table.referralCode),
 ]);
+
+// ============================================================================
+// CUSTOMER TAGS & SEGMENTS
+// ============================================================================
+
+export const customerTags = pgTable("customer_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").references(() => customers.id).notNull(),
+  tag: varchar("tag").notNull(), // e.g., "Rotary", "Seminars", "Direct", "Agent"
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_customer_tags_customer_id").on(table.customerId),
+  index("idx_customer_tags_tag").on(table.tag),
+]);
+
+// ============================================================================
+// PHYSICAL CARD ORDERS
+// ============================================================================
+
+const cardOrderStatusEnum = pgEnum('alwr_card_order_status', [
+  'requested',
+  'printed',
+  'shipped',
+  'delivered',
+  'cancelled'
+]);
+
+export const physicalCardOrders = pgTable("physical_card_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").references(() => customers.id).notNull(),
+  idCardNumber: varchar("id_card_number").notNull(),
+  
+  // Address for mailing
+  recipientName: varchar("recipient_name").notNull(),
+  recipientAddress: text("recipient_address").notNull(),
+  recipientCity: varchar("recipient_city").notNull(),
+  recipientState: varchar("recipient_state").notNull(),
+  recipientZip: varchar("recipient_zip").notNull(),
+  
+  // Order tracking
+  status: cardOrderStatusEnum("status").default('requested').notNull(),
+  trackingNumber: varchar("tracking_number"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
+  
+  // Cost
+  shippingCost: integer("shipping_cost"), // in cents
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_card_order_customer_id").on(table.customerId),
+  index("idx_card_order_status").on(table.status),
+]);
+
+// ============================================================================
+// EMAIL TEMPLATES
+// ============================================================================
+
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(), // e.g., "Renewal Reminder", "Welcome"
+  subject: varchar("subject").notNull(),
+  content: text("content").notNull(), // HTML content
+  category: varchar("category"), // e.g., "auto", "manual", "system"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // ============================================================================
 // SUBSCRIPTION MANAGEMENT
@@ -408,6 +484,23 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   createdAt: true,
 });
 
+export const insertCustomerTagSchema = createInsertSchema(customerTags).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPhysicalCardOrderSchema = createInsertSchema(physicalCardOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -432,3 +525,12 @@ export type CustomerNote = typeof customerNotes.$inferSelect;
 
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
+
+export type InsertCustomerTag = z.infer<typeof insertCustomerTagSchema>;
+export type CustomerTag = typeof customerTags.$inferSelect;
+
+export type InsertPhysicalCardOrder = z.infer<typeof insertPhysicalCardOrderSchema>;
+export type PhysicalCardOrder = typeof physicalCardOrders.$inferSelect;
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;

@@ -1365,6 +1365,151 @@ startxref
     }
   });
 
+  // ============================================================================
+  // CUSTOMER TAGS ROUTES
+  // ============================================================================
+
+  app.post("/api/customers/:id/tags", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { tag } = req.body;
+      
+      const customer = await storage.getCustomerById(id);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+      
+      const created = await storage.addCustomerTag({ customerId: id, tag });
+      res.json(created);
+    } catch (error) {
+      console.error("Error adding tag:", error);
+      res.status(500).json({ message: "Failed to add tag" });
+    }
+  });
+
+  app.delete("/api/customers/:id/tags/:tag", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id, tag } = req.params;
+      await storage.removeCustomerTag(id, tag);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing tag:", error);
+      res.status(500).json({ message: "Failed to remove tag" });
+    }
+  });
+
+  app.get("/api/customers/:id/tags", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomerById(id);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+      
+      const tags = await storage.listCustomerTags(id);
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      res.status(500).json({ message: "Failed to fetch tags" });
+    }
+  });
+
+  // ============================================================================
+  // PHYSICAL CARD ORDERS ROUTES
+  // ============================================================================
+
+  app.post("/api/physical-card-orders", requireAuth, async (req: any, res: Response) => {
+    try {
+      const customer = await storage.getCustomer(req.user.dbUser.id);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+      
+      const order = await storage.createPhysicalCardOrder({
+        customerId: customer.id,
+        idCardNumber: customer.idCardNumber!,
+        recipientName: req.body.recipientName,
+        recipientAddress: req.body.recipientAddress,
+        recipientCity: req.body.recipientCity,
+        recipientState: req.body.recipientState,
+        recipientZip: req.body.recipientZip,
+      });
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error creating card order:", error);
+      res.status(500).json({ message: "Failed to create card order" });
+    }
+  });
+
+  app.get("/api/physical-card-orders", requireAuth, async (req: any, res: Response) => {
+    try {
+      const customer = await storage.getCustomer(req.user.dbUser.id);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+      
+      const orders = await storage.listPhysicalCardOrders(customer.id);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching card orders:", error);
+      res.status(500).json({ message: "Failed to fetch card orders" });
+    }
+  });
+
+  app.patch("/api/physical-card-orders/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const updated = await storage.updatePhysicalCardOrder(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ message: "Order not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating card order:", error);
+      res.status(500).json({ message: "Failed to update card order" });
+    }
+  });
+
+  // ============================================================================
+  // EMAIL TEMPLATES ROUTES
+  // ============================================================================
+
+  app.post("/api/admin/email-templates", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const template = await storage.createEmailTemplate(req.body);
+      res.json(template);
+    } catch (error) {
+      console.error("Error creating email template:", error);
+      res.status(500).json({ message: "Failed to create email template" });
+    }
+  });
+
+  app.get("/api/admin/email-templates", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const templates = await storage.listEmailTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching email templates:", error);
+      res.status(500).json({ message: "Failed to fetch email templates" });
+    }
+  });
+
+  app.patch("/api/admin/email-templates/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const updated = await storage.updateEmailTemplate(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ message: "Template not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating email template:", error);
+      res.status(500).json({ message: "Failed to update email template" });
+    }
+  });
+
+  // ============================================================================
+  // REFERRAL ROUTES
+  // ============================================================================
+
+  app.get("/api/customers/:id/referrals", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const referrals = await storage.getReferralsByCustomer(id);
+      res.json(referrals);
+    } catch (error) {
+      console.error("Error fetching referrals:", error);
+      res.status(500).json({ message: "Failed to fetch referrals" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 

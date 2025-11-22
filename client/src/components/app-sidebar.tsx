@@ -22,7 +22,9 @@ import {
   LayoutDashboard,
   Bell,
   BarChart3,
-  Lock
+  Lock,
+  Package,
+  Mail
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -88,6 +90,16 @@ export function AppSidebar() {
       title: "Subscriptions",
       url: "/admin/subscriptions",
       icon: CreditCard,
+    },
+    {
+      title: "Physical Card Orders",
+      url: "/admin/physical-card-orders",
+      icon: Package,
+    },
+    {
+      title: "Email Templates",
+      url: "/admin/email-templates",
+      icon: Mail,
     },
     {
       title: "Renewal Reminders",

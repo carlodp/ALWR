@@ -1,11 +1,15 @@
 import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
+  customerTags, physicalCardOrders, emailTemplates,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
   type EmergencyAccessLog, type InsertEmergencyAccessLog,
-  type AuditLog, type InsertAuditLog, type CustomerNote, type InsertCustomerNote
+  type AuditLog, type InsertAuditLog, type CustomerNote, type InsertCustomerNote,
+  type CustomerTag, type InsertCustomerTag,
+  type PhysicalCardOrder, type InsertPhysicalCardOrder,
+  type EmailTemplate, type InsertEmailTemplate
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -57,6 +61,27 @@ export interface IStorage {
   // Audit Logging
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   listAuditLogs(limit?: number, offset?: number): Promise<AuditLog[]>;
+
+  // Customer Tags
+  addCustomerTag(tag: InsertCustomerTag): Promise<CustomerTag>;
+  removeCustomerTag(customerId: string, tag: string): Promise<void>;
+  listCustomerTags(customerId: string): Promise<CustomerTag[]>;
+  
+  // Physical Card Orders
+  createPhysicalCardOrder(order: InsertPhysicalCardOrder): Promise<PhysicalCardOrder>;
+  getPhysicalCardOrder(orderId: string): Promise<PhysicalCardOrder | undefined>;
+  listPhysicalCardOrders(customerId: string): Promise<PhysicalCardOrder[]>;
+  updatePhysicalCardOrder(orderId: string, data: Partial<PhysicalCardOrder>): Promise<PhysicalCardOrder | undefined>;
+  
+  // Email Templates
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  getEmailTemplate(name: string): Promise<EmailTemplate | undefined>;
+  listEmailTemplates(): Promise<EmailTemplate[]>;
+  updateEmailTemplate(templateId: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined>;
+  
+  // Referral Tracking
+  generateReferralCode(): string;
+  getReferralsByCustomer(customerId: string): Promise<Customer[]>;
 
   // Dashboard Stats
   getDashboardStats(): Promise<{
@@ -413,6 +438,111 @@ export class DatabaseStorage implements IStorage {
       limit,
       offset,
       orderBy: desc(auditLogs.createdAt),
+    });
+    return result;
+  }
+
+  // ============================================================================
+  // CUSTOMER TAGS
+  // ============================================================================
+
+  async addCustomerTag(tag: InsertCustomerTag): Promise<CustomerTag> {
+    const [created] = await db.insert(customerTags).values(tag).returning();
+    return created;
+  }
+
+  async removeCustomerTag(customerId: string, tagName: string): Promise<void> {
+    await db.delete(customerTags).where(
+      and(
+        eq(customerTags.customerId, customerId),
+        eq(customerTags.tag, tagName)
+      )
+    );
+  }
+
+  async listCustomerTags(customerId: string): Promise<CustomerTag[]> {
+    const result = await db.query.customerTags.findMany({
+      where: eq(customerTags.customerId, customerId),
+    });
+    return result;
+  }
+
+  // ============================================================================
+  // PHYSICAL CARD ORDERS
+  // ============================================================================
+
+  async createPhysicalCardOrder(order: InsertPhysicalCardOrder): Promise<PhysicalCardOrder> {
+    const [created] = await db.insert(physicalCardOrders).values(order).returning();
+    return created;
+  }
+
+  async getPhysicalCardOrder(orderId: string): Promise<PhysicalCardOrder | undefined> {
+    return db.query.physicalCardOrders.findFirst({
+      where: eq(physicalCardOrders.id, orderId),
+    });
+  }
+
+  async listPhysicalCardOrders(customerId: string): Promise<PhysicalCardOrder[]> {
+    return db.query.physicalCardOrders.findMany({
+      where: eq(physicalCardOrders.customerId, customerId),
+      orderBy: desc(physicalCardOrders.requestedAt),
+    });
+  }
+
+  async updatePhysicalCardOrder(orderId: string, data: Partial<PhysicalCardOrder>): Promise<PhysicalCardOrder | undefined> {
+    const [updated] = await db.update(physicalCardOrders)
+      .set(data)
+      .where(eq(physicalCardOrders.id, orderId))
+      .returning();
+    return updated;
+  }
+
+  // ============================================================================
+  // EMAIL TEMPLATES
+  // ============================================================================
+
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [created] = await db.insert(emailTemplates).values(template).returning();
+    return created;
+  }
+
+  async getEmailTemplate(name: string): Promise<EmailTemplate | undefined> {
+    return db.query.emailTemplates.findFirst({
+      where: eq(emailTemplates.name, name),
+    });
+  }
+
+  async listEmailTemplates(): Promise<EmailTemplate[]> {
+    return db.query.emailTemplates.findMany({
+      where: eq(emailTemplates.isActive, true),
+    });
+  }
+
+  async updateEmailTemplate(templateId: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const [updated] = await db.update(emailTemplates)
+      .set(data)
+      .where(eq(emailTemplates.id, templateId))
+      .returning();
+    return updated;
+  }
+
+  // ============================================================================
+  // REFERRAL TRACKING
+  // ============================================================================
+
+  generateReferralCode(): string {
+    // Generate a unique referral code like ALWR-ABC123
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = 'ALWR-';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  async getReferralsByCustomer(customerId: string): Promise<Customer[]> {
+    const result = await db.query.customers.findMany({
+      where: eq(customers.referredByCustomerId, customerId),
     });
     return result;
   }

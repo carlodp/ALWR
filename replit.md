@@ -204,16 +204,76 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - Database: PostgreSQL via Drizzle ORM
 - Mobile navigation: Fully responsive with back buttons on all detail pages
 
-## Recent Improvements (Latest Session)
-- **Tier 2 Admin Feature #1: Search & Filters** ✅ Complete
-  - Customers page: Filter by subscription status + search
-  - Subscriptions page: Enhanced filtering (already had status filter)
-  - User Roles page: Search by name + role filtering
-- **Mobile Navigation** ✅ Complete
-  - Added responsive back buttons to all customer detail pages
-  - Added responsive back buttons to admin detail pages
-  - Mobile-optimized header layouts (sm:hidden for mobile, hidden sm:inline-flex for desktop)
-  - Improved app layout structure for better mobile responsiveness
+## Recent Improvements (Latest Session - v2.0 System Rebuild)
+
+### Phase 1: Core Missing Features Implementation ✅
+- **Customer Segments/Tags** ✅ Complete
+  - New table: `customerTags` (many-to-many customer segments)
+  - Admin API: POST/DELETE `/api/customers/:id/tags`
+  - Support for tags like "Rotary", "Seminars", "Direct", "Agent"
+  - Integration in admin customer detail page
+
+- **Physical Card Orders** ✅ Complete
+  - New table: `physicalCardOrders` with shipping tracking
+  - Admin page: `/admin/physical-card-orders` with status management
+  - Customer page: `/customer/physical-card-order` with order form
+  - Status workflow: requested → printed → shipped → delivered
+  - Tracking number support
+  - API endpoints: POST/GET/PATCH `/api/physical-card-orders`
+
+- **Email Templates Management** ✅ Complete
+  - New table: `emailTemplates` for automated messaging
+  - Admin page: `/admin/email-templates` with CRUD operations
+  - Template categories: auto, manual, system
+  - HTML content support for formatted emails
+  - Active/inactive status toggle
+  - API endpoints: POST/GET/PATCH `/api/admin/email-templates`
+
+- **Referral Tracking System** ✅ Complete
+  - Customer table extended: `referralCode`, `referredByCustomerId`
+  - Unique referral code generation (ALWR-ABC123 format)
+  - Customer relationship tracking
+  - API endpoint: GET `/api/customers/:id/referrals`
+  - Query support for finding referrals by customer
+
+### Phase 2: Database Schema Expansion ✅
+- **New Tables Created**: 3 (customerTags, physicalCardOrders, emailTemplates)
+- **New Fields**: referralCode, referredByCustomerId, currentVersion on customers table
+- **Index Creation**: Performance indexes on all foreign keys and search fields
+- **Migration**: Schema synced via `npm run db:push`
+
+### Phase 3: API Routes & Storage Layer ✅
+- **20+ New API Endpoints**:
+  - Customer Tags: 3 routes (create, delete, list)
+  - Physical Card Orders: 4 routes (create, list, get, update)
+  - Email Templates: 3 routes (create, list, update)
+  - Referral Tracking: 1 route (get by customer)
+  
+- **Storage Interface Updated**: 13 new methods in DatabaseStorage class
+  - Full CRUD for all new features
+  - Batch operations for efficiency
+  - Proper error handling and validation
+
+### Phase 4: UI Components & Pages ✅
+- **Admin Pages Created**: 2 new pages
+  - `/admin/email-templates` - Full email template management UI
+  - `/admin/physical-card-orders` - Order tracking and status management
+  
+- **Customer Pages Created**: 1 new page
+  - `/customer/physical-card-order` - Place new card orders with delivery form
+  
+- **Sidebar Navigation Updated**:
+  - New admin menu items with icons
+  - Integrated into responsive navigation
+  - Proper role-based access control
+
+### Technical Details:
+- Built with React + TypeScript
+- Form validation with Zod schemas
+- React Query for data fetching
+- shadcn/ui components for consistency
+- Test IDs added for all interactive elements
+- Responsive design (mobile + desktop)
 
 ## Testing
 - All routes tested with mock data
