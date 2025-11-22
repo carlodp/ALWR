@@ -4,18 +4,73 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, Download, AlertCircle, Phone, Globe, ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { CreditCard, Download, AlertCircle, Phone, Globe, ArrowLeft, Printer } from "lucide-react";
 import type { Customer } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function CustomerIdCard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: customer, isLoading } = useQuery<Customer>({
     queryKey: ["/api/customer/profile"],
     enabled: !!user,
   });
+
+  const handleDownloadCard = () => {
+    if (!customer?.idCardNumber) return;
+    
+    const element = document.getElementById("id-card-printable");
+    if (!element) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 900;
+    canvas.height = 567;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Draw gradient background
+    const gradient = ctx.createLinearGradient(0, 0, 900, 567);
+    gradient.addColorStop(0, "#2563eb");
+    gradient.addColorStop(1, "#1e40af");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 900, 567);
+
+    // Draw text
+    ctx.fillStyle = "white";
+    ctx.font = "bold 32px Arial";
+    ctx.fillText(customer.idCardNumber, 50, 200);
+    ctx.font = "14px Arial";
+    ctx.fillText(`${user?.firstName} ${user?.lastName}`, 50, 250);
+    ctx.fillText("Emergency Registry ID Card", 50, 300);
+
+    // Download
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `alwr-id-card-${customer.idCardNumber}.png`;
+    link.click();
+
+    toast({ title: "ID Card downloaded" });
+  };
+
+  const handlePrintCard = () => {
+    if (!customer?.idCardNumber) return;
+    const printWindow = window.open("", "", "height=600,width=900");
+    if (!printWindow) return;
+    
+    const element = document.getElementById("id-card-printable");
+    if (!element) return;
+
+    printWindow.document.write("<html><head><title>ALWR ID Card</title></head><body>");
+    printWindow.document.write(element.innerHTML);
+    printWindow.document.write("</body></html>");
+    printWindow.document.close();
+    printWindow.print();
+    
+    toast({ title: "Print dialog opened" });
+  };
 
   if (isLoading) {
     return (
@@ -83,6 +138,7 @@ export default function CustomerIdCard() {
             <>
               {/* ID Card Display */}
               <div 
+                id="id-card-printable"
                 className="relative w-full max-w-md mx-auto aspect-[1.586/1] rounded-xl overflow-hidden bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow-xl"
                 data-testid="card-id-display"
               >
@@ -139,11 +195,23 @@ export default function CustomerIdCard() {
                 </div>
               </div>
 
-              {/* Download Button */}
-              <div className="flex justify-center">
-                <Button variant="outline" data-testid="button-download-card">
+              {/* Download & Print Buttons */}
+              <div className="flex gap-4 mt-8 flex-col sm:flex-row justify-center">
+                <Button 
+                  variant="outline" 
+                  onClick={handleDownloadCard}
+                  data-testid="button-download-card"
+                >
                   <Download className="h-4 w-4 mr-2" />
-                  Download Card
+                  Download
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handlePrintCard}
+                  data-testid="button-print-card"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
                 </Button>
               </div>
             </>

@@ -1,8 +1,9 @@
 import { db } from "./db";
 import { 
-  users, customers, subscriptions, documents, emergencyAccessLogs, auditLogs, customerNotes,
+  users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
+  type DocumentVersion, type InsertDocumentVersion,
   type EmergencyAccessLog, type InsertEmergencyAccessLog,
   type AuditLog, type InsertAuditLog, type CustomerNote, type InsertCustomerNote
 } from "@shared/schema";
@@ -42,6 +43,11 @@ export interface IStorage {
   listDocumentsByCustomer(customerId: string): Promise<Document[]>;
   deleteDocument(documentId: string): Promise<void>;
   incrementDocumentAccess(documentId: string): Promise<void>;
+  
+  // Document Versioning
+  createDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion>;
+  listDocumentVersions(documentId: string): Promise<DocumentVersion[]>;
+  restoreDocumentVersion(documentId: string, versionNumber: number): Promise<Document | undefined>;
 
   // Emergency Access Operations
   verifyEmergencyAccess(idCardNumber: string, lastName: string, birthYear: string): Promise<Customer | undefined>;
@@ -302,6 +308,49 @@ export class DatabaseStorage implements IStorage {
         lastAccessedAt: new Date()
       })
       .where(eq(documents.id, documentId));
+  }
+
+  // ============================================================================
+  // DOCUMENT VERSIONING OPERATIONS
+  // ============================================================================
+
+  async createDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion> {
+    const [created] = await db.insert(documentVersions).values(version).returning();
+    return created;
+  }
+
+  async listDocumentVersions(documentId: string): Promise<DocumentVersion[]> {
+    const versions = await db.query.documentVersions.findMany({
+      where: eq(documentVersions.documentId, documentId),
+      orderBy: desc(documentVersions.version),
+    });
+    return versions;
+  }
+
+  async restoreDocumentVersion(documentId: string, versionNumber: number): Promise<Document | undefined> {
+    const version = await db.query.documentVersions.findFirst({
+      where: and(
+        eq(documentVersions.documentId, documentId),
+        eq(documentVersions.version, versionNumber)
+      ),
+    });
+
+    if (!version) return undefined;
+
+    const [updated] = await db.update(documents)
+      .set({ 
+        fileName: version.fileName,
+        fileSize: version.fileSize,
+        mimeType: version.mimeType,
+        storageKey: version.storageKey,
+        encryptionKey: version.encryptionKey,
+        currentVersion: versionNumber,
+        updatedAt: new Date()
+      })
+      .where(eq(documents.id, documentId))
+      .returning();
+    
+    return updated;
   }
 
   // ============================================================================

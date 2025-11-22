@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload, User } from "lucide-react";
 import type { Customer } from "@shared/schema";
 
 export default function CustomerProfile() {
@@ -35,6 +36,8 @@ export default function CustomerProfile() {
     emergencyContactRelationship: "",
     notes: "",
   });
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (customer) {
@@ -84,9 +87,60 @@ export default function CustomerProfile() {
     },
   });
 
+  const uploadProfileImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("profileImage", file);
+      const response = await apiRequest("POST", "/api/customer/profile/image", formData);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile picture updated",
+        description: "Your profile picture has been saved.",
+      });
+      setProfileImageFile(null);
+      setPreviewUrl(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/profile"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload profile picture.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleProfileImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Maximum file size is 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setProfileImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     updateMutation.mutate(formData);
+  };
+
+  const handleUploadProfileImage = async () => {
+    if (profileImageFile) {
+      uploadProfileImageMutation.mutate(profileImageFile);
+    }
   };
 
   if (authLoading || isLoading) {
@@ -133,6 +187,60 @@ export default function CustomerProfile() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Profile Picture */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Picture</CardTitle>
+            <CardDescription>
+              Add or update your profile picture
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-6">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={previewUrl || user?.profileImageUrl || undefined} alt="Profile" />
+                <AvatarFallback>
+                  <User className="h-12 w-12" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <Label htmlFor="profile-image">Select Image</Label>
+                  <Input
+                    id="profile-image"
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif"
+                    onChange={handleProfileImageSelect}
+                    disabled={uploadProfileImageMutation.isPending}
+                    data-testid="input-profile-image"
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PNG, JPG, or GIF (Max 5MB)
+                  </p>
+                </div>
+                {profileImageFile && (
+                  <Button
+                    type="button"
+                    onClick={handleUploadProfileImage}
+                    disabled={uploadProfileImageMutation.isPending}
+                    data-testid="button-upload-profile-image"
+                  >
+                    {uploadProfileImageMutation.isPending ? (
+                      "Uploading..."
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Picture
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Personal Information */}
         <Card>
           <CardHeader>
