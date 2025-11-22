@@ -37,10 +37,15 @@ import EmergencyAccess from "@/pages/emergency-access";
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();
 
+  // Don't render any routes during loading to prevent 404 flash
+  if (isLoading) {
+    return null;
+  }
+
   return (
     <Switch>
       {/* Public Routes */}
-      {(isLoading || !isAuthenticated) && (
+      {!isAuthenticated && (
         <>
           <Route path="/" component={Landing} />
           <Route path="/emergency-access" component={EmergencyAccess} />

@@ -194,9 +194,9 @@ export default function AdminPrint() {
               <CardDescription>Current membership card design</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 p-6 text-white" data-testid="card-template-preview">
+              <div className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 p-6 text-white flex flex-col justify-between" data-testid="card-template-preview">
                 {/* Card Header */}
-                <div className="flex items-start justify-between mb-8">
+                <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <CreditCard className="h-8 w-8" />
                     <div className="text-xs font-medium">ALWR</div>
@@ -207,11 +207,18 @@ export default function AdminPrint() {
                   </div>
                 </div>
 
-                {/* Card Content */}
-                <div className="space-y-4">
+                {/* Card Content - Middle Section */}
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="text-xs opacity-75">Cardholder Name</div>
+                    <div className="text-lg font-bold">
+                      [Customer Name]
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <div className="text-xs opacity-75">Registry Number</div>
-                    <div className="text-2xl font-bold font-mono tracking-wider">
+                    <div className="text-xl font-bold font-mono tracking-wider">
                       ALWR-XXXXXXXXX
                     </div>
                   </div>
@@ -219,22 +226,28 @@ export default function AdminPrint() {
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div className="space-y-1">
                       <div className="opacity-75">Issued</div>
-                      <div className="font-medium">
+                      <div className="font-medium text-sm">
                         [Date]
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="opacity-75">Emergency Contact</div>
+                      <div className="font-medium text-sm truncate">
+                        [Phone]
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Card Footer */}
-                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-xs opacity-90">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-3 w-3" />
-                    <span>alwr.org/emergency</span>
+                <div className="flex items-center justify-between text-xs opacity-90 pt-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Globe className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate text-2xs">alwr.org/emergency</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-3 w-3" />
-                    <span>24/7 Support</span>
+                  <div className="flex items-center gap-1 ml-2">
+                    <Phone className="h-3 w-3 flex-shrink-0" />
+                    <span className="text-2xs">24/7</span>
                   </div>
                 </div>
               </div>
@@ -361,11 +374,11 @@ export default function AdminPrint() {
             <div className="space-y-6">
               {/* Card Display */}
               <div 
-                className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow-xl"
+                className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow-xl flex flex-col justify-between"
                 data-testid="admin-card-preview"
               >
                 {/* Card Header */}
-                <div className="flex items-start justify-between mb-8">
+                <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <CreditCard className="h-8 w-8" />
                     <div className="text-xs font-medium">ALWR</div>
@@ -376,11 +389,18 @@ export default function AdminPrint() {
                   </div>
                 </div>
 
-                {/* Card Content */}
-                <div className="space-y-4">
+                {/* Card Content - Middle Section */}
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="text-xs opacity-75">Cardholder Name</div>
+                    <div className="text-lg font-bold">
+                      {(selectedCard as any).user?.firstName} {(selectedCard as any).user?.lastName}
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <div className="text-xs opacity-75">Registry Number</div>
-                    <div className="text-2xl font-bold font-mono tracking-wider">
+                    <div className="text-xl font-bold font-mono tracking-wider">
                       {selectedCard.idCardNumber}
                     </div>
                   </div>
@@ -388,25 +408,31 @@ export default function AdminPrint() {
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div className="space-y-1">
                       <div className="opacity-75">Issued</div>
-                      <div className="font-medium">
+                      <div className="font-medium text-sm">
                         {selectedCard.idCardIssuedDate 
                           ? new Date(selectedCard.idCardIssuedDate).toLocaleDateString()
                           : 'N/A'
                         }
                       </div>
                     </div>
+                    <div className="space-y-1">
+                      <div className="opacity-75">Emergency Contact</div>
+                      <div className="font-medium text-sm truncate">
+                        {selectedCard.emergencyContactPhone || 'N/A'}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Card Footer */}
-                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-xs opacity-90">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-3 w-3" />
-                    <span>alwr.org/emergency</span>
+                <div className="flex items-center justify-between text-xs opacity-90 pt-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Globe className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate text-2xs">alwr.org/emergency</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-3 w-3" />
-                    <span>24/7 Support</span>
+                  <div className="flex items-center gap-1 ml-2">
+                    <Phone className="h-3 w-3 flex-shrink-0" />
+                    <span className="text-2xs">24/7</span>
                   </div>
                 </div>
               </div>
