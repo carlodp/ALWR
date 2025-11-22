@@ -66,20 +66,25 @@ export default function AdminPrint() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedCard, setSelectedCard] = useState<Customer | null>(null);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/admin/customers"],
   });
 
-  // Filter customers based on search query
-  const filteredCustomers = customers?.filter(customer => {
+  // Filter customers based on search query (by name or id)
+  const filteredCustomers = customers?.filter((customer: any) => {
+    if (!searchQuery.trim()) return false; // Only show results if searching
+    
     const searchLower = searchQuery.toLowerCase();
+    const firstNameMatch = customer.user?.firstName?.toLowerCase().includes(searchLower);
+    const lastNameMatch = customer.user?.lastName?.toLowerCase().includes(searchLower);
     const idCardMatch = customer.idCardNumber?.toLowerCase().includes(searchLower);
-    return idCardMatch;
+    return firstNameMatch || lastNameMatch || idCardMatch;
   }) || [];
 
-  const printReady = filteredCustomers;
+  const printReady = customers || [];
   const printed = customers?.slice(5, 10) || [];
 
   const handleDownloadCardPNG = (customer: Customer) => {
@@ -162,9 +167,16 @@ export default function AdminPrint() {
           <h1 className="text-3xl font-bold" data-testid="text-page-title">Membership Card Printing</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Manage membership card design and printing</p>
         </div>
-        <Button className="gap-2" data-testid="button-print-all">
+        <Button 
+          className="gap-2" 
+          onClick={() => {
+            setSearchModalOpen(true);
+            setSearchQuery("");
+          }}
+          data-testid="button-print-cards"
+        >
           <Printer className="w-4 h-4" />
-          Print All
+          Print Cards
         </Button>
       </div>
 
@@ -204,120 +216,96 @@ export default function AdminPrint() {
             </CardContent>
           </Card>
 
-          <Tabs defaultValue="print-ready" className="w-full">
-            <div className="mb-6 space-y-4">
-              <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by card ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border-0 focus-visible:ring-0 focus-visible:outline-none"
-                  data-testid="input-search-card"
-                />
-              </div>
-              <TabsList className="w-full">
-                <TabsTrigger value="print-ready" className="flex-1">
-                  Ready to Print ({printReady.length})
-                </TabsTrigger>
-                <TabsTrigger value="printed" className="flex-1">
-                  Printed ({printed.length})
-                </TabsTrigger>
-              </TabsList>
+        </div>
+      )}
+
+      {/* Search & Print Modal */}
+      <Dialog open={searchModalOpen} onOpenChange={setSearchModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Search & Print Cards</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Search Input */}
+            <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by customer name or card ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="border-0 focus-visible:ring-0 focus-visible:outline-none"
+                data-testid="input-search-customers"
+                autoFocus
+              />
             </div>
 
-            <TabsContent value="print-ready">
-              {printReady.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-center text-gray-600 dark:text-gray-400">No customers ready for printing</p>
-                  </CardContent>
-                </Card>
+            {/* Results */}
+            <div className="border rounded-lg overflow-y-auto max-h-[50vh]">
+              {searchQuery.trim() === "" ? (
+                <div className="p-6 text-center text-gray-600 dark:text-gray-400">
+                  <p>Start typing to search by customer name or card ID</p>
+                </div>
+              ) : filteredCustomers.length === 0 ? (
+                <div className="p-6 text-center text-gray-600 dark:text-gray-400">
+                  <p>No customers found</p>
+                </div>
               ) : (
-                <div className="space-y-4">
-                  {printReady.map((customer) => (
-                    <Card key={customer.id} data-testid={`card-print-ready-${customer.id}`}>
-                      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                        <div className="flex-1">
-                          <CardTitle>Card #{customer.idCardNumber}</CardTitle>
-                          <CardDescription className="mt-1">Status: Ready to Print</CardDescription>
-                          <Badge variant="secondary" className="mt-2">Active</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex gap-2 flex-wrap">
-                          <Button 
-                            size="sm" 
-                            className="gap-2" 
-                            onClick={() => handlePrintCard(customer)}
-                            data-testid={`button-print-${customer.id}`}
-                          >
-                            <Printer className="w-4 h-4" />
-                            Print
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="gap-2" 
-                            onClick={() => setSelectedCard(customer)}
-                            data-testid={`button-preview-${customer.id}`}
-                          >
-                            <Copy className="w-4 h-4" />
-                            Preview
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="gap-2" 
-                            onClick={() => handleDownloadCardPNG(customer)}
-                            data-testid={`button-download-png-${customer.id}`}
-                          >
-                            <Download className="w-4 h-4" />
-                            PNG
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="gap-2" 
-                            onClick={() => handleDownloadCardPDF(customer)}
-                            data-testid={`button-download-pdf-${customer.id}`}
-                          >
-                            <FileText className="w-4 h-4" />
-                            PDF
-                          </Button>
+                <div className="space-y-2 p-4">
+                  {filteredCustomers.map((customer) => (
+                    <Card 
+                      key={customer.id} 
+                      className="hover-elevate cursor-pointer"
+                      onClick={() => {
+                        setSelectedCard(customer);
+                        setSearchModalOpen(false);
+                      }}
+                      data-testid={`card-search-result-${customer.id}`}
+                    >
+                      <CardContent className="pt-4 pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium">
+                              {(customer as any).user?.firstName} {(customer as any).user?.lastName}
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Card ID: {customer.idCardNumber || "N/A"}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePrintCard(customer);
+                              }}
+                              data-testid={`button-quick-print-${customer.id}`}
+                            >
+                              <Printer className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCard(customer);
+                                setSearchModalOpen(false);
+                              }}
+                              data-testid={`button-quick-preview-${customer.id}`}
+                            >
+                              Preview
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value="printed">
-              {printed.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-center text-gray-600 dark:text-gray-400">No printed cards</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {printed.map((customer) => (
-                    <Card key={customer.id} data-testid={`card-printed-${customer.id}`}>
-                      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                        <div className="flex-1">
-                          <CardTitle>Card #{customer.idCardNumber}</CardTitle>
-                          <Badge variant="default" className="mt-2">Printed</Badge>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Card Preview Modal */}
       <Dialog open={!!selectedCard} onOpenChange={(open) => !open && setSelectedCard(null)}>
