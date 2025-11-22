@@ -7,9 +7,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarFooter,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { 
   Home, 
   FileText, 
@@ -190,32 +198,142 @@ export function AppSidebar() {
       <SidebarContent>
         {isAdmin ? (
           <>
-            {/* Admin Menu with Sections */}
-            {["VIEW", "LIST", "REVIEW", "RECONCILE", "PROCESS", "PRINT"].map((section) => {
-              const sectionItems = menuItems.filter(item => (item as any).section === section);
-              if (sectionItems.length === 0) return null;
-              
-              return (
-                <SidebarGroup key={section}>
-                  <SidebarGroupLabel>{section}</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {sectionItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
-                            <a href={item.url}>
-                              <item.icon />
-                              <span>{item.title}</span>
+            {/* Dashboard */}
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild data-testid="nav-dashboard">
+                      <a href="/admin/dashboard">
+                        <LayoutDashboard />
+                        <span>Dashboard</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Customers with nested sections */}
+            <SidebarGroup>
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton data-testid="nav-customers-expand">
+                        <Users />
+                        <span>Customers</span>
+                        <svg
+                          className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M12 6L8 10L4 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {/* VIEW */}
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block">VIEW</span>
+                        </SidebarMenuSubItem>
+                        
+                        {/* LIST */}
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block">LIST</span>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-customers">
+                            <a href="/admin/customers">
+                              <Users className="h-4 w-4" />
+                              <span>Customers</span>
                             </a>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              );
-            })}
-            
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-subscriptions">
+                            <a href="/admin/subscriptions">
+                              <CreditCard className="h-4 w-4" />
+                              <span>Subscriptions</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
+                        {/* CREATE */}
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block mt-2">CREATE</span>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-create-customer">
+                            <a href="/admin/customers/new">
+                              <User className="h-4 w-4" />
+                              <span>New Customer</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
+                        {/* REVIEW */}
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block mt-2">REVIEW</span>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-review">
+                            <a href="/admin/review">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Review</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
+                        {/* RECONCILE */}
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block mt-2">RECONCILE</span>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-reconcile">
+                            <a href="/admin/reconcile">
+                              <RefreshCw className="h-4 w-4" />
+                              <span>Reconcile</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
+                        {/* PROCESS */}
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block mt-2">PROCESS</span>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-process">
+                            <a href="/admin/process">
+                              <Zap className="h-4 w-4" />
+                              <span>Process Orders</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
+                        {/* PRINT */}
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block mt-2">PRINT</span>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-print">
+                            <a href="/admin/print">
+                              <Printer className="h-4 w-4" />
+                              <span>Print Cards</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </Collapsible>
+            </SidebarGroup>
+
             {/* Tools Section */}
             <SidebarGroup>
               <SidebarGroupLabel>TOOLS</SidebarGroupLabel>
