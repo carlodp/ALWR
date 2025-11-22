@@ -159,6 +159,11 @@ export default async function runApp(
 ) {
   const server = await registerRoutes(app);
 
+  // Seed mock data on app startup (development only)
+  if (process.env.NODE_ENV === 'development') {
+    await seedMockData().catch(err => console.error('Failed to seed mock data:', err));
+  }
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
