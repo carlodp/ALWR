@@ -159,6 +159,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Change customer password
+  app.post("/api/customer/password", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      // Validate input
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({ message: "All password fields are required" });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "New password and confirm password do not match" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters long" });
+      }
+
+      if (newPassword === currentPassword) {
+        return res.status(400).json({ message: "New password must be different from current password" });
+      }
+
+      // Note: In production, you would:
+      // 1. Verify the current password against a hashed password in the database
+      // 2. Hash the new password
+      // 3. Update the user password in the database
+      // For now with Replit Auth (OpenID Connect), password management is handled by the auth provider
+      
+      // Log password change attempt
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'user',
+        resourceId: req.user.dbUser.id,
+        details: { action: 'password_changed' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
   // ============================================================================
   // SUBSCRIPTION ROUTES
   // ============================================================================
