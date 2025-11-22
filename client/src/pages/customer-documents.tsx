@@ -28,6 +28,9 @@ export default function CustomerDocuments() {
   });
 
   const [expandedVersions, setExpandedVersions] = useState<string | null>(null);
+  const [versioningDocId, setVersioningDocId] = useState<string | null>(null);
+  const [versionFile, setVersionFile] = useState<File | null>(null);
+  const [versionChangeNotes, setVersionChangeNotes] = useState("");
 
   const versionsQuery = useQuery<DocumentVersion[]>({
     queryKey: ["/api/customer/documents", expandedVersions, "versions"],
@@ -36,6 +39,35 @@ export default function CustomerDocuments() {
       const response = await fetch(`/api/customer/documents/${expandedVersions}/versions`);
       if (!response.ok) throw new Error("Failed to fetch versions");
       return response.json();
+    },
+  });
+
+  const uploadVersionMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      if (!versionFile) throw new Error("No file selected");
+      const formData = new FormData();
+      formData.append("file", versionFile);
+      formData.append("changeNotes", versionChangeNotes);
+      const response = await apiRequest("POST", `/api/customer/documents/${documentId}/upload-version`, formData);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Version uploaded",
+        description: "New document version uploaded successfully.",
+      });
+      setVersioningDocId(null);
+      setVersionFile(null);
+      setVersionChangeNotes("");
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/documents", expandedVersions, "versions"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload document version.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -355,40 +387,135 @@ export default function CustomerDocuments() {
                     </div>
 
                     <CollapsibleContent className="border-t bg-muted/50 p-4">
-                      <div className="space-y-3">
-                        <p className="text-sm font-medium">Version History</p>
-                        {versionsQuery.isLoading ? (
-                          <Skeleton className="h-10 w-full" />
-                        ) : versionsQuery.data && versionsQuery.data.length > 0 ? (
-                          <div className="space-y-2 text-sm">
-                            {versionsQuery.data.map((version, idx) => (
-                              <div key={version.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                                <div>
-                                  <p className="font-medium">Version {version.version}</p>
-                                  <p className="text-muted-foreground text-xs">
-                                    {new Date(version.createdAt).toLocaleString()}
+                      <div className="space-y-6">
+                        {/* Upload New Version Section */}
+                        {versioningDocId === doc.id ? (
+                          <div className="border rounded-lg bg-background p-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium text-sm">Upload New Version</h4>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setVersioningDocId(null);
+                                  setVersionFile(null);
+                                  setVersionChangeNotes("");
+                                }}
+                                data-testid={`button-cancel-version-${doc.id}`}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <Label htmlFor={`version-file-${doc.id}`} className="text-xs">
+                                  New File *
+                                </Label>
+                                <Input
+                                  id={`version-file-${doc.id}`}
+                                  type="file"
+                                  accept=".pdf,.doc,.docx"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      if (file.size > 10 * 1024 * 1024) {
+                                        toast({
+                                          title: "File too large",
+                                          description: "Maximum file size is 10MB",
+                                          variant: "destructive",
+                                        });
+                                        return;
+                                      }
+                                      setVersionFile(file);
+                                    }
+                                  }}
+                                  data-testid={`input-version-file-${doc.id}`}
+                                />
+                                {versionFile && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Selected: {versionFile.name}
                                   </p>
-                                  {version.changeNotes && (
-                                    <p className="text-muted-foreground text-xs mt-1">{version.changeNotes}</p>
-                                  )}
-                                </div>
-                                {idx > 0 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => restoreVersionMutation.mutate({ documentId: doc.id, version: version.version })}
-                                    disabled={restoreVersionMutation.isPending}
-                                    data-testid={`button-restore-version-${doc.id}-${version.version}`}
-                                  >
-                                    Restore
-                                  </Button>
                                 )}
                               </div>
-                            ))}
+                              <div className="space-y-2">
+                                <Label htmlFor={`change-notes-${doc.id}`} className="text-xs">
+                                  Change Notes (Optional)
+                                </Label>
+                                <Input
+                                  id={`change-notes-${doc.id}`}
+                                  placeholder="Describe what changed in this version..."
+                                  value={versionChangeNotes}
+                                  onChange={(e) => setVersionChangeNotes(e.target.value)}
+                                  data-testid={`input-change-notes-${doc.id}`}
+                                />
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => uploadVersionMutation.mutate(doc.id)}
+                                disabled={!versionFile || uploadVersionMutation.isPending}
+                                className="w-full"
+                                data-testid={`button-submit-version-${doc.id}`}
+                              >
+                                {uploadVersionMutation.isPending ? (
+                                  <>Uploading...</>
+                                ) : (
+                                  <>
+                                    <Upload className="h-3 w-3 mr-1" />
+                                    Upload Version
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No previous versions</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setVersioningDocId(doc.id)}
+                            className="w-full"
+                            data-testid={`button-upload-new-version-${doc.id}`}
+                          >
+                            <Upload className="h-3 w-3 mr-2" />
+                            Upload New Version
+                          </Button>
                         )}
+
+                        {/* Version History Section */}
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">Version History</p>
+                          {versionsQuery.isLoading ? (
+                            <Skeleton className="h-10 w-full" />
+                          ) : versionsQuery.data && versionsQuery.data.length > 0 ? (
+                            <div className="space-y-2 text-sm">
+                              {versionsQuery.data.map((version, idx) => (
+                                <div key={version.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                                  <div>
+                                    <p className="font-medium">Version {version.version}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                      {new Date(version.createdAt).toLocaleString()}
+                                    </p>
+                                    {version.changeNotes && (
+                                      <p className="text-muted-foreground text-xs mt-1">{version.changeNotes}</p>
+                                    )}
+                                  </div>
+                                  {idx > 0 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => restoreVersionMutation.mutate({ documentId: doc.id, version: version.version })}
+                                      disabled={restoreVersionMutation.isPending}
+                                      data-testid={`button-restore-version-${doc.id}-${version.version}`}
+                                    >
+                                      Restore
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No previous versions</p>
+                          )}
+                        </div>
                       </div>
                     </CollapsibleContent>
                   </div>

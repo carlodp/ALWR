@@ -607,6 +607,86 @@ startxref
     }
   });
 
+  // Upload new document version
+  app.post("/api/customer/documents/:id/upload-version", requireAuth, upload.single('file'), async (req: any, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const customer = await storage.getCustomer(req.user.dbUser.id);
+      if (!customer || document.customerId !== customer.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Validate optional change notes
+      const versionSchema = z.object({
+        changeNotes: z.string().optional(),
+      });
+      const { changeNotes } = versionSchema.parse(req.body);
+
+      // Get current version number
+      const versions = await storage.listDocumentVersions(document.id);
+      const nextVersion = (Math.max(...versions.map(v => v.version), 0)) + 1;
+
+      // Create new storage key for this version
+      const storageKey = `documents/${customer.id}/${randomUUID()}-${req.file.originalname}`;
+
+      // Create new version
+      const newVersion = await storage.createDocumentVersion({
+        documentId: document.id,
+        version: nextVersion,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        storageKey,
+        encryptionKey: document.encryptionKey || undefined,
+        uploadedBy: req.user.dbUser.id,
+        changeNotes: changeNotes || `Version ${nextVersion}`,
+      });
+
+      // Update document to current version
+      const updated = await db.update(documents)
+        .set({
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          storageKey,
+          currentVersion: nextVersion,
+          updatedAt: new Date()
+        })
+        .where(eq(documents.id, document.id))
+        .returning();
+
+      // Log version upload
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'document_upload',
+        resourceType: 'document',
+        resourceId: document.id,
+        details: { fileName: req.file.originalname, newVersion: nextVersion },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({ document: updated[0], version: newVersion });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error uploading document version:", error);
+      res.status(500).json({ message: "Failed to upload document version" });
+    }
+  });
+
   // Restore document version
   app.post("/api/customer/documents/:id/versions/:version/restore", requireAuth, async (req: any, res: Response) => {
     try {
