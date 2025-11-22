@@ -27,6 +27,7 @@ import AdminAuditLogs from "@/pages/admin-audit-logs";
 import AdminEmailTemplates from "@/pages/admin-email-templates";
 import AdminPhysicalCardOrders from "@/pages/admin-physical-card-orders";
 import AdminReview from "@/pages/admin-review";
+import AdminReviewExpired from "@/pages/admin-review-expired";
 import AdminReconcile from "@/pages/admin-reconcile";
 import AdminProcess from "@/pages/admin-process";
 import AdminPrint from "@/pages/admin-print";
@@ -62,6 +63,7 @@ function Router() {
           <Route path="/admin/email-templates" component={AdminEmailTemplates} />
           <Route path="/admin/physical-card-orders" component={AdminPhysicalCardOrders} />
           <Route path="/admin/review" component={AdminReview} />
+          <Route path="/admin/review-expired" component={AdminReviewExpired} />
           <Route path="/admin/reconcile" component={AdminReconcile} />
           <Route path="/admin/process" component={AdminProcess} />
           <Route path="/admin/print" component={AdminPrint} />

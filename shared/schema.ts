@@ -19,6 +19,7 @@ import { z } from "zod";
 // ============================================================================
 
 export const userRoleEnum = pgEnum('alwr_user_role', ['customer', 'admin', 'agent']);
+export const accountStatusEnum = pgEnum('alwr_account_status', ['active', 'expired']);
 export const subscriptionStatusEnum = pgEnum('alwr_subscription_status', [
   'active',
   'inactive',
@@ -80,6 +81,9 @@ export const users = pgTable("users", {
 export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Account Status (separate from subscription status)
+  accountStatus: accountStatusEnum("account_status").default('active').notNull(),
   
   // Contact Information
   phone: varchar("phone"),

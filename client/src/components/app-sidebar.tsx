@@ -34,6 +34,7 @@ import {
   Package,
   Mail,
   CheckCircle,
+  AlertCircle,
   RefreshCw,
   Zap,
   Printer
@@ -284,7 +285,15 @@ export function AppSidebar() {
                           <SidebarMenuSubButton asChild data-testid="nav-review">
                             <a href="/admin/review">
                               <CheckCircle className="h-4 w-4" />
-                              <span>Review</span>
+                              <span>New Registrations</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-review-expired">
+                            <a href="/admin/review-expired">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>Expired Accounts</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
