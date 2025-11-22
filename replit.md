@@ -74,6 +74,16 @@ ALWR is built with a modern web stack. The frontend utilizes **React** for dynam
 - ✅ Reset filters button to clear all filters at once
 - ✅ Search functionality integrated with all filters
 
+#### ✅ **Feature #5: Global Search** (COMPLETE)
+- ✅ Unified search interface accessible from `/search` route for all authenticated users
+- ✅ Searches across customers (by phone, ID card number), documents (by title, file name), and audit logs (by action, actor, resource)
+- ✅ Results ranked by recency with type badges (Customer, Document, Audit Log)
+- ✅ Real-time search results as user types
+- ✅ One-click navigation to relevant resource details
+- ✅ Responsive design with mobile support
+- ✅ No results messaging for empty searches
+- ✅ Limit of 50 results per search to optimize performance
+
 ### UI/UX Decisions:
 - Utilizes **shadcn/ui** for consistent, accessible components.
 - Responsive design for optimal viewing on mobile and desktop devices.
