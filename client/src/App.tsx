@@ -33,6 +33,7 @@ import AdminProcess from "@/pages/admin-process";
 import AdminPrint from "@/pages/admin-print";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
+import GlobalSearch from "@/pages/global-search";
 
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();
@@ -72,6 +73,7 @@ function Router() {
           <Route path="/admin/reconcile" component={AdminReconcile} />
           <Route path="/admin/process" component={AdminProcess} />
           <Route path="/admin/print" component={AdminPrint} />
+          <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
       )}
@@ -87,6 +89,7 @@ function Router() {
           <Route path="/customer/payments" component={CustomerPayments} />
           <Route path="/customer/id-card" component={CustomerIdCard} />
           <Route path="/customer/physical-card-order" component={CustomerPhysicalCardOrder} />
+          <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
       )}

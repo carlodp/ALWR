@@ -1645,6 +1645,25 @@ startxref
   });
 
   // ============================================================================
+  // GLOBAL SEARCH
+  // ============================================================================
+
+  app.get("/api/global-search", async (req: any, res: Response) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.trim().length === 0) {
+        return res.json([]);
+      }
+
+      const results = await storage.globalSearch(query, 50);
+      res.json(results);
+    } catch (error) {
+      console.error("Error performing global search:", error);
+      res.status(500).json({ message: "Search failed" });
+    }
+  });
+
+  // ============================================================================
   // REFERRAL ROUTES
   // ============================================================================
 

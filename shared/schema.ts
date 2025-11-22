@@ -538,3 +538,15 @@ export type PhysicalCardOrder = typeof physicalCardOrders.$inferSelect;
 
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+// Global Search Results
+export interface GlobalSearchResult {
+  type: 'customer' | 'document' | 'audit_log';
+  id: string;
+  title: string;
+  description?: string;
+  customerId?: string;
+  email?: string;
+  timestamp?: string;
+  metadata?: Record<string, any>;
+}

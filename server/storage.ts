@@ -93,6 +93,9 @@ export interface IStorage {
   generateReferralCode(): string;
   getReferralsByCustomer(customerId: string): Promise<Customer[]>;
 
+  // Global Search
+  globalSearch(query: string, limit?: number): Promise<any[]>;
+
   // Dashboard Stats
   getDashboardStats(): Promise<{
     totalCustomers: number;
@@ -622,6 +625,80 @@ export class DatabaseStorage implements IStorage {
       where: eq(customers.referredByCustomerId, customerId),
     });
     return result;
+  }
+
+  // ============================================================================
+  // GLOBAL SEARCH
+  // ============================================================================
+
+  async globalSearch(query: string, limit: number = 50): Promise<any[]> {
+    const searchTerm = `%${query}%`;
+    
+    // Search customers by name, email, phone, ID card number
+    const customerResults = await db.query.customers.findMany({
+      where: sql`
+        ${customers.idCardNumber} ILIKE ${searchTerm} OR
+        ${customers.phone} ILIKE ${searchTerm}
+      `,
+      with: {
+        user: true,
+      },
+      limit: limit / 3,
+    });
+
+    // Search documents by title
+    const documentResults = await db.query.documents.findMany({
+      where: sql`
+        ${documents.title} ILIKE ${searchTerm} OR
+        ${documents.fileName} ILIKE ${searchTerm}
+      `,
+      limit: limit / 3,
+    });
+
+    // Search audit logs by action or resource
+    const auditResults = await db.query.auditLogs.findMany({
+      where: sql`
+        ${auditLogs.action} ILIKE ${searchTerm} OR
+        ${auditLogs.actorName} ILIKE ${searchTerm} OR
+        ${auditLogs.resourceId} ILIKE ${searchTerm}
+      `,
+      limit: limit / 3,
+      orderBy: desc(auditLogs.createdAt),
+    });
+
+    // Format results
+    const results: any[] = [
+      ...customerResults.map(c => ({
+        type: 'customer',
+        id: c.id,
+        title: c.user?.email || 'Unknown Customer',
+        description: c.phone || 'No phone',
+        customerId: c.id,
+        email: c.user?.email,
+        timestamp: c.createdAt?.toISOString(),
+      })),
+      ...documentResults.map(d => ({
+        type: 'document',
+        id: d.id,
+        title: d.title,
+        description: d.fileName,
+        customerId: d.customerId,
+        timestamp: d.uploadedAt?.toISOString(),
+      })),
+      ...auditResults.map(a => ({
+        type: 'audit_log',
+        id: a.id,
+        title: a.action,
+        description: `${a.actorName} on ${a.resourceId}`,
+        timestamp: a.createdAt?.toISOString(),
+      })),
+    ];
+
+    return results.sort((a, b) => {
+      const timeA = new Date(a.timestamp || 0).getTime();
+      const timeB = new Date(b.timestamp || 0).getTime();
+      return timeB - timeA;
+    }).slice(0, limit);
   }
 
   // ============================================================================

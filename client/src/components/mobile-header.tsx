@@ -9,6 +9,7 @@ export function MobileHeader() {
     if (location === "/" || location === "/admin/dashboard" || location === "/customer/dashboard") {
       return "Dashboard";
     }
+    if (location === "/search") return "Global Search";
     if (location.startsWith("/admin/customers")) return location.includes("/new") ? "New Customer" : "Customers";
     if (location.startsWith("/admin/subscriptions")) return "Subscriptions";
     if (location.startsWith("/admin/renewal-reminders")) return "Renewal Reminders";
