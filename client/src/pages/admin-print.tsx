@@ -194,15 +194,49 @@ export default function AdminPrint() {
               <CardDescription>Current membership card design</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8 rounded-lg max-w-md" data-testid="card-template-preview">
-                <div className="text-sm opacity-75">AMERICA LIVING WILL REGISTRY</div>
-                <div className="text-2xl font-bold mt-2">ID Card</div>
-                <div className="mt-6 space-y-1">
-                  <div className="text-sm">Name: [Customer Name]</div>
-                  <div className="text-sm">ID: [Card Number]</div>
-                  <div className="text-sm">Valid Thru: [Expiry Date]</div>
+              <div className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 p-6 text-white" data-testid="card-template-preview">
+                {/* Card Header */}
+                <div className="flex items-start justify-between mb-8">
+                  <div className="space-y-1">
+                    <CreditCard className="h-8 w-8" />
+                    <div className="text-xs font-medium">ALWR</div>
+                  </div>
+                  <div className="text-right text-xs">
+                    <div className="font-bold">24/7 ACCESS</div>
+                    <div className="opacity-90">Emergency Registry</div>
+                  </div>
                 </div>
-                <div className="mt-6 text-xs opacity-75">Emergency: Call 1-800-ALWR-HELP</div>
+
+                {/* Card Content */}
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <div className="text-xs opacity-75">Registry Number</div>
+                    <div className="text-2xl font-bold font-mono tracking-wider">
+                      ALWR-XXXXXXXXX
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <div className="opacity-75">Issued</div>
+                      <div className="font-medium">
+                        [Date]
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Footer */}
+                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-xs opacity-90">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-3 w-3" />
+                    <span>alwr.org/emergency</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-3 w-3" />
+                    <span>24/7 Support</span>
+                  </div>
+                </div>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button variant="outline" size="sm" className="gap-2" data-testid="button-edit-template">
