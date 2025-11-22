@@ -26,6 +26,10 @@ import AdminUserRoles from "@/pages/admin-user-roles";
 import AdminAuditLogs from "@/pages/admin-audit-logs";
 import AdminEmailTemplates from "@/pages/admin-email-templates";
 import AdminPhysicalCardOrders from "@/pages/admin-physical-card-orders";
+import AdminReview from "@/pages/admin-review";
+import AdminReconcile from "@/pages/admin-reconcile";
+import AdminProcess from "@/pages/admin-process";
+import AdminPrint from "@/pages/admin-print";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
 
@@ -57,6 +61,10 @@ function Router() {
           <Route path="/admin/audit-logs" component={AdminAuditLogs} />
           <Route path="/admin/email-templates" component={AdminEmailTemplates} />
           <Route path="/admin/physical-card-orders" component={AdminPhysicalCardOrders} />
+          <Route path="/admin/review" component={AdminReview} />
+          <Route path="/admin/reconcile" component={AdminReconcile} />
+          <Route path="/admin/process" component={AdminProcess} />
+          <Route path="/admin/print" component={AdminPrint} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
       )}

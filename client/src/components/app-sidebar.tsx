@@ -24,7 +24,11 @@ import {
   BarChart3,
   Lock,
   Package,
-  Mail
+  Mail,
+  CheckCircle,
+  RefreshCw,
+  Zap,
+  Printer
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -76,50 +80,99 @@ export function AppSidebar() {
 
   // Admin menu items
   const adminMenuItems = [
+    // VIEW
     {
       title: "Dashboard",
       url: "/admin/dashboard",
       icon: LayoutDashboard,
+      section: "VIEW"
     },
+    
+    // LIST
     {
       title: "Customers",
       url: "/admin/customers",
       icon: Users,
+      section: "LIST"
     },
     {
       title: "Subscriptions",
       url: "/admin/subscriptions",
       icon: CreditCard,
+      section: "LIST"
     },
+    
+    // CREATE
+    // (using existing create customer page via dialog)
+    
+    // REVIEW
+    {
+      title: "Review",
+      url: "/admin/review",
+      icon: CheckCircle,
+      section: "REVIEW"
+    },
+    
+    // RECONCILE
+    {
+      title: "Reconcile",
+      url: "/admin/reconcile",
+      icon: RefreshCw,
+      section: "RECONCILE"
+    },
+    
+    // PROCESS
+    {
+      title: "Process Orders",
+      url: "/admin/process",
+      icon: Zap,
+      section: "PROCESS"
+    },
+    
+    // PRINT
+    {
+      title: "Print Cards",
+      url: "/admin/print",
+      icon: Printer,
+      section: "PRINT"
+    },
+    
+    // Additional admin features
     {
       title: "Physical Card Orders",
       url: "/admin/physical-card-orders",
       icon: Package,
+      section: "TOOLS"
     },
     {
       title: "Email Templates",
       url: "/admin/email-templates",
       icon: Mail,
+      section: "TOOLS"
     },
     {
       title: "Renewal Reminders",
       url: "/admin/renewal-reminders",
       icon: Bell,
+      section: "TOOLS"
     },
     {
       title: "Reports",
       url: "/admin/reports",
       icon: BarChart3,
+      section: "TOOLS"
     },
     {
       title: "User Roles",
       url: "/admin/user-roles",
       icon: Lock,
+      section: "TOOLS"
     },
     {
       title: "Audit Logs",
       url: "/admin/audit-logs",
       icon: ClipboardList,
+      section: "TOOLS"
     },
   ];
 
@@ -135,25 +188,73 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            {isAdmin ? "Admin Tools" : "My Account"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isAdmin ? (
+          <>
+            {/* Admin Menu with Sections */}
+            {["VIEW", "LIST", "REVIEW", "RECONCILE", "PROCESS", "PRINT"].map((section) => {
+              const sectionItems = menuItems.filter(item => (item as any).section === section);
+              if (sectionItems.length === 0) return null;
+              
+              return (
+                <SidebarGroup key={section}>
+                  <SidebarGroupLabel>{section}</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {sectionItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
+                            <a href={item.url}>
+                              <item.icon />
+                              <span>{item.title}</span>
+                            </a>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              );
+            })}
+            
+            {/* Tools Section */}
+            <SidebarGroup>
+              <SidebarGroupLabel>TOOLS</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {menuItems.filter(item => (item as any).section === "TOOLS").map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
+                        <a href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        ) : (
+          /* Customer Menu */
+          <SidebarGroup>
+            <SidebarGroupLabel>My Account</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
+                      <a href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
