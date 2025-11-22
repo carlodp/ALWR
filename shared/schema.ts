@@ -21,7 +21,7 @@ import { z } from "zod";
 export const userRoleEnum = pgEnum('alwr_user_role', ['customer', 'admin', 'agent']);
 export const subscriptionStatusEnum = pgEnum('alwr_subscription_status', [
   'active',
-  'expired',
+  'inactive',
   'cancelled',
   'pending',
   'trial'

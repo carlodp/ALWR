@@ -43,7 +43,7 @@ export default function AdminCustomers() {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "destructive" | "secondary"> = {
       active: "default",
-      expired: "destructive",
+      inactive: "destructive",
       trial: "secondary",
       cancelled: "secondary",
       pending: "secondary",
@@ -92,7 +92,7 @@ export default function AdminCustomers() {
               >
                 <option value="">All Subscriptions</option>
                 <option value="active">Active</option>
-                <option value="expired">Expired</option>
+                <option value="inactive">Inactive</option>
                 <option value="trial">Trial</option>
                 <option value="cancelled">Cancelled</option>
                 <option value="pending">Pending</option>

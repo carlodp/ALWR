@@ -36,7 +36,7 @@ interface SubscriptionWithCustomer extends Subscription {
 }
 
 const updateSubscriptionSchema = z.object({
-  status: z.enum(['active', 'expired', 'cancelled', 'pending', 'trial']),
+  status: z.enum(['active', 'inactive', 'cancelled', 'pending', 'trial']),
   renewalDate: z.string().optional(),
   endDate: z.string().optional(),
 });
@@ -104,7 +104,7 @@ export default function AdminSubscriptions() {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "destructive" | "secondary"> = {
       active: "default",
-      expired: "destructive",
+      inactive: "destructive",
       trial: "secondary",
       cancelled: "secondary",
       pending: "secondary",
@@ -270,7 +270,7 @@ export default function AdminSubscriptions() {
                                             data-testid="select-status"
                                           >
                                             <option value="active">Active</option>
-                                            <option value="expired">Expired</option>
+                                            <option value="inactive">Inactive</option>
                                             <option value="cancelled">Cancelled</option>
                                             <option value="pending">Pending</option>
                                             <option value="trial">Trial</option>

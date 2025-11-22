@@ -82,7 +82,7 @@ export default function CustomerSubscription() {
 
     const statusConfig = {
       active: { variant: "default" as const, icon: CheckCircle2, label: "Active" },
-      expired: { variant: "destructive" as const, icon: XCircle, label: "Expired" },
+      inactive: { variant: "destructive" as const, icon: XCircle, label: "Inactive" },
       cancelled: { variant: "secondary" as const, icon: XCircle, label: "Cancelled" },
       trial: { variant: "secondary" as const, icon: Clock, label: "Trial" },
       pending: { variant: "secondary" as const, icon: Clock, label: "Pending" },
@@ -227,7 +227,7 @@ export default function CustomerSubscription() {
                 {createPortalMutation.isPending ? "Loading..." : "Manage Billing"}
               </Button>
               
-              {(subscription.status === 'expired' || subscription.status === 'cancelled') && (
+              {(subscription.status === 'inactive' || subscription.status === 'cancelled') && (
                 <Button
                   variant="outline"
                   onClick={() => {

@@ -71,8 +71,8 @@ export default function CustomerDashboard() {
           return { label: `Expires in ${daysUntilExpiry} days`, variant: "destructive" as const, icon: AlertCircle };
         }
         return { label: "Active", variant: "default" as const, icon: CheckCircle2 };
-      case 'expired':
-        return { label: "Expired", variant: "destructive" as const, icon: AlertCircle };
+      case 'inactive':
+        return { label: "Inactive", variant: "destructive" as const, icon: AlertCircle };
       case 'cancelled':
         return { label: "Cancelled", variant: "secondary" as const, icon: AlertCircle };
       case 'trial':

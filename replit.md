@@ -195,14 +195,22 @@ Secure 24/7 online service for storing living wills and advance healthcare direc
 - **Customer Notes** - Internal admin notes
 - **Audit Logs** - Complete activity log
 
+## Key Database Terminology (IMPORTANT)
+- **Subscription Status**: ACTIVE or INACTIVE (not EXPIRED)
+  - ACTIVE: Subscription is current and valid
+  - INACTIVE: Subscription is not active (ended or cancelled)
+- **Account Status**: EXPIRED refers to customer/account level only, NOT subscription
+- All subscriptions now use: ['active', 'inactive', 'cancelled', 'pending', 'trial']
+
 ## Current Statistics
-- Total customers: 5 (mock data)
-- Total subscriptions: 5
-- Total documents: 15+
+- Total customers: 35+ (mock data - successfully seeded)
+- Total subscriptions: 33 (25 active, 8 inactive)
+- Total documents: 66+ (2 per customer)
 - Admin features: 8 complete (with Search & Filters)
 - API endpoints: 35+
 - Database: PostgreSQL via Drizzle ORM
 - Mobile navigation: Fully responsive with back buttons on all detail pages
+- **Subscription Status Terminology**: Corrected to use ACTIVE/INACTIVE (not EXPIRED)
 
 ## Latest Session - Complete Admin Menu Implementation ✅
 

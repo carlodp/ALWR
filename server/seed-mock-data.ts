@@ -107,7 +107,7 @@ async function seedMockData() {
         .insert(subscriptions)
         .values({
           customerId: customer.id,
-          status: Math.random() > 0.2 ? "active" : "expired",
+          status: Math.random() > 0.2 ? "active" : "inactive",
           startDate: now,
           endDate: endDate,
           renewalDate: endDate,
