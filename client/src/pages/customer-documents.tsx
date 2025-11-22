@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileText, Upload, Download, Trash2, Search, AlertCircle, ArrowLeft } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { FileText, Upload, Download, Trash2, Search, AlertCircle, ArrowLeft, History, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { Document } from "@shared/schema";
+import type { Document, DocumentVersion } from "@shared/schema";
 
 export default function CustomerDocuments() {
   const [, setLocation] = useLocation();
@@ -24,6 +25,40 @@ export default function CustomerDocuments() {
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/customer/documents"],
+  });
+
+  const [expandedVersions, setExpandedVersions] = useState<string | null>(null);
+
+  const versionsQuery = useQuery<DocumentVersion[]>({
+    queryKey: ["/api/customer/documents", expandedVersions, "versions"],
+    enabled: !!expandedVersions,
+    queryFn: async () => {
+      const response = await fetch(`/api/customer/documents/${expandedVersions}/versions`);
+      if (!response.ok) throw new Error("Failed to fetch versions");
+      return response.json();
+    },
+  });
+
+  const restoreVersionMutation = useMutation({
+    mutationFn: async ({ documentId, version }: { documentId: string; version: number }) => {
+      const response = await apiRequest("POST", `/api/customer/documents/${documentId}/versions/${version}/restore`, {});
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document restored",
+        description: "Document version has been restored.",
+      });
+      setExpandedVersions(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/documents"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Restore failed",
+        description: error.message || "Failed to restore document version.",
+        variant: "destructive",
+      });
+    },
   });
 
   const uploadMutation = useMutation({
@@ -257,53 +292,107 @@ export default function CustomerDocuments() {
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <div className="space-y-3">
               {filteredDocuments.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg hover-elevate"
-                  data-testid={`document-card-${doc.id}`}
-                >
-                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 flex-shrink-0">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium truncate" data-testid={`text-filename-${doc.id}`}>
-                      {doc.fileName}
-                    </h3>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <span className="capitalize">{doc.fileType.replace(/_/g, ' ')}</span>
-                      <span>{formatFileSize(doc.fileSize)}</span>
-                      <span>Uploaded {new Date(doc.createdAt!).toLocaleDateString()}</span>
+                <Collapsible key={doc.id} open={expandedVersions === doc.id} onOpenChange={(open) => setExpandedVersions(open ? doc.id : null)}>
+                  <div
+                    className="border rounded-lg hover-elevate"
+                    data-testid={`document-card-${doc.id}`}
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4">
+                      <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 flex-shrink-0">
+                        <FileText className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate" data-testid={`text-filename-${doc.id}`}>
+                          {doc.fileName}
+                        </h3>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          <span className="capitalize">{doc.fileType.replace(/_/g, ' ')}</span>
+                          <span>{formatFileSize(doc.fileSize)}</span>
+                          <span>Uploaded {new Date(doc.createdAt!).toLocaleDateString()}</span>
+                          {doc.currentVersion && doc.currentVersion > 1 && (
+                            <span>v{doc.currentVersion}</span>
+                          )}
+                        </div>
+                        {doc.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{doc.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          data-testid={`button-download-${doc.id}`}
+                        >
+                          <a href={`/api/customer/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            data-testid={`button-versions-${doc.id}`}
+                          >
+                            <History className="h-4 w-4" />
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          </Button>
+                        </CollapsibleTrigger>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this document?')) {
+                              deleteMutation.mutate(doc.id);
+                            }
+                          }}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-${doc.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
-                    {doc.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{doc.description}</p>
-                    )}
+
+                    <CollapsibleContent className="border-t bg-muted/50 p-4">
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium">Version History</p>
+                        {versionsQuery.isLoading ? (
+                          <Skeleton className="h-10 w-full" />
+                        ) : versionsQuery.data && versionsQuery.data.length > 0 ? (
+                          <div className="space-y-2 text-sm">
+                            {versionsQuery.data.map((version, idx) => (
+                              <div key={version.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                                <div>
+                                  <p className="font-medium">Version {version.version}</p>
+                                  <p className="text-muted-foreground text-xs">
+                                    {new Date(version.createdAt).toLocaleString()}
+                                  </p>
+                                  {version.changeNotes && (
+                                    <p className="text-muted-foreground text-xs mt-1">{version.changeNotes}</p>
+                                  )}
+                                </div>
+                                {idx > 0 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => restoreVersionMutation.mutate({ documentId: doc.id, version: version.version })}
+                                    disabled={restoreVersionMutation.isPending}
+                                    data-testid={`button-restore-version-${doc.id}-${version.version}`}
+                                  >
+                                    Restore
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No previous versions</p>
+                        )}
+                      </div>
+                    </CollapsibleContent>
                   </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      data-testid={`button-download-${doc.id}`}
-                    >
-                      <a href={`/api/customer/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer">
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this document?')) {
-                          deleteMutation.mutate(doc.id);
-                        }
-                      }}
-                      disabled={deleteMutation.isPending}
-                      data-testid={`button-delete-${doc.id}`}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
+                </Collapsible>
               ))}
             </div>
           ) : (

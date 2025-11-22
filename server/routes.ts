@@ -130,6 +130,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload profile image
+  app.post("/api/customer/profile/image", requireAuth, upload.single('profileImage'), async (req: any, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No image uploaded" });
+      }
+
+      const user = req.user.dbUser;
+      // In production, upload to cloud storage and update profileImageUrl
+      // For MVP, generate a data URL or simple placeholder
+      const imageUrl = `/api/users/${user.id}/profile-image`;
+      
+      // Update user with new profile image URL
+      const updated = await storage.upsertUser({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: imageUrl,
+        role: user.role,
+      });
+
+      res.json({ success: true, profileImageUrl: imageUrl });
+    } catch (error) {
+      console.error("Error uploading profile image:", error);
+      res.status(500).json({ message: "Failed to upload profile image" });
+    }
+  });
+
   // ============================================================================
   // SUBSCRIPTION ROUTES
   // ============================================================================
@@ -415,6 +444,19 @@ startxref
         uploadedBy: req.user.dbUser.id,
       });
 
+      // Create initial document version
+      await storage.createDocumentVersion({
+        documentId: document.id,
+        version: 1,
+        fileName: document.fileName,
+        fileSize: document.fileSize,
+        mimeType: document.mimeType,
+        storageKey: document.storageKey,
+        encryptionKey: document.encryptionKey || undefined,
+        uploadedBy: req.user.dbUser.id,
+        changeNotes: 'Initial upload',
+      });
+
       // Log document upload
       await storage.createAuditLog({
         userId: req.user.dbUser.id,
@@ -492,6 +534,69 @@ startxref
     } catch (error) {
       console.error("Error downloading document:", error);
       res.status(500).json({ message: "Failed to download document" });
+    }
+  });
+
+  // Get document versions
+  app.get("/api/customer/documents/:id/versions", requireAuth, async (req: any, res: Response) => {
+    try {
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const customer = await storage.getCustomer(req.user.dbUser.id);
+      if (!customer || document.customerId !== customer.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const versions = await storage.listDocumentVersions(document.id);
+      res.json(versions);
+    } catch (error) {
+      console.error("Error fetching document versions:", error);
+      res.status(500).json({ message: "Failed to fetch document versions" });
+    }
+  });
+
+  // Restore document version
+  app.post("/api/customer/documents/:id/versions/:version/restore", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id, version } = req.params;
+      const versionNum = parseInt(version, 10);
+
+      const document = await storage.getDocument(id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const customer = await storage.getCustomer(req.user.dbUser.id);
+      if (!customer || document.customerId !== customer.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const restored = await storage.restoreDocumentVersion(id, versionNum);
+      if (!restored) {
+        return res.status(404).json({ message: "Version not found" });
+      }
+
+      // Log version restore
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'document_upload',
+        resourceType: 'document',
+        resourceId: document.id,
+        details: { fileName: restored.fileName, restoredVersion: versionNum },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json(restored);
+    } catch (error) {
+      console.error("Error restoring document version:", error);
+      res.status(500).json({ message: "Failed to restore document version" });
     }
   });
 
