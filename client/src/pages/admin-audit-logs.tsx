@@ -20,30 +20,33 @@ export default function AdminAuditLogs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>("all");
   const [dateFromFilter, setDateFromFilter] = useState<string>("");
   const [dateToFilter, setDateToFilter] = useState<string>("");
 
   const { data: logs, isLoading } = useQuery<AuditLog[]>({
-    queryKey: ["/api/admin/audit-logs"],
+    queryKey: [
+      "/api/admin/audit-logs",
+      { action: actionFilter, status: statusFilter, resourceType: resourceTypeFilter, dateFrom: dateFromFilter, dateTo: dateToFilter, searchQuery },
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append("searchQuery", searchQuery);
+      if (actionFilter !== "all") params.append("action", actionFilter);
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (resourceTypeFilter !== "all") params.append("resourceType", resourceTypeFilter);
+      if (dateFromFilter) params.append("dateFrom", dateFromFilter);
+      if (dateToFilter) params.append("dateTo", dateToFilter);
+      
+      const response = await fetch(`/api/admin/audit-logs?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch audit logs");
+      return response.json();
+    },
     enabled: isAdmin,
   });
 
-  const filteredLogs = logs?.filter((log) => {
-    const matchesSearch =
-      log.actorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.resourceId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesAction = actionFilter === "all" || log.action === actionFilter;
-    const matchesStatus = 
-      statusFilter === "all" || 
-      (statusFilter === "success" && log.success) ||
-      (statusFilter === "failed" && !log.success);
-    
-    const logDate = new Date(log.createdAt!);
-    const matchesDateFrom = !dateFromFilter || logDate >= new Date(dateFromFilter);
-    const matchesDateTo = !dateToFilter || logDate <= new Date(dateToFilter + "T23:59:59");
-    
-    return matchesSearch && matchesAction && matchesStatus && matchesDateFrom && matchesDateTo;
-  });
+  // Use fetched logs directly (no client-side filtering needed)
+  const filteredLogs = logs;
 
   const exportToCSV = () => {
     if (!filteredLogs || filteredLogs.length === 0) {
@@ -81,6 +84,7 @@ export default function AdminAuditLogs() {
     setSearchQuery("");
     setActionFilter("all");
     setStatusFilter("all");
+    setResourceTypeFilter("all");
     setDateFromFilter("");
     setDateToFilter("");
   };
@@ -202,6 +206,20 @@ export default function AdminAuditLogs() {
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="success">Success</SelectItem>
                     <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={resourceTypeFilter} onValueChange={setResourceTypeFilter}>
+                  <SelectTrigger data-testid="select-resource-type-filter">
+                    <SelectValue placeholder="Resource Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Resources</SelectItem>
+                    <SelectItem value="document">Document</SelectItem>
+                    <SelectItem value="customer">Customer</SelectItem>
+                    <SelectItem value="subscription">Subscription</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="emergency_access">Emergency Access</SelectItem>
                   </SelectContent>
                 </Select>
 

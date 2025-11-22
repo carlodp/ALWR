@@ -61,6 +61,16 @@ export interface IStorage {
   // Audit Logging
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   listAuditLogs(limit?: number, offset?: number): Promise<AuditLog[]>;
+  listAuditLogsFiltered(filters: {
+    limit?: number;
+    offset?: number;
+    action?: string;
+    status?: 'success' | 'failed';
+    resourceType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    searchQuery?: string;
+  }): Promise<AuditLog[]>;
 
   // Customer Tags
   addCustomerTag(tag: InsertCustomerTag): Promise<CustomerTag>;
@@ -439,6 +449,73 @@ export class DatabaseStorage implements IStorage {
       offset,
       orderBy: desc(auditLogs.createdAt),
     });
+    return result;
+  }
+
+  async listAuditLogsFiltered(filters: {
+    limit?: number;
+    offset?: number;
+    action?: string;
+    status?: 'success' | 'failed';
+    resourceType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    searchQuery?: string;
+  }): Promise<AuditLog[]> {
+    const {
+      limit = 100,
+      offset = 0,
+      action,
+      status,
+      resourceType,
+      dateFrom,
+      dateTo,
+      searchQuery,
+    } = filters;
+
+    const conditions: any[] = [];
+
+    if (action && action !== 'all') {
+      conditions.push(eq(auditLogs.action, action));
+    }
+
+    if (status === 'success') {
+      conditions.push(eq(auditLogs.success, true));
+    } else if (status === 'failed') {
+      conditions.push(eq(auditLogs.success, false));
+    }
+
+    if (resourceType && resourceType !== 'all') {
+      conditions.push(eq(auditLogs.resourceType, resourceType));
+    }
+
+    if (dateFrom) {
+      conditions.push(gte(auditLogs.createdAt, new Date(dateFrom)));
+    }
+
+    if (dateTo) {
+      const endOfDay = new Date(dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      conditions.push(lte(auditLogs.createdAt, endOfDay));
+    }
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    let result = await db.query.auditLogs.findMany({
+      limit,
+      offset,
+      where,
+      orderBy: desc(auditLogs.createdAt),
+    });
+
+    if (searchQuery && searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
+      result = result.filter(log =>
+        log.actorName.toLowerCase().includes(searchLower) ||
+        log.resourceId.toLowerCase().includes(searchLower)
+      );
+    }
+
     return result;
   }
 

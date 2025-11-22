@@ -1486,7 +1486,27 @@ startxref
   // Get audit logs (admin)
   app.get("/api/admin/audit-logs", requireAdmin, async (req: any, res: Response) => {
     try {
-      const logs = await storage.listAuditLogs(100, 0);
+      const {
+        action = 'all',
+        status,
+        resourceType = 'all',
+        dateFrom,
+        dateTo,
+        searchQuery = '',
+        limit = 100,
+        offset = 0,
+      } = req.query;
+
+      const logs = await storage.listAuditLogsFiltered({
+        limit: parseInt(limit as string) || 100,
+        offset: parseInt(offset as string) || 0,
+        action: action !== 'all' ? (action as string) : undefined,
+        status: status === 'success' || status === 'failed' ? status : undefined,
+        resourceType: resourceType !== 'all' ? (resourceType as string) : undefined,
+        dateFrom: dateFrom as string,
+        dateTo: dateTo as string,
+        searchQuery: searchQuery as string,
+      });
       res.json(logs);
     } catch (error) {
       console.error("Error getting audit logs:", error);
