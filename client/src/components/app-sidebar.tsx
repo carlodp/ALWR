@@ -554,17 +554,10 @@ export function AppSidebar() {
               size="sm"
               className="flex-1"
               data-testid="button-logout"
-              onClick={async () => {
-                try {
-                  // First destroy the local session
-                  await fetch("/api/auth/logout", { method: "POST" });
-                  // Then redirect to full Replit OpenID logout which redirects back to login
-                  window.location.href = "/api/logout";
-                } catch (error) {
-                  console.error("Logout failed:", error);
-                  // Fallback: redirect to logout endpoint if fetch fails
-                  window.location.href = "/api/logout";
-                }
+              onClick={() => {
+                // Redirect to the logout endpoint which handles full session cleanup
+                // and OpenID provider logout
+                window.location.href = "/api/logout";
               }}
             >
               <LogOut className="h-4 w-4 mr-2" />
