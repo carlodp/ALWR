@@ -96,7 +96,7 @@ import { Separator } from "@/components/ui/separator";
  * - Active route highlighting
  */
 export function AppSidebar() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
 
   const getInitials = () => {
     if (!user) return "U";
@@ -233,6 +233,13 @@ export function AppSidebar() {
       url: "/admin/settings",
       icon: Lock,
       section: "ADMIN"
+    },
+    {
+      title: "Super Admin Settings",
+      url: "/admin/super-settings",
+      icon: Shield,
+      section: "ADMIN",
+      superAdminOnly: true
     },
   ];
 
@@ -591,7 +598,7 @@ export function AppSidebar() {
               <SidebarGroupLabel>TOOLS</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {menuItems.filter(item => (item as any).section === "TOOLS").map((item) => (
+                  {menuItems.filter(item => (item as any).section === "TOOLS" && (!((item as any).superAdminOnly) || isSuperAdmin)).map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
                         <a href={item.url}>

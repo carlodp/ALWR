@@ -87,6 +87,7 @@ import AdminCustomers from "@/pages/admin/customers";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
 import AdminUserDetail from "@/pages/admin/user-detail";
 import AdminSettings from "@/pages/admin/settings";
+import SuperAdminSettings from "@/pages/admin/super-admin-settings";
 import AdminCreateCustomer from "@/pages/admin/create-customer";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminRenewalReminders from "@/pages/admin/renewal-reminders";
@@ -109,7 +110,7 @@ import AdminCreateUser from "@/pages/admin/create-user";
 import AdminUserRoles from "@/pages/admin/user-roles";
 
 function Router() {
-  const { isAuthenticated, isLoading, isAdmin } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, isSuperAdmin } = useAuth();
 
   // Show loading indicator while checking authentication
   if (isLoading) {
@@ -140,6 +141,13 @@ function Router() {
       {isAuthenticated && (
         <>
           <Route path="/profile-setup" component={ProfileSetup} />
+        </>
+      )}
+
+      {/* Super Admin Routes - highest privilege */}
+      {isAuthenticated && isSuperAdmin && (
+        <>
+          <Route path="/admin/super-settings" component={SuperAdminSettings} />
         </>
       )}
 
