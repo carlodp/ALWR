@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, customers, subscriptions, documents, customerNotes } from "@shared/schema";
+import { users, customers, subscriptions, documents, customerNotes, agents, resellers } from "@shared/schema";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -154,8 +154,86 @@ async function seedMockData() {
       console.log(`✅ Created notes for ${mockCustomer.firstName}`);
     }
 
+    // Create mock agents
+    const mockAgents = [
+      { email: "agent.john@example.com", firstName: "John", lastName: "Agent", agencyName: "First Care Agency", agencyPhone: "(555) 100-0001", agencyAddress: "100 Agent Street, Springfield, IL 62701" },
+      { email: "agent.sarah@example.com", firstName: "Sarah", lastName: "Provider", agencyName: "Healthcare Plus", agencyPhone: "(555) 100-0002", agencyAddress: "200 Care Avenue, Chicago, IL 60601" },
+      { email: "agent.mike@example.com", firstName: "Mike", lastName: "Coordinator", agencyName: "Senior Services Co", agencyPhone: "(555) 100-0003", agencyAddress: "300 Service Road, Rockford, IL 61101" },
+    ];
+
+    console.log("\n🌱 Seeding mock agents...");
+    for (const mockAgent of mockAgents) {
+      const [user] = await db
+        .insert(users)
+        .values({
+          email: mockAgent.email,
+          firstName: mockAgent.firstName,
+          lastName: mockAgent.lastName,
+          role: "agent",
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      if (user) {
+        await db
+          .insert(agents)
+          .values({
+            userId: user.id,
+            status: "active",
+            agencyName: mockAgent.agencyName,
+            agencyPhone: mockAgent.agencyPhone,
+            agencyAddress: mockAgent.agencyAddress,
+            licenseNumber: `LIC-${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+            licenseExpiresAt: new Date(new Date().getTime() + 365 * 24 * 60 * 60 * 1000),
+            commissionRate: "15.5",
+          })
+          .returning();
+        console.log(`✅ Created agent: ${mockAgent.firstName} ${mockAgent.lastName}`);
+      }
+    }
+
+    // Create mock resellers
+    const mockResellers = [
+      { email: "reseller.corporate@example.com", firstName: "Bob", lastName: "Reseller", companyName: "HealthDoc Resellers Inc", companyPhone: "(555) 200-0001", companyAddress: "500 Business Park, New York, NY 10001", taxId: "12-3456789", partnerTier: "premium", commissionRate: "20.0" },
+      { email: "reseller.team@example.com", firstName: "Alice", lastName: "Partner", companyName: "Care Solutions Network", companyPhone: "(555) 200-0002", companyAddress: "600 Enterprise Way, Los Angeles, CA 90001", taxId: "98-7654321", partnerTier: "standard", commissionRate: "15.0" },
+      { email: "reseller.groups@example.com", firstName: "David", lastName: "Sales", companyName: "Senior Life Partners", companyPhone: "(555) 200-0003", companyAddress: "700 Partnership Lane, Houston, TX 77001", taxId: "55-1234567", partnerTier: "enterprise", commissionRate: "25.0" },
+    ];
+
+    console.log("🌱 Seeding mock resellers...");
+    for (const mockReseller of mockResellers) {
+      const [user] = await db
+        .insert(users)
+        .values({
+          email: mockReseller.email,
+          firstName: mockReseller.firstName,
+          lastName: mockReseller.lastName,
+          role: "customer",  // Use customer role - reseller is tracked via resellers table
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      if (user) {
+        await db
+          .insert(resellers)
+          .values({
+            userId: user.id,
+            status: "active",
+            companyName: mockReseller.companyName,
+            companyPhone: mockReseller.companyPhone,
+            companyAddress: mockReseller.companyAddress,
+            taxId: mockReseller.taxId,
+            partnerTier: mockReseller.partnerTier,
+            commissionRate: mockReseller.commissionRate,
+            paymentTerms: "net30",
+          })
+          .returning();
+        console.log(`✅ Created reseller: ${mockReseller.firstName} ${mockReseller.lastName}`);
+      }
+    }
+
     console.log("\n✨ Mock data seeding complete!");
     console.log(`Created ${createdUserIds.length} customers with profiles, subscriptions, documents, and notes`);
+    console.log(`Created ${mockAgents.length} agents and ${mockResellers.length} resellers`);
 
   } catch (error) {
     console.error("❌ Error seeding mock data:", error);

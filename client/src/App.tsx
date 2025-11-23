@@ -31,6 +31,8 @@ import AdminReviewExpired from "@/pages/admin-review-expired";
 import AdminReconcile from "@/pages/admin-reconcile";
 import AdminProcess from "@/pages/admin-process";
 import AdminPrint from "@/pages/admin-print";
+import AdminAgents from "@/pages/admin-agents";
+import AdminResellers from "@/pages/admin-resellers";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
 import GlobalSearch from "@/pages/global-search";
@@ -73,6 +75,8 @@ function Router() {
           <Route path="/admin/reconcile" component={AdminReconcile} />
           <Route path="/admin/process" component={AdminProcess} />
           <Route path="/admin/print" component={AdminPrint} />
+          <Route path="/admin/agents" component={AdminAgents} />
+          <Route path="/admin/resellers" component={AdminResellers} />
           <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
