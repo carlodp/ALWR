@@ -437,6 +437,55 @@ export function AppSidebar() {
               </Collapsible>
             </SidebarGroup>
 
+            {/* User Roles Section */}
+            <SidebarGroup>
+              <Collapsible defaultOpen={false} className="group/collapsible">
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton data-testid="nav-user-roles-expand">
+                        <Lock />
+                        <span>User Roles</span>
+                        <svg
+                          className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M12 6L8 10L4 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block mt-2">ACCOUNT</span>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-users">
+                            <a href="/admin/users">
+                              <User className="h-4 w-4" />
+                              <span>View Accounts</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-users-new">
+                            <a href="/admin/users/new">
+                              <User className="h-4 w-4" />
+                              <span>Create User</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </Collapsible>
+            </SidebarGroup>
+
             {/* Tools Section */}
             <SidebarGroup>
               <SidebarGroupLabel>TOOLS</SidebarGroupLabel>

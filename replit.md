@@ -57,7 +57,7 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - **ws (WebSocket)**: Real-time stats streaming.
 - **TypeScript**: Type safety and development tooling.
 
-### Latest Build Session (Session 6)
+### Latest Build Session (Session 7)
 **Tier 1 MVP Features Completed:**
 1. **Full Users Module** ✅ - 9 admin endpoints for user CRUD + role management
 2. **Email Verification System** ✅ - 2 endpoints for email verification (24-hour tokens)
@@ -65,8 +65,9 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 4. **Custom Email/Password Authentication** ✅ - Standalone login/register system
 5. **Agents Module** ✅ - Full agent management with customer assignments
 6. **Resellers Module** ✅ - Full reseller management with customer referral tracking
+7. **Efficient Role Assignment Architecture** ✅ - Select user → add role-specific fields → create role
 
-**Total API Endpoints: 86+** (up from 77)
+**Total API Endpoints: 86+** (unchanged)
 - Users Module: 9 endpoints (list, get, create, update, change role, delete, activity)
 - Custom Auth: 2 endpoints (register, login with password hashing & account locking)
 - Email/Password: 4 endpoints (send verification, verify email, forgot password, reset password)
@@ -102,6 +103,20 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 **Database Schema - New Tables (Session 6):**
 - `resellers` table: Stores reseller profiles with user reference, status, company info, partner tier, commission, and performance metrics
 - `reseller_customer_referrals` table: Links resellers to customers they referred, tracks performance metrics per customer
+
+**Frontend Architecture - Role Assignment (Session 7):**
+- **Efficient User Role Flow**: Instead of creating separate customer/agent/reseller accounts, users are created as base accounts, then role-specific details are added
+  - Create User: Simple form (email, firstName, lastName)
+  - Assign Agent: Select user → add agencyName, phone, address, license, commission
+  - Assign Reseller: Select user → add companyName, phone, address, taxId, tier, commission, terms
+- **Sidebar Navigation**: New "User Roles" collapsible section with "Account" subsection
+  - Create User link
+  - View Accounts link
+- **Pages Created**:
+  - `admin-users.tsx` - View all accounts with search/filter
+  - `admin-create-user.tsx` - Create new base user account
+  - `admin-create-agent.tsx` - Select existing user and add agent details
+  - `admin-create-reseller.tsx` - Select existing user and add reseller details
 
 **Database Schema Updates (Overall):**
 - Authentication fields: passwordHash, lastLoginAt, loginAttempts, lockedUntil
