@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -62,25 +62,51 @@ export function EditUserDialog({
   const form = useForm<EditUserForm>({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      role: user?.role as any,
+      firstName: "",
+      lastName: "",
+      role: "customer",
       customerPhone: "",
       customerAddress: "",
-      agencyName: agentData?.agencyName || "",
-      agencyPhone: agentData?.agencyPhone || "",
-      agencyAddress: agentData?.agencyAddress || "",
-      licenseNumber: agentData?.licenseNumber || "",
-      agencyCommissionRate: agentData?.commissionRate?.toString() || "",
-      companyName: resellerData?.companyName || "",
-      companyPhone: resellerData?.companyPhone || "",
-      companyAddress: resellerData?.companyAddress || "",
-      taxId: resellerData?.taxId || "",
-      partnerTier: resellerData?.partnerTier || "standard",
-      resellerCommissionRate: resellerData?.commissionRate?.toString() || "",
-      paymentTerms: resellerData?.paymentTerms || "net30",
+      agencyName: "",
+      agencyPhone: "",
+      agencyAddress: "",
+      licenseNumber: "",
+      agencyCommissionRate: "",
+      companyName: "",
+      companyPhone: "",
+      companyAddress: "",
+      taxId: "",
+      partnerTier: "standard",
+      resellerCommissionRate: "",
+      paymentTerms: "net30",
     },
   });
+
+  // Update form values when user or related data changes
+  useEffect(() => {
+    if (user) {
+      setSelectedRole(user.role);
+      form.reset({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        role: user.role as any,
+        customerPhone: "",
+        customerAddress: "",
+        agencyName: agentData?.agencyName || "",
+        agencyPhone: agentData?.agencyPhone || "",
+        agencyAddress: agentData?.agencyAddress || "",
+        licenseNumber: agentData?.licenseNumber || "",
+        agencyCommissionRate: agentData?.commissionRate?.toString() || "",
+        companyName: resellerData?.companyName || "",
+        companyPhone: resellerData?.companyPhone || "",
+        companyAddress: resellerData?.companyAddress || "",
+        taxId: resellerData?.taxId || "",
+        partnerTier: resellerData?.partnerTier || "standard",
+        resellerCommissionRate: resellerData?.commissionRate?.toString() || "",
+        paymentTerms: resellerData?.paymentTerms || "net30",
+      });
+    }
+  }, [user, agentData, resellerData, form]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: EditUserForm) => {
