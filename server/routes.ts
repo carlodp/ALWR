@@ -3366,6 +3366,255 @@ startxref
     }
   });
 
+  // ============================================================================
+  // AUDIT LOGGING ROUTES
+  // ============================================================================
+
+  /**
+   * @swagger
+   * /api/admin/audit-logs:
+   *   get:
+   *     summary: Get audit logs with filtering
+   *     description: Retrieve audit logs with optional filters for actions, status, date range
+   *     tags:
+   *       - Admin
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: offset
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: action
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: status
+   *         schema:
+   *           type: string
+   *           enum: [success, failed]
+   *       - in: query
+   *         name: dateFrom
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: dateTo
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Audit logs retrieved successfully
+   */
+  app.get("/api/admin/audit-logs", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { limit = 100, offset = 0, action, status, dateFrom, dateTo, search } = req.query;
+      
+      const logs = await storage.listAuditLogsFiltered({
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        action: action || undefined,
+        status: status as 'success' | 'failed' | undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        searchQuery: search || undefined,
+      });
+
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
+  // ============================================================================
+  // DATA EXPORT ROUTES (Customer Data Access Right - GDPR/CCPA)
+  // ============================================================================
+
+  /**
+   * @swagger
+   * /api/customer/data-export:
+   *   post:
+   *     summary: Request data export
+   *     description: Customer requests an export of their personal data
+   *     tags:
+   *       - Customer
+   *     security:
+   *       - sessionAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               format:
+   *                 type: string
+   *                 enum: [json, csv, pdf]
+   *     responses:
+   *       201:
+   *         description: Export request created
+   */
+  app.post("/api/customer/data-export", requireAuth, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.dbUser?.id;
+      const customer = await storage.getCustomer(userId);
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const { format = 'json' } = req.body;
+
+      // Create export request
+      const dataExport = await storage.createDataExport({
+        customerId: customer.id,
+        userId,
+        status: 'pending',
+        format: format as 'json' | 'csv' | 'pdf',
+        includePersonalData: true,
+        includeDocuments: true,
+        includePaymentHistory: true,
+        includeAuditLog: true,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        requestedAt: new Date(),
+      });
+
+      // Log the export request
+      await storage.createAuditLog({
+        userId,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: 'customer',
+        action: 'customer_export',
+        resourceType: 'customer',
+        resourceId: customer.id,
+        details: { format, exportId: dataExport.id },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.status(201).json({
+        id: dataExport.id,
+        status: dataExport.status,
+        format: dataExport.format,
+        requestedAt: dataExport.requestedAt,
+        expiresAt: dataExport.expiresAt,
+      });
+    } catch (error) {
+      console.error("Error creating data export:", error);
+      res.status(500).json({ message: "Failed to create export" });
+    }
+  });
+
+  /**
+   * @swagger
+   * /api/customer/data-export/{exportId}/status:
+   *   get:
+   *     summary: Check data export status
+   *     description: Check the status of a data export request
+   *     tags:
+   *       - Customer
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: exportId
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Export status
+   */
+  app.get("/api/customer/data-export/:id/status", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.dbUser?.id;
+
+      const dataExport = await storage.getDataExport(id);
+      if (!dataExport) {
+        return res.status(404).json({ message: "Export not found" });
+      }
+
+      // Verify ownership
+      if (dataExport.userId !== userId && req.user.dbUser.role !== 'admin') {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      res.json({
+        id: dataExport.id,
+        status: dataExport.status,
+        format: dataExport.format,
+        fileSize: dataExport.fileSize,
+        requestedAt: dataExport.requestedAt,
+        completedAt: dataExport.completedAt,
+        expiresAt: dataExport.expiresAt,
+        downloadCount: dataExport.downloadCount,
+        errorMessage: dataExport.errorMessage,
+      });
+    } catch (error) {
+      console.error("Error checking export status:", error);
+      res.status(500).json({ message: "Failed to check export status" });
+    }
+  });
+
+  /**
+   * @swagger
+   * /api/customer/data-export/{exportId}/download:
+   *   get:
+   *     summary: Download data export
+   *     description: Download the completed data export file
+   *     tags:
+   *       - Customer
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: exportId
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: File download
+   */
+  app.get("/api/customer/data-export/:id/download", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.dbUser?.id;
+
+      const dataExport = await storage.getDataExport(id);
+      if (!dataExport) {
+        return res.status(404).json({ message: "Export not found" });
+      }
+
+      // Verify ownership
+      if (dataExport.userId !== userId && req.user.dbUser.role !== 'admin') {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      if (dataExport.status !== 'ready') {
+        return res.status(400).json({ message: `Export not ready (status: ${dataExport.status})` });
+      }
+
+      // Increment download count
+      await storage.incrementDataExportDownloadCount(id);
+
+      // Mock file response (in production, serve from storage)
+      res.setHeader('Content-Disposition', `attachment; filename="data-export-${id}.${dataExport.format}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.json({ message: "Download would be served from storage", storageKey: dataExport.storageKey });
+    } catch (error) {
+      console.error("Error downloading export:", error);
+      res.status(500).json({ message: "Failed to download export" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 

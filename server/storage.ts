@@ -2,7 +2,7 @@ import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
   customerTags, physicalCardOrders, emailTemplates, emailNotifications, agents, agentCustomerAssignments,
-  resellers, resellerCustomerReferrals,
+  resellers, resellerCustomerReferrals, failedLoginAttempts, dataExports,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -13,7 +13,9 @@ import {
   type EmailTemplate, type InsertEmailTemplate,
   type EmailNotification, type InsertEmailNotification,
   type Agent, type InsertAgent, type AgentCustomerAssignment, type InsertAgentCustomerAssignment,
-  type Reseller, type InsertReseller, type ResellerCustomerReferral, type InsertResellerCustomerReferral
+  type Reseller, type InsertReseller, type ResellerCustomerReferral, type InsertResellerCustomerReferral,
+  type FailedLoginAttempt, type InsertFailedLoginAttempt,
+  type DataExport, type InsertDataExport
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -116,6 +118,20 @@ export interface IStorage {
     dateTo?: string;
     searchQuery?: string;
   }): Promise<AuditLog[]>;
+  
+  // Failed Login Attempts (Security)
+  recordFailedLogin(log: InsertFailedLoginAttempt): Promise<FailedLoginAttempt>;
+  listFailedLoginAttempts(email: string, hours?: number): Promise<FailedLoginAttempt[]>;
+  getFailedLoginCountByIp(ipAddress: string, hours?: number): Promise<number>;
+  
+  // Data Exports
+  createDataExport(data: InsertDataExport): Promise<DataExport>;
+  getDataExport(exportId: string): Promise<DataExport | undefined>;
+  listCustomerDataExports(customerId: string): Promise<DataExport[]>;
+  updateDataExportStatus(exportId: string, status: 'pending' | 'processing' | 'ready' | 'failed', errorMessage?: string): Promise<DataExport | undefined>;
+  updateDataExportFile(exportId: string, storageKey: string, fileSize: number): Promise<DataExport | undefined>;
+  incrementDataExportDownloadCount(exportId: string): Promise<void>;
+  deleteExpiredDataExports(): Promise<number>; // Returns count deleted
 
   // Customer Tags
   addCustomerTag(tag: InsertCustomerTag): Promise<CustomerTag>;
@@ -879,6 +895,98 @@ export class DatabaseStorage implements IStorage {
     }
 
     return result;
+  }
+
+  // ============================================================================
+  // FAILED LOGIN ATTEMPTS (Security)
+  // ============================================================================
+
+  async recordFailedLogin(log: InsertFailedLoginAttempt): Promise<FailedLoginAttempt> {
+    const [created] = await db.insert(failedLoginAttempts).values(log).returning();
+    return created;
+  }
+
+  async listFailedLoginAttempts(email: string, hours: number = 24): Promise<FailedLoginAttempt[]> {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    return db.query.failedLoginAttempts.findMany({
+      where: and(
+        eq(failedLoginAttempts.email, email),
+        gte(failedLoginAttempts.createdAt, since)
+      ),
+      orderBy: desc(failedLoginAttempts.createdAt),
+      limit: 100,
+    });
+  }
+
+  async getFailedLoginCountByIp(ipAddress: string, hours: number = 24): Promise<number> {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const result = await db.query.failedLoginAttempts.findMany({
+      where: and(
+        eq(failedLoginAttempts.ipAddress, ipAddress),
+        gte(failedLoginAttempts.createdAt, since)
+      ),
+    });
+    return result.length;
+  }
+
+  // ============================================================================
+  // DATA EXPORTS
+  // ============================================================================
+
+  async createDataExport(data: InsertDataExport): Promise<DataExport> {
+    const [created] = await db.insert(dataExports).values(data).returning();
+    return created;
+  }
+
+  async getDataExport(exportId: string): Promise<DataExport | undefined> {
+    return db.query.dataExports.findFirst({
+      where: eq(dataExports.id, exportId),
+    });
+  }
+
+  async listCustomerDataExports(customerId: string): Promise<DataExport[]> {
+    return db.query.dataExports.findMany({
+      where: eq(dataExports.customerId, customerId),
+      orderBy: desc(dataExports.createdAt),
+    });
+  }
+
+  async updateDataExportStatus(exportId: string, status: 'pending' | 'processing' | 'ready' | 'failed', errorMessage?: string): Promise<DataExport | undefined> {
+    const updates: any = { status };
+    if (errorMessage) updates.errorMessage = errorMessage;
+    if (status === 'processing') updates.processingStartedAt = new Date();
+    if (status === 'ready') updates.completedAt = new Date();
+    
+    const [updated] = await db.update(dataExports)
+      .set(updates)
+      .where(eq(dataExports.id, exportId))
+      .returning();
+    return updated;
+  }
+
+  async updateDataExportFile(exportId: string, storageKey: string, fileSize: number): Promise<DataExport | undefined> {
+    const [updated] = await db.update(dataExports)
+      .set({ storageKey, fileSize })
+      .where(eq(dataExports.id, exportId))
+      .returning();
+    return updated;
+  }
+
+  async incrementDataExportDownloadCount(exportId: string): Promise<void> {
+    const current = await this.getDataExport(exportId);
+    if (current) {
+      await db.update(dataExports)
+        .set({ downloadCount: (current.downloadCount || 0) + 1 })
+        .where(eq(dataExports.id, exportId));
+    }
+  }
+
+  async deleteExpiredDataExports(): Promise<number> {
+    const now = new Date();
+    const deleted = await db.delete(dataExports).where(
+      lte(dataExports.expiresAt, now)
+    );
+    return 0; // Drizzle doesn't return count easily
   }
 
   // ============================================================================

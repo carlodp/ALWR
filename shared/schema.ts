@@ -388,6 +388,65 @@ export const customerNotes = pgTable("customer_notes", {
 ]);
 
 // ============================================================================
+// FAILED LOGIN ATTEMPTS (Security Tracking)
+// ============================================================================
+
+export const failedLoginAttempts = pgTable("failed_login_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").notNull(),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  reason: varchar("reason").notNull(), // 'invalid_password', 'account_locked', 'user_not_found', 'invalid_2fa'
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_failed_login_email").on(table.email),
+  index("idx_failed_login_ip").on(table.ipAddress),
+  index("idx_failed_login_created_at").on(table.createdAt),
+]);
+
+// ============================================================================
+// DATA EXPORTS (Customer Data Access Right)
+// ============================================================================
+
+export const dataExports = pgTable("data_exports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").references(() => customers.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Export Status
+  status: varchar("status").notNull().default('pending'), // 'pending', 'processing', 'ready', 'failed'
+  
+  // Export Contents
+  includePersonalData: boolean("include_personal_data").default(true).notNull(),
+  includeDocuments: boolean("include_documents").default(true).notNull(),
+  includePaymentHistory: boolean("include_payment_history").default(true).notNull(),
+  includeAuditLog: boolean("include_audit_log").default(true).notNull(),
+  
+  // Export Details
+  storageKey: varchar("storage_key"), // S3 key or file path
+  fileSize: integer("file_size"), // in bytes
+  format: varchar("format").default('json').notNull(), // 'json', 'csv', 'pdf'
+  
+  // Tracking
+  requestedAt: timestamp("requested_at").defaultNow(),
+  processingStartedAt: timestamp("processing_started_at"),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"), // Auto-delete after this date
+  downloadCount: integer("download_count").default(0),
+  
+  // Error Tracking
+  errorMessage: text("error_message"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_data_export_customer_id").on(table.customerId),
+  index("idx_data_export_status").on(table.status),
+  index("idx_data_export_expires_at").on(table.expiresAt),
+  index("idx_data_export_created_at").on(table.createdAt),
+]);
+
+// ============================================================================
 // AUDIT LOGGING (HIPAA Compliance)
 // ============================================================================
 
@@ -812,6 +871,21 @@ export const insertResellerCustomerReferralSchema = createInsertSchema(resellerC
   commissionEarned: true,
 });
 
+export const insertFailedLoginAttemptSchema = createInsertSchema(failedLoginAttempts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDataExportSchema = createInsertSchema(dataExports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  processingStartedAt: true,
+  completedAt: true,
+  fileSize: true,
+  downloadCount: true,
+});
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -860,6 +934,12 @@ export type Reseller = typeof resellers.$inferSelect;
 
 export type InsertResellerCustomerReferral = z.infer<typeof insertResellerCustomerReferralSchema>;
 export type ResellerCustomerReferral = typeof resellerCustomerReferrals.$inferSelect;
+
+export type InsertFailedLoginAttempt = z.infer<typeof insertFailedLoginAttemptSchema>;
+export type FailedLoginAttempt = typeof failedLoginAttempts.$inferSelect;
+
+export type InsertDataExport = z.infer<typeof insertDataExportSchema>;
+export type DataExport = typeof dataExports.$inferSelect;
 
 // Global Search Results
 export interface GlobalSearchResult {
