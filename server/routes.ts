@@ -3037,11 +3037,22 @@ startxref
         await storage.logUserSession(userId, 'logout', ipAddress, userAgent);
       }
 
+      // Clear session properly
       req.logout((err: any) => {
         if (err) {
-          return res.status(500).json({ message: "Failed to logout" });
+          console.error("Logout error:", err);
         }
-        res.json({ message: "Logged out successfully" });
+        
+        // Destroy the session
+        req.session.destroy((sessionErr: any) => {
+          if (sessionErr) {
+            console.error("Session destruction error:", sessionErr);
+          }
+          
+          // Clear session cookie
+          res.clearCookie('connect.sid');
+          res.json({ message: "Logged out successfully" });
+        });
       });
     } catch (error) {
       console.error("Error logging out:", error);
