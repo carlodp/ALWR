@@ -3716,6 +3716,59 @@ startxref
     }
   });
 
+  // ============================================================================
+  // CACHE MANAGEMENT ROUTES
+  // ============================================================================
+
+  /**
+   * GET /api/admin/cache/stats
+   * Get cache statistics and performance metrics
+   */
+  app.get("/api/admin/cache/stats", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { CacheManager } = await import('./cache-manager');
+      const stats = CacheManager.getStats();
+      res.json({
+        ...stats,
+        hitRate: stats.active > 0 ? ((stats.active / (stats.active + stats.expired)) * 100).toFixed(2) + '%' : '0%',
+        recommendation: stats.total > 1000 ? 'Consider upgrading to Redis' : 'In-memory cache sufficient',
+      });
+    } catch (error) {
+      console.error("Error getting cache stats:", error);
+      res.status(500).json({ message: "Failed to get cache stats" });
+    }
+  });
+
+  /**
+   * POST /api/admin/cache/clear
+   * Clear entire cache (use sparingly)
+   */
+  app.post("/api/admin/cache/clear", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { CacheManager } = await import('./cache-manager');
+      CacheManager.clearAll();
+      res.json({ message: "Cache cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      res.status(500).json({ message: "Failed to clear cache" });
+    }
+  });
+
+  /**
+   * POST /api/admin/cache/cleanup
+   * Run cleanup on expired cache entries
+   */
+  app.post("/api/admin/cache/cleanup", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { CacheManager } = await import('./cache-manager');
+      const cleaned = CacheManager.cleanup();
+      res.json({ message: `Cleaned ${cleaned} expired entries` });
+    } catch (error) {
+      console.error("Error cleaning cache:", error);
+      res.status(500).json({ message: "Failed to clean cache" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 
