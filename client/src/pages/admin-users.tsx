@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Clock } from "lucide-react";
+import { Search, Clock, Plus } from "lucide-react";
 import { useState } from "react";
+import { SectionHeader } from "@/components/section-header";
+import { EmptyState } from "@/components/empty-state";
+import { InputWithIcon } from "@/components/input-with-icon";
 import type { User } from "@shared/schema";
 
 export default function AdminUsers() {
@@ -25,49 +28,59 @@ export default function AdminUsers() {
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">User Accounts</h1>
-          <p className="text-muted-foreground">Manage all user accounts in the system</p>
-        </div>
-        <Button 
-          onClick={() => setLocation("/admin/users/new")}
-          data-testid="button-create-user"
-        >
-          Create User
-        </Button>
-      </div>
+      <SectionHeader
+        title="User Accounts"
+        description="Manage all user accounts in the system"
+        action={
+          <Button 
+            onClick={() => setLocation("/admin/users/new")}
+            data-testid="button-create-user"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create User
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Search Accounts</CardTitle>
-          <CardDescription>Search by name or email</CardDescription>
+          <CardDescription>Search by name or email to filter users</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or email..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              data-testid="input-search"
-            />
-          </div>
+          <InputWithIcon
+            icon={Search}
+            placeholder="Search by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            data-testid="input-search"
+          />
         </CardContent>
       </Card>
 
       <div className="space-y-4">
         {isLoading ? (
           <>
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-16 w-full" />
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="h-20 animate-pulse" />
             ))}
           </>
         ) : filteredUsers.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">No accounts found</p>
+            <CardContent className="py-12">
+              <EmptyState
+                icon={Search}
+                title={searchTerm ? "No accounts match your search" : "No user accounts yet"}
+                description={
+                  searchTerm
+                    ? "Try adjusting your search terms"
+                    : "Get started by creating your first user account"
+                }
+                action={{
+                  label: "Create User",
+                  onClick: () => setLocation("/admin/users/new"),
+                }}
+              />
             </CardContent>
           </Card>
         ) : (

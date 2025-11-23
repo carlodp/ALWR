@@ -10,6 +10,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { InputWithIcon } from "@/components/input-with-icon";
 import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
