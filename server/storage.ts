@@ -193,6 +193,10 @@ export interface IStorage {
     totalDocuments: number;
     expiringSubscriptions: number;
   }>;
+
+  // Analytics
+  getSubscriptionsForAnalytics(): Promise<Subscription[]>;
+  listDocuments(): Promise<Document[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1226,6 +1230,18 @@ export class DatabaseStorage implements IStorage {
       totalDocuments,
       expiringSubscriptions: expiringSubscriptionsCount,
     };
+  }
+
+  // ============================================================================
+  // ANALYTICS
+  // ============================================================================
+
+  async getSubscriptionsForAnalytics(): Promise<Subscription[]> {
+    return await db.query.subscriptions.findMany();
+  }
+
+  async listDocuments(): Promise<Document[]> {
+    return await db.query.documents.findMany();
   }
 
   // ============================================================================
