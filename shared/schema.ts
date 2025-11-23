@@ -123,7 +123,12 @@ export const users = pgTable("users", {
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_users_email").on(table.email),
+  index("idx_users_role").on(table.role),
+  index("idx_users_created_at").on(table.createdAt),
+  index("idx_users_email_role").on(table.email, table.role),
+]);
 
 // ============================================================================
 // CUSTOMER MANAGEMENT
@@ -271,6 +276,8 @@ export const subscriptions = pgTable("subscriptions", {
   index("idx_subscription_customer_id").on(table.customerId),
   index("idx_subscription_status").on(table.status),
   index("idx_subscription_end_date").on(table.endDate),
+  index("idx_subscription_renewal_date").on(table.renewalDate),
+  index("idx_subscription_customer_status").on(table.customerId, table.status),
 ]);
 
 // ============================================================================
@@ -307,6 +314,9 @@ export const documents = pgTable("documents", {
 }, (table) => [
   index("idx_document_customer_id").on(table.customerId),
   index("idx_document_uploaded_by").on(table.uploadedBy),
+  index("idx_document_created_at").on(table.createdAt),
+  index("idx_document_type").on(table.fileType),
+  index("idx_document_customer_created").on(table.customerId, table.createdAt),
 ]);
 
 // Document versions - track all versions of documents

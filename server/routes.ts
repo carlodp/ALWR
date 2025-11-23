@@ -3769,6 +3769,88 @@ startxref
     }
   });
 
+  // ============================================================================
+  // RATE LIMITING & OPTIMIZATION ROUTES
+  // ============================================================================
+
+  /**
+   * GET /api/admin/rate-limits/stats
+   * Get rate limiting statistics
+   */
+  app.get("/api/admin/rate-limits/stats", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { RateLimiter } = await import('./rate-limiter');
+      const stats = RateLimiter.getStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting rate limit stats:", error);
+      res.status(500).json({ message: "Failed to get rate limit stats" });
+    }
+  });
+
+  /**
+   * POST /api/admin/rate-limits/clear
+   * Clear all rate limits (emergency only)
+   */
+  app.post("/api/admin/rate-limits/clear", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { RateLimiter } = await import('./rate-limiter');
+      RateLimiter.clearAll();
+      res.json({ message: "All rate limits cleared" });
+    } catch (error) {
+      console.error("Error clearing rate limits:", error);
+      res.status(500).json({ message: "Failed to clear rate limits" });
+    }
+  });
+
+  /**
+   * GET /api/admin/db-metrics
+   * Get database query metrics
+   */
+  app.get("/api/admin/db-metrics", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { DBOptimizer } = await import('./db-optimizer');
+      const metrics = DBOptimizer.getMetrics(100);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error getting DB metrics:", error);
+      res.status(500).json({ message: "Failed to get DB metrics" });
+    }
+  });
+
+  /**
+   * GET /api/admin/db-suggestions
+   * Get database optimization suggestions
+   */
+  app.get("/api/admin/db-suggestions", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { DBOptimizer } = await import('./db-optimizer');
+      const suggestions = DBOptimizer.getOptimizationSuggestions();
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error getting DB suggestions:", error);
+      res.status(500).json({ message: "Failed to get DB suggestions" });
+    }
+  });
+
+  /**
+   * GET /api/admin/db-n1-detection
+   * Detect potential N+1 query patterns
+   */
+  app.get("/api/admin/db-n1-detection", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { DBOptimizer } = await import('./db-optimizer');
+      const n1Queries = DBOptimizer.detectN1Queries();
+      res.json({
+        detected: n1Queries.length,
+        patterns: n1Queries.slice(0, 10),
+      });
+    } catch (error) {
+      console.error("Error detecting N+1 queries:", error);
+      res.status(500).json({ message: "Failed to detect N+1 queries" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 
