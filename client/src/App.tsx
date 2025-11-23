@@ -22,7 +22,6 @@ import AdminCreateCustomer from "@/pages/admin-create-customer";
 import AdminSubscriptions from "@/pages/admin-subscriptions";
 import AdminRenewalReminders from "@/pages/admin-renewal-reminders";
 import AdminReports from "@/pages/admin-reports";
-import AdminUserRoles from "@/pages/admin-user-roles";
 import AdminAuditLogs from "@/pages/admin-audit-logs";
 import AdminEmailTemplates from "@/pages/admin-email-templates";
 import AdminPhysicalCardOrders from "@/pages/admin-physical-card-orders";
@@ -32,12 +31,10 @@ import AdminReconcile from "@/pages/admin-reconcile";
 import AdminProcess from "@/pages/admin-process";
 import AdminPrint from "@/pages/admin-print";
 import AdminAgents from "@/pages/admin-agents";
-import AdminCreateAgent from "@/pages/admin-create-agent";
 import AdminResellers from "@/pages/admin-resellers";
-import AdminCreateReseller from "@/pages/admin-create-reseller";
 import AdminUsers from "@/pages/admin-users";
 import AdminCreateUser from "@/pages/admin-create-user";
-import AdminAssignRole from "@/pages/admin-assign-role";
+import AdminUserRoles from "@/pages/admin-user-roles";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
 import GlobalSearch from "@/pages/global-search";
@@ -81,12 +78,10 @@ function Router() {
           <Route path="/admin/process" component={AdminProcess} />
           <Route path="/admin/print" component={AdminPrint} />
           <Route path="/admin/agents" component={AdminAgents} />
-          <Route path="/admin/agents/new" component={AdminCreateAgent} />
           <Route path="/admin/resellers" component={AdminResellers} />
-          <Route path="/admin/resellers/new" component={AdminCreateReseller} />
           <Route path="/admin/users" component={AdminUsers} />
           <Route path="/admin/users/new" component={AdminCreateUser} />
-          <Route path="/admin/users/assign-role/:userId" component={AdminAssignRole} />
+          <Route path="/admin/user-roles" component={AdminUserRoles} />
           <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>

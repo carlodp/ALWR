@@ -464,10 +464,10 @@ export function AppSidebar() {
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild data-testid="nav-assign-role">
-                            <a href="/admin/users/assign-role">
+                          <SidebarMenuSubButton asChild data-testid="nav-user-roles">
+                            <a href="/admin/user-roles">
                               <Shield className="h-4 w-4" />
-                              <span>Assign Role</span>
+                              <span>User Roles</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

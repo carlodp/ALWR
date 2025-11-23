@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Shield } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState } from "react";
 import type { User } from "@shared/schema";
 
@@ -91,15 +91,6 @@ export default function AdminUsers() {
                     <Badge variant="outline" data-testid={`badge-role-${user.id}`}>
                       {user.role}
                     </Badge>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setLocation(`/admin/users/assign-role/${user.id}`)}
-                      data-testid={`button-assign-role-${user.id}`}
-                    >
-                      <Shield className="h-4 w-4 mr-1" />
-                      Assign
-                    </Button>
                   </div>
                 </div>
               </CardContent>
