@@ -2866,7 +2866,24 @@ startxref
   app.put("/api/admin/users/:id", requireAdmin, async (req: any, res: Response) => {
     try {
       const { id } = req.params;
-      const { firstName, lastName, email } = req.body;
+      const {
+        firstName,
+        lastName,
+        email,
+        role,
+        agencyName,
+        agencyPhone,
+        agencyAddress,
+        licenseNumber,
+        agencyCommissionRate,
+        companyName,
+        companyPhone,
+        companyAddress,
+        taxId,
+        partnerTier,
+        resellerCommissionRate,
+        paymentTerms,
+      } = req.body;
 
       const user = await storage.getUser(id);
       if (!user) {
@@ -2884,14 +2901,67 @@ startxref
         }
       }
 
-      // Update user
+      // Update user basic info
       const updated = await storage.upsertUser({
         id,
         email: email || user.email,
         firstName: firstName !== undefined ? firstName : user.firstName,
         lastName: lastName !== undefined ? lastName : user.lastName,
-        role: user.role,
+        role: role || user.role,
       });
+
+      // Handle role-specific data
+      const newRole = role || user.role;
+      
+      if (newRole === "agent") {
+        const existingAgent = await storage.getAgentByUserId(id);
+        if (existingAgent) {
+          // Update existing agent
+          await storage.updateAgent(existingAgent.id, {
+            agencyName: agencyName !== undefined ? agencyName : existingAgent.agencyName,
+            agencyPhone: agencyPhone !== undefined ? agencyPhone : existingAgent.agencyPhone,
+            agencyAddress: agencyAddress !== undefined ? agencyAddress : existingAgent.agencyAddress,
+            licenseNumber: licenseNumber !== undefined ? licenseNumber : existingAgent.licenseNumber,
+            commissionRate: agencyCommissionRate !== undefined ? parseFloat(agencyCommissionRate) : existingAgent.commissionRate,
+          });
+        } else {
+          // Create new agent
+          await storage.createAgent({
+            userId: id,
+            agencyName: agencyName || "",
+            agencyPhone: agencyPhone || "",
+            agencyAddress: agencyAddress || "",
+            licenseNumber: licenseNumber || "",
+            commissionRate: agencyCommissionRate ? parseFloat(agencyCommissionRate) : undefined,
+          });
+        }
+      } else if (newRole === "reseller") {
+        const existingReseller = await storage.getResellerByUserId(id);
+        if (existingReseller) {
+          // Update existing reseller
+          await storage.updateReseller(existingReseller.id, {
+            companyName: companyName !== undefined ? companyName : existingReseller.companyName,
+            companyPhone: companyPhone !== undefined ? companyPhone : existingReseller.companyPhone,
+            companyAddress: companyAddress !== undefined ? companyAddress : existingReseller.companyAddress,
+            taxId: taxId !== undefined ? taxId : existingReseller.taxId,
+            partnerTier: partnerTier !== undefined ? partnerTier : existingReseller.partnerTier,
+            commissionRate: resellerCommissionRate !== undefined ? parseFloat(resellerCommissionRate) : existingReseller.commissionRate,
+            paymentTerms: paymentTerms !== undefined ? paymentTerms : existingReseller.paymentTerms,
+          });
+        } else {
+          // Create new reseller
+          await storage.createReseller({
+            userId: id,
+            companyName: companyName || "",
+            companyPhone: companyPhone || "",
+            companyAddress: companyAddress || "",
+            taxId: taxId || "",
+            partnerTier: partnerTier || "standard",
+            commissionRate: resellerCommissionRate ? parseFloat(resellerCommissionRate) : undefined,
+            paymentTerms: paymentTerms || "net30",
+          });
+        }
+      }
 
       // Log action
       await storage.createAuditLog({
@@ -2901,7 +2971,13 @@ startxref
         action: 'profile_update',
         resourceType: 'user',
         resourceId: id,
-        details: { firstName, lastName, email },
+        details: {
+          firstName,
+          lastName,
+          email,
+          role,
+          roleChanged: role && role !== user.role,
+        },
         success: true,
         ipAddress: req.ip || undefined,
         userAgent: req.headers['user-agent'] || undefined,

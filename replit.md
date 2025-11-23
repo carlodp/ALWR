@@ -174,6 +174,27 @@ await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
 ```
 **Result**: After login succeeds, app refetches user data and redirects to admin dashboard correctly
 
+### ✅ Implemented Account Edit Feature (November 23, 2025)
+**Feature**: Edit User Accounts from Admin Dashboard
+**Components Created**:
+- `client/src/components/edit-user-dialog.tsx` - Reusable dialog for editing user accounts
+- Updated `client/src/pages/admin-users.tsx` - Made account cards clickable to open edit dialog
+
+**Features Implemented**:
+- ✅ Click any account tile in "View Accounts" to open edit dialog
+- ✅ Edit basic user info (first name, last name)
+- ✅ Change user roles with role dropdown
+- ✅ Role-based field visibility:
+  - Agent: Agency name, phone, address, license number, commission rate
+  - Reseller: Company name, phone, address, tax ID, partner tier, commission rate, payment terms
+  - Admin & Customer: No additional fields required
+- ✅ Create or update agent/reseller records when role changes
+- ✅ Audit logging for all changes
+- ✅ Real-time cache invalidation on successful save
+
+**Backend Endpoint Updated**:
+- PUT /api/admin/users/:id - Enhanced to handle role changes and role-specific fields
+
 ---
 
 ## Current Status: **FULLY FUNCTIONAL** ✅
@@ -182,6 +203,7 @@ await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
 - Loading indicator shows during initial auth check
 - Login form submits properly with email/password authentication
 - Successful login redirects to admin dashboard
+- User account editing fully functional with role-based fields
 - All TypeScript errors resolved
 - Form accessibility improved
 - Ready for production deployment

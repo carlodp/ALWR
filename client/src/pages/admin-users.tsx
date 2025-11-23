@@ -10,14 +10,25 @@ import { useState } from "react";
 import { SectionHeader } from "@/components/section-header";
 import { EmptyState } from "@/components/empty-state";
 import { InputWithIcon } from "@/components/input-with-icon";
+import { EditUserDialog } from "@/components/edit-user-dialog";
 import type { User } from "@shared/schema";
 
 export default function AdminUsers() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+  });
+
+  const { data: agents } = useQuery({
+    queryKey: ["/api/agents"],
+  });
+
+  const { data: resellers } = useQuery({
+    queryKey: ["/api/resellers"],
   });
 
   const filteredUsers = users?.filter((user) =>
@@ -25,6 +36,19 @@ export default function AdminUsers() {
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   ) || [];
+
+  const handleOpenEdit = (user: User) => {
+    setSelectedUser(user);
+    setEditDialogOpen(true);
+  };
+
+  const getAgentData = (userId: string) => {
+    return agents?.find((a: any) => a.userId === userId);
+  };
+
+  const getResellerData = (userId: string) => {
+    return resellers?.find((r: any) => r.userId === userId);
+  };
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
@@ -87,7 +111,8 @@ export default function AdminUsers() {
           filteredUsers.map((user) => (
             <Card 
               key={user.id}
-              className="hover-elevate"
+              className="hover-elevate cursor-pointer"
+              onClick={() => handleOpenEdit(user)}
               data-testid={`card-user-${user.id}`}
             >
               <CardContent className="py-4">
@@ -117,6 +142,14 @@ export default function AdminUsers() {
           ))
         )}
       </div>
+
+      <EditUserDialog
+        user={selectedUser}
+        isOpen={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        agentData={selectedUser ? getAgentData(selectedUser.id) : undefined}
+        resellerData={selectedUser ? getResellerData(selectedUser.id) : undefined}
+      />
     </div>
   );
 }
