@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Loader2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { InputWithIcon } from "@/components/input-with-icon";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -47,6 +47,9 @@ export default function Login() {
       const response = await apiRequest("POST", "/api/auth/login", data);
 
       if (response.ok) {
+        // Invalidate auth query to refetch user data
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
           title: "Success",
           description: "Logged in successfully",

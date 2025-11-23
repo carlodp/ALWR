@@ -164,6 +164,16 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 
 **Result**: Eliminated DOM warnings and improved browser password manager integration
 
+### ✅ Fixed Login Redirect Issue (November 23, 2025 - Final)
+**Problem**: After successful login, toast showed "Logged in successfully" but page didn't redirect to dashboard
+**Root Cause**: Auth query cache wasn't being invalidated after login, so app didn't refetch user data and stayed on login page
+**Solution**: Modified login.tsx to invalidate auth query cache immediately after successful login
+```typescript
+// Invalidate auth query to refetch user data
+await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+```
+**Result**: After login succeeds, app refetches user data and redirects to admin dashboard correctly
+
 ---
 
 ## Current Status: **FULLY FUNCTIONAL** ✅
@@ -171,5 +181,7 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 - Login page displays correctly with no white screen
 - Loading indicator shows during initial auth check
 - Login form submits properly with email/password authentication
+- Successful login redirects to admin dashboard
 - All TypeScript errors resolved
 - Form accessibility improved
+- Ready for production deployment
