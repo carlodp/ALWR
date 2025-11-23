@@ -38,6 +38,8 @@ import AdminUserRoles from "@/pages/admin-user-roles";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
 import GlobalSearch from "@/pages/global-search";
+import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();
@@ -53,6 +55,8 @@ function Router() {
       {!isAuthenticated && (
         <>
           <Route path="/" component={Landing} />
+          <Route path="/login" component={Login} />
+          <Route path="/signup" component={Signup} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
       )}

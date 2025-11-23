@@ -170,6 +170,42 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
   - One-click copying to clipboard
   - Applies to all user roles (customer, agent, reseller, admin)
 
+**Session 9 Updates - Email/Password Login & Session Management:**
+
+**Login System - Email/Password Only:**
+- **Removed Replit Auth** - Replaced with simple email/password login
+- **New Pages**:
+  - `/login` - Login page with email/password form
+  - `/signup` - Registration page with first name, last name, email, password, confirm password
+- **Public Routes** - Both accessible without authentication
+  - Links updated from `/api/login` to `/login` and `/signup` on landing page
+- **Authentication Endpoints**:
+  - `POST /api/auth/login` - Authenticates user with email/password (rate limited)
+  - `POST /api/auth/register` - Creates new customer account with custom password
+- **Features**:
+  - Password validation: minimum 12 characters
+  - Account locking: After 5 failed login attempts, account locks for 15 minutes
+  - Audit logging: All login/logout actions tracked
+  - Session management: Proper session destruction on logout
+  - Toast notifications for success/error messages
+
+**Session Management Fixes:**
+- **Logout Fixed** - `/api/auth/logout` now properly:
+  - Calls `req.logout()` to clear Replit Auth
+  - Destroys session with `req.session.destroy()`
+  - Clears session cookie (`connect.sid`)
+  - Logs the logout action with proper audit trail
+- **Audit Log Improvement** - `logUserSession()` now:
+  - Fetches user name and role from database for audit trail
+  - Provides proper `actorName` and `actorRole` fields (required)
+  - Handles errors gracefully to prevent logout failures
+  
+**Database Optimization (Session 9):**
+- Cleaned expired sessions (0 deleted - all current)
+- Cleaned old audit logs, emergency access logs, email notifications
+- Ran VACUUM ANALYZE for query optimization
+- Database size: ~1.2 MB total, optimized for performance
+
 ### Frontend Dependencies (WordPress)
 - **WordPress**: CMS for public website, customer portal, admin interface.
 - Connects to this API via REST endpoints.

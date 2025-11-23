@@ -24,7 +24,7 @@ export default function Landing() {
             </a>
           </nav>
           <Button asChild data-testid="button-login">
-            <a href="/api/login">Sign In</a>
+            <a href="/login">Sign In</a>
           </Button>
         </div>
       </header>
@@ -43,7 +43,7 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild data-testid="button-get-started">
-                <a href="/api/login">Get Started</a>
+                <a href="/signup">Get Started</a>
               </Button>
               <Button size="lg" variant="outline" asChild data-testid="button-emergency-access">
                 <a href="/emergency-access">Emergency Access</a>
@@ -198,7 +198,7 @@ export default function Landing() {
               Join thousands who trust ALWR to keep their healthcare directives safe and accessible
             </p>
             <Button size="lg" variant="secondary" asChild data-testid="button-cta-signup">
-              <a href="/api/login">Sign Up Now</a>
+              <a href="/signup">Sign Up Now</a>
             </Button>
           </div>
         </div>
