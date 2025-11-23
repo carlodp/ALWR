@@ -2506,19 +2506,24 @@ startxref
         passwordHash,
       });
 
-      // Log action
-      await storage.createAuditLog({
-        userId: req.user.dbUser.id,
-        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
-        actorRole: req.user.dbUser.role,
-        action: 'customer_create',
-        resourceType: 'user',
-        resourceId: user.id,
-        details: { email, firstName, lastName, role },
-        success: true,
-        ipAddress: req.ip || undefined,
-        userAgent: req.headers['user-agent'] || undefined,
-      });
+      // Log action (non-critical - don't fail if audit log fails)
+      try {
+        await storage.createAuditLog({
+          userId: req.user.dbUser.id,
+          actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+          actorRole: req.user.dbUser.role,
+          action: 'customer_create',
+          resourceType: 'user',
+          resourceId: user.id,
+          details: { email, firstName, lastName, role },
+          success: true,
+          ipAddress: req.ip || undefined,
+          userAgent: req.headers['user-agent'] || undefined,
+        });
+      } catch (auditError) {
+        // Log audit error but don't fail the request
+        console.warn("Failed to create audit log for user creation:", auditError);
+      }
 
       res.status(201).json({
         ...user,
