@@ -290,7 +290,7 @@ export default function CustomerDashboard() {
                 </div>
               ))}
               {documents.length > 5 && (
-                <Button variant="link" asChild className="w-full" data-testid="button-view-all-documents">
+                <Button variant="ghost" asChild className="w-full" data-testid="button-view-all-documents">
                   <a href="/customer/documents">View all documents →</a>
                 </Button>
               )}

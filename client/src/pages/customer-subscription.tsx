@@ -175,11 +175,11 @@ export default function CustomerSubscription() {
               </Alert>
             )}
 
-            {subscription.status === 'expired' && (
+            {subscription.status === 'cancelled' && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Your subscription has expired. Please renew to regain access to your documents.
+                  Your subscription has been cancelled. Please renew to regain access to your documents.
                 </AlertDescription>
               </Alert>
             )}

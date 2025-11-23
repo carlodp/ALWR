@@ -13,7 +13,17 @@ import { FileText, Upload, Download, Trash2, Search, AlertCircle, ArrowLeft, His
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { Document, DocumentVersion } from "@shared/schema";
+import type { Document } from "@shared/schema";
+
+interface DocumentVersion {
+  id: string;
+  documentId: string;
+  version: number;
+  fileUrl: string;
+  createdAt: string;
+  uploadedBy: string;
+  changeNotes?: string;
+}
 
 export default function CustomerDocuments() {
   const [, setLocation] = useLocation();
