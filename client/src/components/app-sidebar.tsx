@@ -466,14 +466,6 @@ export function AppSidebar() {
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild data-testid="nav-user-roles">
-                            <a href="/admin/user-roles">
-                              <Shield className="h-4 w-4" />
-                              <span>User Roles</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>
