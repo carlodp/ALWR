@@ -173,12 +173,6 @@ export function AppSidebar() {
       icon: BarChart3,
       section: "TOOLS"
     },
-    {
-      title: "Audit Logs",
-      url: "/admin/audit-logs",
-      icon: ClipboardList,
-      section: "TOOLS"
-    },
   ];
 
   const menuItems = isAdmin ? adminMenuItems : customerMenuItems;
@@ -455,9 +449,6 @@ export function AppSidebar() {
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         <SidebarMenuSubItem>
-                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block mt-2">ACCOUNT</span>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild data-testid="nav-users">
                             <a href="/admin/users">
                               <User className="h-4 w-4" />
@@ -470,6 +461,14 @@ export function AppSidebar() {
                             <a href="/admin/users/new">
                               <User className="h-4 w-4" />
                               <span>Create User</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-audit-logs">
+                            <a href="/admin/audit-logs">
+                              <ClipboardList className="h-4 w-4" />
+                              <span>User Roles</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
