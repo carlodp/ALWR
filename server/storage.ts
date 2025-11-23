@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
-  customerTags, physicalCardOrders, emailTemplates,
+  customerTags, physicalCardOrders, emailTemplates, emailNotifications,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -9,7 +9,8 @@ import {
   type AuditLog, type InsertAuditLog, type CustomerNote, type InsertCustomerNote,
   type CustomerTag, type InsertCustomerTag,
   type PhysicalCardOrder, type InsertPhysicalCardOrder,
-  type EmailTemplate, type InsertEmailTemplate
+  type EmailTemplate, type InsertEmailTemplate,
+  type EmailNotification, type InsertEmailNotification
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -88,6 +89,12 @@ export interface IStorage {
   getEmailTemplate(name: string): Promise<EmailTemplate | undefined>;
   listEmailTemplates(): Promise<EmailTemplate[]>;
   updateEmailTemplate(templateId: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined>;
+
+  // Email Notifications
+  createEmailNotification(notification: InsertEmailNotification): Promise<EmailNotification>;
+  listEmailNotifications(userId: string, limit?: number): Promise<EmailNotification[]>;
+  listPendingEmailNotifications(limit?: number): Promise<EmailNotification[]>;
+  updateEmailNotificationStatus(notificationId: string, status: 'sent' | 'failed' | 'bounced', failureReason?: string): Promise<EmailNotification | undefined>;
   
   // Referral Tracking
   generateReferralCode(): string;
@@ -730,6 +737,53 @@ export class DatabaseStorage implements IStorage {
       totalDocuments: documentCount.count,
       expiringSubscriptions: expiringCount.count,
     };
+  }
+
+  // ============================================================================
+  // EMAIL NOTIFICATIONS
+  // ============================================================================
+
+  async createEmailNotification(notification: InsertEmailNotification): Promise<EmailNotification> {
+    const [result] = await db.insert(emailNotifications).values(notification).returning();
+    return result;
+  }
+
+  async listEmailNotifications(userId: string, limit = 50): Promise<EmailNotification[]> {
+    return await db.query.emailNotifications.findMany({
+      where: eq(emailNotifications.userId, userId),
+      limit,
+      orderBy: desc(emailNotifications.createdAt),
+    });
+  }
+
+  async listPendingEmailNotifications(limit = 50): Promise<EmailNotification[]> {
+    return await db.query.emailNotifications.findMany({
+      where: eq(emailNotifications.status, 'pending'),
+      limit,
+      orderBy: emailNotifications.createdAt,
+    });
+  }
+
+  async updateEmailNotificationStatus(
+    notificationId: string,
+    status: 'sent' | 'failed' | 'bounced',
+    failureReason?: string
+  ): Promise<EmailNotification | undefined> {
+    const updateData: any = { status };
+    if (status === 'sent') {
+      updateData.sentAt = new Date();
+    }
+    if (failureReason && status === 'failed') {
+      updateData.failureReason = failureReason;
+    }
+
+    const [result] = await db
+      .update(emailNotifications)
+      .set(updateData)
+      .where(eq(emailNotifications.id, notificationId))
+      .returning();
+
+    return result;
   }
 }
 

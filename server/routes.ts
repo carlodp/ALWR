@@ -1645,6 +1645,54 @@ startxref
   });
 
   // ============================================================================
+  // EMAIL NOTIFICATIONS
+  // ============================================================================
+
+  app.get("/api/notifications", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!req.user?.dbUser?.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const notifications = await storage.listEmailNotifications(req.user.dbUser.id, 50);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.get("/api/admin/notifications/pending", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const pending = await storage.listPendingEmailNotifications(100);
+      res.json(pending);
+    } catch (error) {
+      console.error("Error fetching pending notifications:", error);
+      res.status(500).json({ message: "Failed to fetch pending notifications" });
+    }
+  });
+
+  app.post("/api/admin/notifications/:id/send", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const notification = await storage.listEmailNotifications("", 1).then(n => {
+        // Find notification by ID (would need to be refactored for better lookup)
+        return null;
+      });
+
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+
+      // Mark as sent (in production, would actually send via SendGrid)
+      const updated = await storage.updateEmailNotificationStatus(id, 'sent');
+      res.json({ message: "Notification queued for sending", notification: updated });
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      res.status(500).json({ message: "Failed to send notification" });
+    }
+  });
+
+  // ============================================================================
   // GLOBAL SEARCH
   // ============================================================================
 

@@ -47,6 +47,23 @@ export const auditActionEnum = pgEnum('alwr_audit_action', [
   'customer_update'
 ]);
 
+export const emailNotificationTypeEnum = pgEnum('alwr_email_notification_type', [
+  'renewal_reminder',
+  'emergency_access_alert',
+  'password_changed',
+  'account_created',
+  'document_uploaded',
+  'payment_received',
+  'subscription_expired'
+]);
+
+export const emailStatusEnum = pgEnum('alwr_email_status', [
+  'pending',
+  'sent',
+  'failed',
+  'bounced'
+]);
+
 // ============================================================================
 // AUTHENTICATION TABLES (Required by Replit Auth)
 // ============================================================================
@@ -375,6 +392,42 @@ export const auditLogs = pgTable("audit_logs", {
 ]);
 
 // ============================================================================
+// EMAIL NOTIFICATIONS
+// ============================================================================
+
+export const emailNotifications = pgTable("email_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Recipient
+  userId: varchar("user_id").references(() => users.id),
+  recipientEmail: varchar("recipient_email").notNull(),
+  
+  // Email Content
+  notificationType: emailNotificationTypeEnum("notification_type").notNull(),
+  templateId: varchar("template_id").references(() => emailTemplates.id),
+  subject: varchar("subject").notNull(),
+  htmlContent: text("html_content").notNull(),
+  
+  // Context
+  resourceType: varchar("resource_type"), // e.g., "subscription", "document", "emergency_access"
+  resourceId: varchar("resource_id"),
+  
+  // Status
+  status: emailStatusEnum("status").default('pending').notNull(),
+  sentAt: timestamp("sent_at"),
+  failureReason: text("failure_reason"),
+  retryCount: integer("retry_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_email_notification_user_id").on(table.userId),
+  index("idx_email_notification_status").on(table.status),
+  index("idx_email_notification_type").on(table.notificationType),
+  index("idx_email_notification_created_at").on(table.createdAt),
+]);
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -438,6 +491,17 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, {
     fields: [auditLogs.userId],
     references: [users.id],
+  }),
+}));
+
+export const emailNotificationsRelations = relations(emailNotifications, ({ one }) => ({
+  user: one(users, {
+    fields: [emailNotifications.userId],
+    references: [users.id],
+  }),
+  template: one(emailTemplates, {
+    fields: [emailNotifications.templateId],
+    references: [emailTemplates.id],
   }),
 }));
 
@@ -505,6 +569,14 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit
   updatedAt: true,
 });
 
+export const insertEmailNotificationSchema = createInsertSchema(emailNotifications).omit({
+  id: true,
+  sentAt: true,
+  createdAt: true,
+  updatedAt: true,
+  retryCount: true,
+});
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -538,6 +610,9 @@ export type PhysicalCardOrder = typeof physicalCardOrders.$inferSelect;
 
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+export type InsertEmailNotification = z.infer<typeof insertEmailNotificationSchema>;
+export type EmailNotification = typeof emailNotifications.$inferSelect;
 
 // Global Search Results
 export interface GlobalSearchResult {
