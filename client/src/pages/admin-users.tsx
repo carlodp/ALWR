@@ -43,11 +43,13 @@ export default function AdminUsers() {
   };
 
   const getAgentData = (userId: string) => {
-    return agents?.find((a: any) => a.userId === userId);
+    const agentsList = Array.isArray(agents) ? agents : agents?.data;
+    return agentsList?.find((a: any) => a.userId === userId);
   };
 
   const getResellerData = (userId: string) => {
-    return resellers?.find((r: any) => r.userId === userId);
+    const resellersList = Array.isArray(resellers) ? resellers : resellers?.data;
+    return resellersList?.find((r: any) => r.userId === userId);
   };
 
   return (
