@@ -174,9 +174,24 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 // Middleware to load user from session for backward compatibility
 export async function loadUser(req: any, res: any, next: any) {
   try {
+    // Support both OpenID (req.user.claims.sub) and email/password (req.session.userId) auth
+    let userId: string | undefined;
+    
     if (req.user?.claims?.sub) {
-      const dbUser = await storage.getUser(req.user.claims.sub);
+      // OpenID authentication
+      userId = req.user.claims.sub;
+    } else if (req.session?.userId) {
+      // Email/password authentication
+      userId = req.session.userId;
+    }
+
+    if (userId) {
+      const dbUser = await storage.getUser(userId);
       if (dbUser) {
+        // Initialize req.user if it doesn't exist
+        if (!req.user) {
+          req.user = {};
+        }
         req.user.dbUser = dbUser;
       }
     }

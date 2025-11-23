@@ -3164,37 +3164,42 @@ startxref
       // Record successful login
       await storage.recordLoginAttempt(user.id, true);
 
-      // Set session - user is now authenticated
-      req.login(user, (err: any) => {
-        if (err) {
-          console.error("Login session error:", err);
-          return res.status(500).json({ message: "Failed to establish session" });
-        }
-
-        // Log successful login
-        storage.createAuditLog({
-          userId: user.id,
-          actorName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
-          actorRole: user.role,
-          action: 'login',
-          resourceType: 'user',
-          resourceId: user.id,
-          details: { method: 'email_password' },
-          success: true,
-          ipAddress: req.ip || undefined,
-          userAgent: req.headers['user-agent'] || undefined,
-        }).catch(err => console.error("Error logging login:", err));
-
-        res.json({
-          message: "Logged in successfully",
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-          },
+      // Manually establish session for email/password auth
+      req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err: any) => {
+          if (err) {
+            console.error("Session save error:", err);
+            reject(err);
+          } else {
+            resolve();
+          }
         });
+      });
+
+      // Log successful login
+      await storage.createAuditLog({
+        userId: user.id,
+        actorName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        actorRole: user.role,
+        action: 'login',
+        resourceType: 'user',
+        resourceId: user.id,
+        details: { method: 'email_password' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      }).catch(err => console.error("Error logging login:", err));
+
+      res.json({
+        message: "Logged in successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
       });
     } catch (error) {
       console.error("Error during login:", error);
