@@ -2,6 +2,7 @@ import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
   customerTags, physicalCardOrders, emailTemplates, emailNotifications, agents, agentCustomerAssignments,
+  resellers, resellerCustomerReferrals,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -11,7 +12,8 @@ import {
   type PhysicalCardOrder, type InsertPhysicalCardOrder,
   type EmailTemplate, type InsertEmailTemplate,
   type EmailNotification, type InsertEmailNotification,
-  type Agent, type InsertAgent, type AgentCustomerAssignment, type InsertAgentCustomerAssignment
+  type Agent, type InsertAgent, type AgentCustomerAssignment, type InsertAgentCustomerAssignment,
+  type Reseller, type InsertReseller, type ResellerCustomerReferral, type InsertResellerCustomerReferral
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -48,6 +50,20 @@ export interface IStorage {
   getAgentCustomers(agentId: string): Promise<AgentCustomerAssignment[]>;
   getCustomerAgent(customerId: string): Promise<Agent | undefined>;
   updateAssignment(assignmentId: string, data: Partial<AgentCustomerAssignment>): Promise<AgentCustomerAssignment | undefined>;
+
+  // Reseller Operations
+  createReseller(data: InsertReseller): Promise<Reseller>;
+  getReseller(resellerId: string): Promise<Reseller | undefined>;
+  getResellerByUserId(userId: string): Promise<Reseller | undefined>;
+  listResellers(limit?: number, offset?: number): Promise<Reseller[]>;
+  updateReseller(resellerId: string, data: Partial<InsertReseller>): Promise<Reseller | undefined>;
+  deleteReseller(resellerId: string): Promise<void>;
+  
+  // Reseller-Customer Referrals
+  addCustomerToReseller(resellerId: string, customerId: string): Promise<ResellerCustomerReferral>;
+  getResellerCustomers(resellerId: string): Promise<ResellerCustomerReferral[]>;
+  getCustomerReseller(customerId: string): Promise<Reseller | undefined>;
+  updateReferral(referralId: string, data: Partial<ResellerCustomerReferral>): Promise<ResellerCustomerReferral | undefined>;
 
   // Customer Operations
   getCustomer(userId: string): Promise<Customer | undefined>;
@@ -410,6 +426,83 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(agentCustomerAssignments)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(agentCustomerAssignments.id, assignmentId))
+      .returning();
+    return updated;
+  }
+
+  async createReseller(data: InsertReseller): Promise<Reseller> {
+    const [reseller] = await db.insert(resellers).values(data).returning();
+    return reseller;
+  }
+
+  async getReseller(resellerId: string): Promise<Reseller | undefined> {
+    return db.query.resellers.findFirst({
+      where: eq(resellers.id, resellerId),
+    });
+  }
+
+  async getResellerByUserId(userId: string): Promise<Reseller | undefined> {
+    return db.query.resellers.findFirst({
+      where: eq(resellers.userId, userId),
+    });
+  }
+
+  async listResellers(limit: number = 1000, offset: number = 0): Promise<Reseller[]> {
+    return db.query.resellers.findMany({
+      limit,
+      offset,
+    });
+  }
+
+  async updateReseller(resellerId: string, data: Partial<InsertReseller>): Promise<Reseller | undefined> {
+    const [updated] = await db.update(resellers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(resellers.id, resellerId))
+      .returning();
+    return updated;
+  }
+
+  async deleteReseller(resellerId: string): Promise<void> {
+    await db.update(resellers)
+      .set({ status: 'inactive', updatedAt: new Date() })
+      .where(eq(resellers.id, resellerId));
+  }
+
+  async addCustomerToReseller(resellerId: string, customerId: string): Promise<ResellerCustomerReferral> {
+    const [referral] = await db.insert(resellerCustomerReferrals)
+      .values({ resellerId, customerId })
+      .returning();
+
+    const reseller = await this.getReseller(resellerId);
+    if (reseller) {
+      await this.updateReseller(resellerId, {
+        totalCustomersReferred: (reseller.totalCustomersReferred || 0) + 1,
+      });
+    }
+
+    return referral;
+  }
+
+  async getResellerCustomers(resellerId: string): Promise<ResellerCustomerReferral[]> {
+    return db.query.resellerCustomerReferrals.findMany({
+      where: eq(resellerCustomerReferrals.resellerId, resellerId),
+    });
+  }
+
+  async getCustomerReseller(customerId: string): Promise<Reseller | undefined> {
+    const referral = await db.query.resellerCustomerReferrals.findFirst({
+      where: eq(resellerCustomerReferrals.customerId, customerId),
+    });
+
+    if (!referral) return undefined;
+
+    return this.getReseller(referral.resellerId);
+  }
+
+  async updateReferral(referralId: string, data: Partial<ResellerCustomerReferral>): Promise<ResellerCustomerReferral | undefined> {
+    const [updated] = await db.update(resellerCustomerReferrals)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(resellerCustomerReferrals.id, referralId))
       .returning();
     return updated;
   }

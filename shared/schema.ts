@@ -621,6 +621,91 @@ export const agentCustomerAssignmentsRelations = relations(agentCustomerAssignme
 }));
 
 // ============================================================================
+// RESELLERS MODULE
+// ============================================================================
+
+export const resellers = pgTable("resellers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Reseller Status
+  status: varchar("status").default('active').notNull(), // active, inactive, suspended
+  
+  // Company Info
+  companyName: varchar("company_name").notNull(),
+  companyPhone: varchar("company_phone"),
+  companyAddress: text("company_address"),
+  taxId: varchar("tax_id"), // For 1099 reporting
+  
+  // Partner Tier
+  partnerTier: varchar("partner_tier").default('standard'), // standard, premium, enterprise
+  
+  // Commission & Payment
+  commissionRate: varchar("commission_rate"), // e.g., "15.5" for 15.5%
+  paymentTerms: varchar("payment_terms"), // net30, net60, etc.
+  stripeConnectId: varchar("stripe_connect_id"), // For payouts
+  
+  // Performance Tracking
+  totalCustomersReferred: integer("total_customers_referred").default(0),
+  totalDocumentsProcessed: integer("total_documents_processed").default(0),
+  totalRevenueGenerated: integer("total_revenue_generated").default(0), // in cents
+  totalCommissionEarned: integer("total_commission_earned").default(0), // in cents
+  
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_reseller_user_id").on(table.userId),
+  index("idx_reseller_status").on(table.status),
+  index("idx_reseller_tier").on(table.partnerTier),
+]);
+
+// Reseller-Customer Relationships (tracks which customers were referred by reseller)
+export const resellerCustomerReferrals = pgTable("reseller_customer_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resellerId: varchar("reseller_id").references(() => resellers.id).notNull(),
+  customerId: varchar("customer_id").references(() => customers.id).notNull(),
+  
+  // Referral Details
+  referredAt: timestamp("referred_at").defaultNow(),
+  commissionRate: varchar("commission_rate"), // Override global rate if needed
+  
+  // Performance on this customer
+  documentCount: integer("document_count").default(0),
+  revenueGenerated: integer("revenue_generated").default(0), // in cents
+  commissionEarned: integer("commission_earned").default(0), // in cents
+  
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_referral_reseller_id").on(table.resellerId),
+  index("idx_referral_customer_id").on(table.customerId),
+]);
+
+// Relations for Resellers Module
+export const resellersRelations = relations(resellers, ({ one, many }) => ({
+  user: one(users, {
+    fields: [resellers.userId],
+    references: [users.id],
+  }),
+  referrals: many(resellerCustomerReferrals),
+}));
+
+export const resellerCustomerReferralsRelations = relations(resellerCustomerReferrals, ({ one }) => ({
+  reseller: one(resellers, {
+    fields: [resellerCustomerReferrals.resellerId],
+    references: [resellers.id],
+  }),
+  customer: one(customers, {
+    fields: [resellerCustomerReferrals.customerId],
+    references: [customers.id],
+  }),
+}));
+
+// ============================================================================
 // INSERT SCHEMAS (For Validation)
 // ============================================================================
 
@@ -708,6 +793,25 @@ export const insertAgentCustomerAssignmentSchema = createInsertSchema(agentCusto
   documentCount: true,
 });
 
+export const insertResellerSchema = createInsertSchema(resellers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  totalCustomersReferred: true,
+  totalDocumentsProcessed: true,
+  totalRevenueGenerated: true,
+  totalCommissionEarned: true,
+});
+
+export const insertResellerCustomerReferralSchema = createInsertSchema(resellerCustomerReferrals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  documentCount: true,
+  revenueGenerated: true,
+  commissionEarned: true,
+});
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -750,6 +854,12 @@ export type Agent = typeof agents.$inferSelect;
 
 export type InsertAgentCustomerAssignment = z.infer<typeof insertAgentCustomerAssignmentSchema>;
 export type AgentCustomerAssignment = typeof agentCustomerAssignments.$inferSelect;
+
+export type InsertReseller = z.infer<typeof insertResellerSchema>;
+export type Reseller = typeof resellers.$inferSelect;
+
+export type InsertResellerCustomerReferral = z.infer<typeof insertResellerCustomerReferralSchema>;
+export type ResellerCustomerReferral = typeof resellerCustomerReferrals.$inferSelect;
 
 // Global Search Results
 export interface GlobalSearchResult {

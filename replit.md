@@ -57,51 +57,56 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - **ws (WebSocket)**: Real-time stats streaming.
 - **TypeScript**: Type safety and development tooling.
 
-### Latest Build Session (Session 5)
+### Latest Build Session (Session 6)
 **Tier 1 MVP Features Completed:**
 1. **Full Users Module** ✅ - 9 admin endpoints for user CRUD + role management
 2. **Email Verification System** ✅ - 2 endpoints for email verification (24-hour tokens)
 3. **Password Reset Flow** ✅ - 2 endpoints for forgot password & token validation
 4. **Custom Email/Password Authentication** ✅ - Standalone login/register system
 5. **Agents Module** ✅ - Full agent management with customer assignments
+6. **Resellers Module** ✅ - Full reseller management with customer referral tracking
 
-**Total API Endpoints: 77+** (up from 67)
+**Total API Endpoints: 86+** (up from 77)
 - Users Module: 9 endpoints (list, get, create, update, change role, delete, activity)
 - Custom Auth: 2 endpoints (register, login with password hashing & account locking)
 - Email/Password: 4 endpoints (send verification, verify email, forgot password, reset password)
 - **Agents Module: 9 endpoints** (list, get, create, update, delete, assign customer, unassign customer, get agent customers, get customer's agent)
-- All previous modules: 43+ endpoints
+- **Resellers Module: 9 endpoints** (list, create, get, update, delete, add customer, get reseller customers, get customer's reseller)
+- All previous modules: 44+ endpoints
 
-**New Agents Module Endpoints:**
-1. `GET /api/agents` - List all agents (admin only, with pagination)
-2. `POST /api/agents` - Create new agent (admin only)
-3. `GET /api/agents/:agentId` - Get agent details (admin or self)
-4. `PATCH /api/agents/:agentId` - Update agent info (admin only)
-5. `DELETE /api/agents/:agentId` - Delete/deactivate agent (admin only)
-6. `POST /api/agents/:agentId/assign-customer` - Assign customer to agent (admin only)
-7. `POST /api/agents/:agentId/unassign-customer` - Unassign customer from agent (admin only)
-8. `GET /api/agents/:agentId/customers` - Get all customers assigned to agent
-9. `GET /api/customers/:customerId/agent` - Get agent assigned to customer
+**New Resellers Module (Session 6):**
+**9 API Endpoints:**
+1. `GET /api/resellers` - List all resellers (admin only, with pagination)
+2. `POST /api/resellers` - Create new reseller (admin only)
+3. `GET /api/resellers/:resellerId` - Get reseller details (admin or self)
+4. `PATCH /api/resellers/:resellerId` - Update reseller info (admin only)
+5. `DELETE /api/resellers/:resellerId` - Soft delete reseller (admin only)
+6. `POST /api/resellers/:resellerId/add-customer` - Add customer referral (admin only)
+7. `GET /api/resellers/:resellerId/customers` - Get all customers referred by reseller
+8. `GET /api/customers/:customerId/reseller` - Get reseller for customer
 
-**Agents Module Features:**
-- ✅ Agent profile management with agency info (name, phone, address)
-- ✅ License tracking with expiration dates
-- ✅ Commission rate tracking for agent payouts
-- ✅ Performance metrics (customers assigned, documents processed, revenue generated)
-- ✅ Customer assignment/unassignment with tracking
-- ✅ Agent-Customer relationship management
-- ✅ Audit logging for all agent operations (create, update, delete, assign, unassign)
-- ✅ Role-based permissions (admin-only operations, agent self-access)
-- ✅ Soft delete for agents (mark as inactive instead of hard delete)
-- ✅ Automatic performance tracking when assigning/unassigning customers
+**Resellers Module Features:**
+- ✅ Reseller profile management with company info (name, phone, address, tax ID)
+- ✅ Partner tier tracking (standard, premium, enterprise)
+- ✅ Commission rate and payment terms management
+- ✅ Stripe Connect ID for payouts
+- ✅ Performance metrics (customers referred, documents processed, revenue generated, commission earned)
+- ✅ Customer referral tracking with individual commission rates
+- ✅ Reseller-Customer relationship management
+- ✅ Audit logging for all reseller operations (create, update, delete, add customer)
+- ✅ Role-based permissions (admin-only operations, reseller self-access)
+- ✅ Soft delete for resellers (mark as inactive instead of hard delete)
+- ✅ Automatic performance tracking when adding customers
+- ✅ Comprehensive relations system (resellers -> users, resellers -> referrals -> customers)
 
-**Database Schema - New Tables:**
-- `agents` table: Stores agent profiles with user reference, status, agency info, license, commission, and performance metrics
-- `agent_customer_assignments` table: Links agents to customers they manage, tracks active/inactive assignments and performance per customer
+**Database Schema - New Tables (Session 6):**
+- `resellers` table: Stores reseller profiles with user reference, status, company info, partner tier, commission, and performance metrics
+- `reseller_customer_referrals` table: Links resellers to customers they referred, tracks performance metrics per customer
 
 **Database Schema Updates (Overall):**
 - Authentication fields: passwordHash, lastLoginAt, loginAttempts, lockedUntil
 - Agents module: agents table, agent_customer_assignments table with proper indexing
+- **Resellers module: resellers table, reseller_customer_referrals table with proper indexing**
 - Maintained: emailVerified, emailVerificationToken, passwordResetToken, all 2FA fields
 
 ### Frontend Dependencies (WordPress)

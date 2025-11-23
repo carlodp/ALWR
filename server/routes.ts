@@ -2110,6 +2110,285 @@ startxref
   });
 
   // ============================================================================
+  // RESELLERS MODULE
+  // ============================================================================
+
+  // List all resellers (admin only)
+  app.get("/api/resellers", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const limit = Math.min(parseInt(req.query.limit) || 50, 1000);
+      const offset = parseInt(req.query.offset) || 0;
+
+      const resellerList = await storage.listResellers(limit, offset);
+      res.json({
+        data: resellerList,
+        count: resellerList.length,
+        limit,
+        offset,
+      });
+    } catch (error) {
+      console.error("Error listing resellers:", error);
+      res.status(500).json({ message: "Failed to list resellers" });
+    }
+  });
+
+  // Create reseller (admin only)
+  app.post("/api/resellers", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { userId, companyName, companyPhone, companyAddress, taxId, partnerTier, commissionRate, paymentTerms, notes } = req.body;
+
+      if (!userId || !companyName) {
+        return res.status(400).json({ message: "userId and companyName are required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      const reseller = await storage.createReseller({
+        userId,
+        status: 'active',
+        companyName,
+        companyPhone: companyPhone || null,
+        companyAddress: companyAddress || null,
+        taxId: taxId || null,
+        partnerTier: partnerTier || 'standard',
+        commissionRate: commissionRate || null,
+        paymentTerms: paymentTerms || null,
+        notes: notes || null,
+      });
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'reseller',
+        resourceId: reseller.id,
+        details: { action: 'reseller_created' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.status(201).json(reseller);
+    } catch (error) {
+      console.error("Error creating reseller:", error);
+      res.status(500).json({ message: "Failed to create reseller" });
+    }
+  });
+
+  // Get reseller by ID (admin or self)
+  app.get("/api/resellers/:resellerId", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { resellerId } = req.params;
+      const reseller = await storage.getReseller(resellerId);
+
+      if (!reseller) {
+        return res.status(404).json({ message: "Reseller not found" });
+      }
+
+      if (!isAdmin(req.user.dbUser) && req.user.dbUser.id !== reseller.userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      res.json(reseller);
+    } catch (error) {
+      console.error("Error getting reseller:", error);
+      res.status(500).json({ message: "Failed to get reseller" });
+    }
+  });
+
+  // Update reseller (admin only)
+  app.patch("/api/resellers/:resellerId", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { resellerId } = req.params;
+      const { companyName, companyPhone, companyAddress, taxId, partnerTier, commissionRate, paymentTerms, status, notes } = req.body;
+
+      const reseller = await storage.updateReseller(resellerId, {
+        companyName: companyName || undefined,
+        companyPhone: companyPhone || undefined,
+        companyAddress: companyAddress || undefined,
+        taxId: taxId || undefined,
+        partnerTier: partnerTier || undefined,
+        commissionRate: commissionRate || undefined,
+        paymentTerms: paymentTerms || undefined,
+        status: status || undefined,
+        notes: notes || undefined,
+      });
+
+      if (!reseller) {
+        return res.status(404).json({ message: "Reseller not found" });
+      }
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'reseller',
+        resourceId: reseller.id,
+        details: { action: 'reseller_updated' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json(reseller);
+    } catch (error) {
+      console.error("Error updating reseller:", error);
+      res.status(500).json({ message: "Failed to update reseller" });
+    }
+  });
+
+  // Delete reseller (admin only)
+  app.delete("/api/resellers/:resellerId", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { resellerId } = req.params;
+      const reseller = await storage.getReseller(resellerId);
+
+      if (!reseller) {
+        return res.status(404).json({ message: "Reseller not found" });
+      }
+
+      await storage.deleteReseller(resellerId);
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'reseller',
+        resourceId: resellerId,
+        details: { action: 'reseller_deleted' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({ message: "Reseller deleted" });
+    } catch (error) {
+      console.error("Error deleting reseller:", error);
+      res.status(500).json({ message: "Failed to delete reseller" });
+    }
+  });
+
+  // Add customer to reseller
+  app.post("/api/resellers/:resellerId/add-customer", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { resellerId } = req.params;
+      const { customerId } = req.body;
+
+      if (!customerId) {
+        return res.status(400).json({ message: "customerId is required" });
+      }
+
+      const reseller = await storage.getReseller(resellerId);
+      if (!reseller) {
+        return res.status(404).json({ message: "Reseller not found" });
+      }
+
+      const customer = await storage.getCustomerById(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const referral = await storage.addCustomerToReseller(resellerId, customerId);
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'reseller',
+        resourceId: resellerId,
+        details: { action: 'customer_referred', customerId },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.status(201).json(referral);
+    } catch (error) {
+      console.error("Error adding customer to reseller:", error);
+      res.status(500).json({ message: "Failed to add customer" });
+    }
+  });
+
+  // Get customers referred by reseller
+  app.get("/api/resellers/:resellerId/customers", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { resellerId } = req.params;
+      const reseller = await storage.getReseller(resellerId);
+
+      if (!reseller) {
+        return res.status(404).json({ message: "Reseller not found" });
+      }
+
+      if (!isAdmin(req.user.dbUser) && req.user.dbUser.id !== reseller.userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const referrals = await storage.getResellerCustomers(resellerId);
+      res.json({
+        resellerId,
+        referrals,
+        count: referrals.length,
+      });
+    } catch (error) {
+      console.error("Error getting reseller customers:", error);
+      res.status(500).json({ message: "Failed to get reseller customers" });
+    }
+  });
+
+  // Get reseller for a customer
+  app.get("/api/customers/:customerId/reseller", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { customerId } = req.params;
+      const customer = await storage.getCustomerById(customerId);
+
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      if (!isAdmin(req.user.dbUser) && req.user.dbUser.id !== customer.userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const reseller = await storage.getCustomerReseller(customerId);
+      if (!reseller) {
+        return res.status(404).json({ message: "No reseller assigned to customer" });
+      }
+
+      res.json(reseller);
+    } catch (error) {
+      console.error("Error getting customer reseller:", error);
+      res.status(500).json({ message: "Failed to get customer reseller" });
+    }
+  });
+
+  // ============================================================================
   // USER MANAGEMENT ROUTES (Admin Only)
   // ============================================================================
 
