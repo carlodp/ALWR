@@ -20,6 +20,7 @@ import { authLimiter, apiLimiter, sanitizeError, isValidId, isValidEmail, isVali
 import { logger } from "./logger";
 import { isAdmin, hasPermission } from "./usersService";
 import { hashPassword, verifyPassword, validatePassword, validateEmail, isAccountLocked, calculateLockUntil } from "./authService";
+import { versionDetectionMiddleware, getVersionInfoEndpoint } from "./api-versioning";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -56,6 +57,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Apply loadUser middleware to all routes
   app.use(loadUser);
+
+  // Apply API versioning detection to all routes
+  app.use(versionDetectionMiddleware);
+
+  // ============================================================================
+  // VERSION INFO ENDPOINT
+  // ============================================================================
+
+  /**
+   * GET /api/version
+   * Get API version information and migration guide
+   */
+  app.get("/api/version", getVersionInfoEndpoint);
+
+  /**
+   * Also support /api/v1/version and /api/v2/version for consistency
+   */
+  app.get(["/api/v1/version", "/api/v2/version"], getVersionInfoEndpoint);
 
   // ============================================================================
   // AUTHENTICATION ROUTES
