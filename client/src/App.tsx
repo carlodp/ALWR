@@ -137,6 +137,15 @@ function Router() {
         </>
       )}
 
+      {/* Redirect authenticated users away from login pages */}
+      {isAuthenticated && (
+        <>
+          <Route path="/login" component={AdminDashboard} />
+          <Route path="/signup" component={AdminDashboard} />
+          <Route path="/forgot-password" component={AdminDashboard} />
+        </>
+      )}
+
       {/* Post-Auth Routes */}
       {isAuthenticated && (
         <>
