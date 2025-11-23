@@ -12,16 +12,11 @@ import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { seedMockData } from "./seed-mock-data";
+import { logger } from "./logger";
+import { globalLimiter, setSecureHeaders, sanitizeError } from "./security";
 
 export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
+  logger.info(message, source);
 }
 
 export const app = express();
@@ -117,6 +112,16 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+
+// Apply security headers to all responses
+app.use((req, res, next) => {
+  setSecureHeaders(res);
+  next();
+});
+
+// Apply global rate limiter
+app.use(globalLimiter);
+
 app.use(express.json({
   verify: (req, _res, buf) => {
     req.rawBody = buf;

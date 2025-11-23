@@ -16,6 +16,8 @@ import {
 import { z } from "zod";
 import { calculateStats, invalidateStatsCache } from "./statsService";
 import { setupStatsWebSocket, notifyStatsChange } from "./websocketStats";
+import { authLimiter, apiLimiter, sanitizeError, isValidId, isValidEmail, isValidPassword } from "./security";
+import { logger } from "./logger";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -162,8 +164,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Change customer password
-  app.post("/api/customer/password", requireAuth, async (req: any, res: Response) => {
+  // Change customer password - Rate limited to prevent brute force
+  app.post("/api/customer/password", authLimiter, requireAuth, async (req: any, res: Response) => {
     try {
       const { currentPassword, newPassword, confirmPassword } = req.body;
 
@@ -172,12 +174,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "All password fields are required" });
       }
 
-      if (newPassword !== confirmPassword) {
-        return res.status(400).json({ message: "New password and confirm password do not match" });
+      if (!isValidPassword(newPassword)) {
+        return res.status(400).json({ message: "New password must be at least 8 characters long" });
       }
 
-      if (newPassword.length < 8) {
-        return res.status(400).json({ message: "New password must be at least 8 characters long" });
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "New password and confirm password do not match" });
       }
 
       if (newPassword === currentPassword) {
@@ -844,8 +846,8 @@ startxref
   // EMERGENCY ACCESS ROUTES
   // ============================================================================
 
-  // Verify emergency access
-  app.post("/api/emergency-access/verify", async (req: Request, res: Response) => {
+  // Verify emergency access - Rate limited to prevent brute force
+  app.post("/api/emergency-access/verify", authLimiter, async (req: Request, res: Response) => {
     try {
       // Validate request body
       const emergencyAccessSchema = z.object({
@@ -1649,7 +1651,7 @@ startxref
   // TWO-FACTOR AUTHENTICATION
   // ============================================================================
 
-  app.post("/api/auth/2fa/setup", requireAuth, async (req: any, res: Response) => {
+  app.post("/api/auth/2fa/setup", authLimiter, requireAuth, async (req: any, res: Response) => {
     try {
       const { twoFactorService } = await import("./twoFactorService");
       const userId = req.user?.dbUser?.id;
@@ -1663,7 +1665,7 @@ startxref
     }
   });
 
-  app.post("/api/auth/2fa/verify", requireAuth, async (req: any, res: Response) => {
+  app.post("/api/auth/2fa/verify", authLimiter, requireAuth, async (req: any, res: Response) => {
     try {
       const { twoFactorService } = await import("./twoFactorService");
       const { token, backupCodes, secret } = req.body;
