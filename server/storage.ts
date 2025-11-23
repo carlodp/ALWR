@@ -64,23 +64,133 @@ import { encryptField, decryptField } from "./encryption";
  * - See server/secrets-rotation-policy.md for key rotation procedures
  */
 
+/**
+ * Storage Interface - All Database Operations
+ * 
+ * Centralized interface for all database CRUD operations.
+ * Implement encryption/decryption at this layer for PII fields.
+ * 
+ * All methods return Promise<T> for async database operations.
+ */
 export interface IStorage {
-  // User Operations
+  // ========== User Operations ==========
+  
+  /**
+   * Get user by ID
+   * @param id User ID
+   * @returns User or undefined if not found
+   */
   getUser(id: string): Promise<User | undefined>;
+  
+  /**
+   * Get user by email address
+   * @param email User email
+   * @returns User or undefined if not found
+   */
   getUserByEmail(email: string): Promise<User | undefined>;
+  
+  /**
+   * Create or update a user (upsert)
+   * @param user User data (email, password hash, name, etc)
+   * @returns Created/updated user
+   */
   upsertUser(user: UpsertUser): Promise<User>;
+  
+  /**
+   * Update user role (customer → admin, etc)
+   * @param userId User to update
+   * @param role New role
+   */
   updateUserRole(userId: string, role: 'customer' | 'admin' | 'agent'): Promise<void>;
+  
+  /**
+   * Update user account status
+   * @param userId User to update
+   * @param status active, suspended, locked, or inactive
+   */
   updateUserStatus(userId: string, status: 'active' | 'suspended' | 'locked' | 'inactive'): Promise<void>;
+  
+  /**
+   * Count users with specific role
+   * @param role Role to count
+   * @returns Total count
+   */
   countUsersWithRole(role: 'customer' | 'admin' | 'agent'): Promise<number>;
+  
+  /**
+   * List all users with pagination
+   * @param limit Results per page
+   * @param offset Starting position
+   * @returns Array of users
+   */
   listAllUsers(limit?: number, offset?: number): Promise<User[]>;
+  
+  /**
+   * Update user's two-factor authentication settings
+   * @param userId User to update
+   * @param enabled Enable/disable 2FA
+   * @param secret TOTP secret (if enabling)
+   * @param backupCodes Backup codes for 2FA recovery
+   */
   updateUserTwoFactor(userId: string, enabled: boolean, secret?: string, backupCodes?: string[]): Promise<User | undefined>;
+  
+  /**
+   * Get user's two-factor authentication status
+   * @param userId User to check
+   * @returns 2FA status and secret (if enabled)
+   */
   getUserTwoFactorStatus(userId: string): Promise<{ enabled: boolean; secret?: string; backupCodes?: string[] } | undefined>;
+  
+  /**
+   * Set email verification token (for account verification flow)
+   * @param userId User to verify
+   * @param token Verification token
+   * @param expiresAt Token expiration time
+   */
   setEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void>;
+  
+  /**
+   * Mark email as verified using token
+   * @param token Verification token
+   * @returns True if verified, false if token invalid/expired
+   */
   verifyEmail(token: string): Promise<boolean>;
+  
+  /**
+   * Set password reset token (for forgot password flow)
+   * @param userId User requesting reset
+   * @param token Reset token
+   * @param expiresAt Token expiration time
+   */
   setPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<void>;
+  
+  /**
+   * Get user ID from password reset token and mark as used
+   * @param token Reset token
+   * @returns User ID if valid, undefined if invalid/expired
+   */
   resetPassword(token: string): Promise<string | undefined>;
+  
+  /**
+   * Set user's password hash
+   * @param userId User to update
+   * @param passwordHash bcrypt hash of new password
+   */
   setPassword(userId: string, passwordHash: string): Promise<void>;
+  
+  /**
+   * Record login attempt (successful or failed)
+   * Used for account locking after failed attempts
+   * @param userId User attempting login
+   * @param success Whether login was successful
+   */
   recordLoginAttempt(userId: string, success: boolean): Promise<void>;
+  
+  /**
+   * Lock user account temporarily after failed login attempts
+   * @param userId User to lock
+   * @param lockedUntil When the lock expires
+   */
   lockAccount(userId: string, lockedUntil: Date): Promise<void>;
 
   // Agent Operations

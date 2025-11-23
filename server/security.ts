@@ -1,6 +1,22 @@
 /**
- * Security middleware and utilities for the application
- * Includes rate limiting, input validation, and security headers
+ * SECURITY MIDDLEWARE & UTILITIES
+ * 
+ * Provides:
+ * - SECURITY #4: User-based rate limiting (100 req/min per user)
+ * - Global rate limiting (100 req/15min per IP)
+ * - Authentication rate limiting (5 attempts/15min)
+ * - API endpoint rate limiting (30 req/min)
+ * - Sensitive endpoint rate limiting (5 req/15min)
+ * - Security headers (CSP, HSTS, X-Frame-Options, etc)
+ * - SECURITY #5: Request payload size limits
+ * - Input validation helpers (email, password, IDs)
+ * - Error sanitization (removes sensitive info from responses)
+ * 
+ * RATE LIMITING STRATEGY:
+ * - Global: All requests per IP
+ * - Auth: Login attempts only
+ * - User: All requests per authenticated user (prevents account abuse)
+ * - Sensitive: Password change, 2FA setup, etc
  */
 
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
@@ -48,35 +64,50 @@ export const apiLimiter = rateLimit({
 });
 
 /**
- * SECURITY #4: User-based rate limiter - prevents authenticated user abuse
- * Limits authenticated users to 100 requests per minute regardless of IP
- * This prevents compromised accounts from abusing the API
+ * SECURITY #4: User-Based Rate Limiter
+ * Prevents authenticated user abuse - key security measure
+ * Limits: 100 requests/minute per authenticated user
+ * 
+ * If a user account is compromised, this prevents the attacker
+ * from overwhelming the API even with a valid session.
+ * 
+ * Implementation:
+ * - Uses user ID as rate limit key (not IP)
+ * - Applies only to authenticated requests
+ * - Unauthenticated requests use global limiter instead
  */
 export const userLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000, // 1 minute window
   max: isDev ? 1000 : 100, // 100 requests per minute per user
   keyGenerator: (req) => {
-    // Use user ID if authenticated, otherwise use IP (with IPv6 support)
+    // Rate limit by user ID if authenticated, otherwise by IP
     return req.user?.id || ipKeyGenerator(req) || 'unknown';
   },
   message: 'Too many requests from this user, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for unauthenticated users (handled by global limiter)
+    // Only rate limit authenticated users (unauthenticated users handled by global limiter)
     return !req.user;
   },
 });
 
 /**
- * Strict user limiter for sensitive endpoints (password changes, 2FA, etc)
- * Limits to 5 requests per 15 minutes per user
+ * Sensitive Endpoint Rate Limiter
+ * Stricter limits for sensitive operations:
+ * - Password changes
+ * - 2FA setup/disable
+ * - Profile updates
+ * - API key generation
+ * 
+ * Limit: 5 requests per 15 minutes per user
+ * Prevents rapid automated attacks on sensitive operations
  */
 export const sensitiveUserLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDev ? 50 : 5,
+  windowMs: 15 * 60 * 1000, // 15 minute window
+  max: isDev ? 50 : 5, // 5 requests per 15 minutes per user
   keyGenerator: (req) => {
-    // Use user ID if authenticated, otherwise use IP (with IPv6 support)
+    // Rate limit by user ID if authenticated, otherwise by IP
     return req.user?.id || ipKeyGenerator(req) || 'unknown';
   },
   message: 'Too many requests to this endpoint, please try again later',
@@ -85,11 +116,16 @@ export const sensitiveUserLimiter = rateLimit({
 });
 
 /**
- * Sanitize error response - remove sensitive information
- * Only shows user-friendly messages, logs full error internally
+ * Sanitize Error Responses
+ * Removes sensitive information from error messages shown to users
+ * Prevents information leakage about system internals, database, etc.
+ * 
+ * @param error Original error object
+ * @param isDevelopment If true, returns full error (dev mode only)
+ * @returns User-safe error message and HTTP status
  */
 export function sanitizeError(error: any, isDevelopment = false): { message: string; status: number } {
-  // Don't expose internal error details in production
+  // In production, hide internal error details to prevent information leakage
   if (!isDevelopment && error?.message?.includes('database')) {
     return {
       message: 'An internal error occurred. Please try again later.',
@@ -97,6 +133,7 @@ export function sanitizeError(error: any, isDevelopment = false): { message: str
     };
   }
 
+  // Don't expose Stripe API errors to client
   if (!isDevelopment && error?.message?.includes('Stripe')) {
     return {
       message: 'Payment processing error. Please try again later.',

@@ -1,8 +1,26 @@
-// Authentication service for custom email/password authentication
+/**
+ * AUTHENTICATION SERVICE
+ * 
+ * Provides password hashing, validation, and account locking utilities
+ * for custom email/password authentication.
+ * 
+ * Features:
+ * - Secure bcrypt password hashing (10 salt rounds)
+ * - Account locking after failed login attempts
+ * - Exponential backoff (15 min → 4 hours max)
+ * - Password strength validation
+ * - Email format validation
+ */
+
 import bcrypt from 'bcryptjs';
 
+// Password hashing cost (higher = more secure but slower)
 const SALT_ROUNDS = 10;
+
+// Initial lockout duration (doubled for each failed attempt)
 const LOCK_DURATION_MINUTES = 15;
+
+// Trigger lockout after this many failed attempts
 const MAX_LOGIN_ATTEMPTS = 5;
 
 /**
