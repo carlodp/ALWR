@@ -3,7 +3,7 @@
  * Includes rate limiting, input validation, and security headers
  */
 
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { type Response } from 'express';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -43,6 +43,43 @@ export const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: isDev ? 300 : 30,
   message: 'Too many API requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * SECURITY #4: User-based rate limiter - prevents authenticated user abuse
+ * Limits authenticated users to 100 requests per minute regardless of IP
+ * This prevents compromised accounts from abusing the API
+ */
+export const userLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: isDev ? 1000 : 100, // 100 requests per minute per user
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise use IP (with IPv6 support)
+    return req.user?.id || ipKeyGenerator(req) || 'unknown';
+  },
+  message: 'Too many requests from this user, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for unauthenticated users (handled by global limiter)
+    return !req.user;
+  },
+});
+
+/**
+ * Strict user limiter for sensitive endpoints (password changes, 2FA, etc)
+ * Limits to 5 requests per 15 minutes per user
+ */
+export const sensitiveUserLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: isDev ? 50 : 5,
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise use IP (with IPv6 support)
+    return req.user?.id || ipKeyGenerator(req) || 'unknown';
+  },
+  message: 'Too many requests to this endpoint, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -112,6 +149,8 @@ export function isValidPassword(password: any): boolean {
 /**
  * Set secure response headers
  * SECURITY: Implements HSTS (Header #3) and CSP (Header #2)
+ * 
+ * Exported for use in routes that apply security headers
  */
 export function setSecureHeaders(res: Response) {
   // Prevent clickjacking

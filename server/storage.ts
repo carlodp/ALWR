@@ -19,6 +19,48 @@ import {
   type ReportHistory, type InsertReportHistory, type SystemSettings, type InsertSystemSettings
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
+import { encryptField, decryptField } from "./encryption";
+
+/**
+ * SECURITY #7: Column-Level Encryption for PII
+ * 
+ * This storage layer should implement encryption/decryption for sensitive fields.
+ * When storing PII, use encryptField(); when retrieving, use decryptField().
+ * 
+ * Fields that should be encrypted:
+ * - users.email (when storing/retrieving)
+ * - users.firstName (when storing/retrieving)
+ * - users.lastName (when storing/retrieving)
+ * - customers.emergencyContactName (when storing/retrieving)
+ * - customers.emergencyContactPhone (when storing/retrieving)
+ * - documents.content (if contains sensitive healthcare info)
+ * 
+ * Example implementation for future enhancement:
+ * 
+ * async getUser(id: string): Promise<User | undefined> {
+ *   const user = await db.query.users.findFirst({ where: eq(users.id, id) });
+ *   if (user && user.email) {
+ *     user.email = decryptField(user.email);
+ *     user.firstName = user.firstName ? decryptField(user.firstName) : undefined;
+ *     user.lastName = user.lastName ? decryptField(user.lastName) : undefined;
+ *   }
+ *   return user;
+ * }
+ * 
+ * async upsertUser(user: UpsertUser): Promise<User> {
+ *   const encrypted = { ...user };
+ *   if (encrypted.email) encrypted.email = encryptField(encrypted.email);
+ *   if (encrypted.firstName) encrypted.firstName = encryptField(encrypted.firstName);
+ *   if (encrypted.lastName) encrypted.lastName = encryptField(encrypted.lastName);
+ *   // ... rest of upsert logic
+ * }
+ * 
+ * MIGRATION NOTES:
+ * - For existing unencrypted data, run one-time migration to encrypt all PII
+ * - Encryption happens transparently at storage layer
+ * - Decryption happens when data is retrieved (invisible to routes)
+ * - See server/secrets-rotation-policy.md for key rotation procedures
+ */
 
 export interface IStorage {
   // User Operations

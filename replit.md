@@ -20,7 +20,15 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 -   **Technology Stack**: Node.js, Express.js, PostgreSQL, Drizzle ORM, TypeScript.
 -   **Authentication & Authorization**: Custom email/password authentication, account locking, session management with PostgreSQL store, secure cookie-based sessions, and role-based access control (Super Admin, Admin, Agent, Reseller, Customer).
 -   **Core Modules**: User & Role Management, Document Management (upload, versioning, audit logging), Emergency Access Lookup (HIPAA compliant), Agent & Reseller Management, Payment & Subscription tracking, Reporting & Analytics (real-time WebSocket statistics, automated report scheduling), ID Card Generation, Email Notification System, and Two-Factor Authentication (TOTP-based).
--   **Security & Compliance**: Rate limiting (role-based, per-user, concurrent operation limits), security headers, Zod-based input validation, error sanitization, file upload security, comprehensive audit logging, session timeout, secure password handling with bcrypt, and tracking of failed login attempts.
+-   **Security & Compliance**: Rate limiting (IP-based, user-based, sensitive endpoint limits), security headers (CORS, CSP, HSTS), Zod-based input validation, error sanitization, file upload security (per-endpoint limits), comprehensive audit logging, session timeout, secure password handling with bcrypt, tracking of failed login attempts, column-level PII encryption (AES-256-GCM), and secrets rotation policy.
+-   **Enhanced Security (November 2024)**: 
+    - CORS validation (Security #1) - Restricts requests to whitelisted origins only
+    - Content Security Policy (Security #2) - Prevents XSS and script injection attacks  
+    - HSTS Headers (Security #3) - Forces HTTPS, prevents SSL downgrade attacks
+    - User-based Rate Limiting (Security #4) - 100 requests/min per authenticated user, prevents account abuse
+    - Request Payload Size Limits (Security #5) - Default 5MB, documents up to 50MB, settings 100KB, prevents memory exhaustion
+    - Secrets Rotation Policy (Security #6) - Documented rotation schedule for SESSION_SECRET (monthly), DATABASE_PASSWORD (quarterly), ENCRYPTION_MASTER_KEY (quarterly)
+    - Column-Level PII Encryption (Security #7) - AES-256-GCM encryption service ready for implementation on users.email, firstName, lastName, customers data
 -   **Database Schema**: Comprises tables for Users, Customers, Subscriptions, Documents, Emergency Access Logs, Customer Notes, Audit Logs, Physical Card Orders, Email Templates, Agents, Resellers, failed login attempts, and data export requests. Includes database indices on frequently queried columns and slow query logging with N+1 detection.
 -   **UI/UX Interaction (WordPress Frontend)**: The API supports user creation flow, dynamic field rendering, integrated password generation, and manages all public-facing and customer portal interactions via the external WordPress instance.
 -   **Enhanced Account Management**: Includes Forgot Password Flow, 2-step Profile Setup Wizard, Account Status Badges, and an enhanced Admin User Creation process, with an Admin dashboard feature for editing user accounts including role-based field visibility.

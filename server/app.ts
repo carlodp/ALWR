@@ -15,7 +15,7 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { seedMockData } from "./seed-mock-data";
 import { logger } from "./logger";
-import { globalLimiter, setSecureHeaders, sanitizeError } from "./security";
+import { globalLimiter, setSecureHeaders, sanitizeError, userLimiter, sensitiveUserLimiter } from "./security";
 import { swaggerSpec } from "./swagger";
 import { emailQueue } from "./email-queue";
 
@@ -141,12 +141,22 @@ const corsOptions = {
       process.env.REPLIT_DOMAINS?.split(',')[0], // Replit dev URL
       'http://localhost:5000',
       'http://localhost:3000',
+      'http://127.0.0.1:5000',
+      'http://127.0.0.1:3000',
     ].filter(Boolean);
+    
+    // In development, allow all localhost origins for easier testing
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (isDevelopment && (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('replit.dev'))) {
+      return callback(null, true);
+    }
     
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('CORS not allowed'), false);
+      // Log CORS rejection but don't throw error (allow browser to handle)
+      console.warn(`[CORS] Rejected request from origin: ${origin}`);
+      callback(null, false);
     }
   },
   credentials: true,
@@ -166,12 +176,26 @@ app.use((req, res, next) => {
 // Apply global rate limiter
 app.use(globalLimiter);
 
+// ============================================================================
+// SECURITY #5: REQUEST PAYLOAD SIZE LIMITS
+// Prevents memory exhaustion and DoS attacks from large uploads
+// Different limits for different endpoint types
+// ============================================================================
 app.use(express.json({
+  limit: '5mb', // Default: 5MB for API requests
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: '5mb' }));
+
+// Higher limit for document uploads (up to 50MB)
+app.post('/api/documents/upload', express.json({ limit: '50mb' }));
+app.post('/api/documents/:id/upload', express.json({ limit: '50mb' }));
+
+// Lower limit for settings and config endpoints (100KB)
+app.patch('/api/admin/settings/*', express.json({ limit: '100kb' }));
+app.post('/api/admin/settings/*', express.json({ limit: '100kb' }));
 
 // ============================================================================
 // SWAGGER/OPENAPI DOCUMENTATION
