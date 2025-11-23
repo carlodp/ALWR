@@ -6,6 +6,7 @@ import express, {
   Response,
   NextFunction,
 } from "express";
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 
 import { registerRoutes } from "./routes";
@@ -122,6 +123,39 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+
+// ============================================================================
+// CORS CONFIGURATION (SECURITY #1)
+// ============================================================================
+// Allow requests only from WordPress frontend and same origin
+// Credentials (cookies) are allowed for session management
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or Stripe webhooks)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    const allowedOrigins = [
+      process.env.WORDPRESS_DOMAIN || 'http://localhost:3000',
+      process.env.REPLIT_DOMAINS?.split(',')[0], // Replit dev URL
+      'http://localhost:5000',
+      'http://localhost:3000',
+    ].filter(Boolean);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'), false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400, // 24 hours
+};
+
+app.use(cors(corsOptions));
 
 // Apply security headers to all responses
 app.use((req, res, next) => {

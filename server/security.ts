@@ -111,6 +111,7 @@ export function isValidPassword(password: any): boolean {
 
 /**
  * Set secure response headers
+ * SECURITY: Implements HSTS (Header #3) and CSP (Header #2)
  */
 export function setSecureHeaders(res: Response) {
   // Prevent clickjacking
@@ -125,4 +126,32 @@ export function setSecureHeaders(res: Response) {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+  
+  // =========================================================================
+  // SECURITY #3: HSTS (HTTP Strict Transport Security)
+  // Forces browser to only use HTTPS for 1 year, prevents SSL downgrade attacks
+  // =========================================================================
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  
+  // =========================================================================
+  // SECURITY #2: Content Security Policy (CSP)
+  // Prevents XSS attacks by restricting which resources can be loaded
+  // =========================================================================
+  const cspHeader = [
+    "default-src 'self'",                    // Only allow same-origin by default
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.swagger.io", // Swagger UI needs inline scripts
+    "style-src 'self' 'unsafe-inline' https://cdn.swagger.io",  // Swagger UI needs inline styles
+    "img-src 'self' data: https:",           // Allow images from same origin, data URLs, and HTTPS
+    "font-src 'self' https:",                // Allow fonts from same origin and HTTPS
+    "connect-src 'self' https: wss:",        // Allow API calls to same origin and HTTPS + WebSocket
+    "frame-ancestors 'none'",                // Prevent clickjacking (in addition to X-Frame-Options)
+    "base-uri 'self'",                       // Restrict <base> tag
+    "form-action 'self'",                    // Restrict form submissions to same origin
+  ].join('; ');
+  
+  res.setHeader('Content-Security-Policy', cspHeader);
+  
+  // Additional security headers
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
 }
