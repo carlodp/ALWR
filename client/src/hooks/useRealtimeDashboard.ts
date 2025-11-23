@@ -46,27 +46,32 @@ export function useRealtimeDashboard(userId: string | undefined, enabled: boolea
         if (response.ok) {
           const dashboardData = await response.json();
           // Transform API response to RealtimeDashboardData format
+          // API returns nested objects: subscriptions, customers, documents, revenue, health
           setData({
-            totalCustomers: dashboardData.totalCustomers || 0,
-            activeSubscriptions: dashboardData.activeSubscriptions || 0,
-            totalDocuments: dashboardData.totalDocuments || 0,
-            expiringSubscriptions: dashboardData.expiringSubscriptions || 0,
-            monthlyRevenue: dashboardData.monthlyRevenue || 0,
-            activeUsers: dashboardData.activeUsers || 0,
-            newCustomersToday: dashboardData.newCustomersToday || 0,
-            documentsUploadedToday: dashboardData.documentsUploadedToday || 0,
-            subscriptionsExpiredToday: dashboardData.subscriptionsExpiredToday || 0,
-            systemHealth: dashboardData.systemHealth || {
+            totalCustomers: dashboardData.customers?.total || 0,
+            activeSubscriptions: dashboardData.subscriptions?.active || 0,
+            totalDocuments: dashboardData.documents?.total || 0,
+            expiringSubscriptions: dashboardData.subscriptions?.pending || 0,
+            monthlyRevenue: dashboardData.revenue?.mtd || 0,
+            activeUsers: dashboardData.health?.activeUsers || 0,
+            newCustomersToday: dashboardData.customers?.newThisMonth || 0,
+            documentsUploadedToday: dashboardData.documents?.uploadedThisMonth || 0,
+            subscriptionsExpiredToday: dashboardData.subscriptions?.expired || 0,
+            systemHealth: dashboardData.health ? {
+              status: dashboardData.health.uptime > 99 ? "healthy" : "warning",
+              uptime: dashboardData.health.uptime,
+              databaseStatus: "operational",
+            } : {
               status: "healthy",
               uptime: 100,
               databaseStatus: "operational",
             },
-            metrics: dashboardData.metrics || {
+            metrics: {
               customerGrowth: 0,
               revenueGrowth: 0,
               documentGrowth: 0,
             },
-            recentActivity: dashboardData.recentActivity || [],
+            recentActivity: [],
           });
           setIsConnected(true);
         }
