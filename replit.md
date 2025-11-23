@@ -163,6 +163,22 @@ ALWR is built with a modern web stack. The frontend utilizes **React** for dynam
 - **PhysicalCardOrders**: Tracks physical ID card orders and their shipping status.
 - **EmailTemplates**: Stores various email templates for automated communications.
 
+## Security Infrastructure (Implemented)
+- **Rate Limiting**: express-rate-limit middleware protecting against brute force attacks
+  - Global limiter: 100 requests per 15 minutes per IP
+  - Auth limiter: 5 attempts per 15 minutes (password changes, 2FA setup, emergency access)
+  - API limiter: 30 requests per minute per IP
+- **Security Headers**: All responses include X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+- **Input Validation**: Zod schemas with email, password strength (8+ chars), ID format validation
+- **Error Sanitization**: Sensitive data removed from error responses in production
+- **File Upload Security**: 10MB limit, whitelist validation (PDF, DOC, DOCX only)
+- **Session Security**: 
+  - Secure cookies with httpOnly flag and 1-week expiration
+  - PostgreSQL session store with automatic cleanup
+  - Session logging for audit trail (IP address, User-Agent)
+- **Logging Infrastructure**: Centralized logger.ts utility with structured logging
+- **WebSocket Security**: Stats WebSocket at `/ws/stats` with authentication checks
+
 ## External Dependencies
 - **Replit Auth**: Used for user authentication (OpenID Connect).
 - **PostgreSQL**: Relational database for all application data.
@@ -172,3 +188,4 @@ ALWR is built with a modern web stack. The frontend utilizes **React** for dynam
 - **Wouter**: Small routing library for React.
 - **shadcn/ui**: Reusable UI components.
 - **Express.js**: Backend web application framework for Node.js.
+- **express-rate-limit**: Rate limiting middleware for security.
