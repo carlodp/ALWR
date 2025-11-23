@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, FileText, CreditCard, TrendingUp, AlertCircle, BarChart3, Lock, UserCheck, Briefcase } from "lucide-react";
+import { Users, FileText, CreditCard, TrendingUp, AlertCircle, BarChart3, Lock, UserCheck, Briefcase, Activity, Database } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -180,18 +180,18 @@ export default function AdminDashboard() {
         <Card 
           data-testid="card-users"
           className="cursor-pointer hover-elevate transition-all"
-          onClick={() => setLocation("/admin/user-roles")}
+          onClick={() => setLocation("/admin/users")}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Accounts</CardTitle>
             <Lock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-users">
-              All Accounts
+              View Accounts
             </div>
             <p className="text-xs text-muted-foreground">
-              Manage roles & access
+              Manage users & roles
             </p>
           </CardContent>
         </Card>
@@ -243,6 +243,63 @@ export default function AdminDashboard() {
                 </p>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card 
+          data-testid="card-rate-limits"
+          className="cursor-pointer hover-elevate transition-all"
+          onClick={() => setLocation("/admin/system/rate-limits")}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rate Limiting</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-rate-limits">
+              Monitor
+            </div>
+            <p className="text-xs text-muted-foreground">
+              API request limits
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          data-testid="card-database-metrics"
+          className="cursor-pointer hover-elevate transition-all"
+          onClick={() => setLocation("/admin/system/database")}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Database</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-database-metrics">
+              Performance
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Query optimization
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          data-testid="card-system-analytics"
+          className="cursor-pointer hover-elevate transition-all"
+          onClick={() => setLocation("/admin/system/analytics")}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Analytics</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-system-analytics">
+              Insights
+            </div>
+            <p className="text-xs text-muted-foreground">
+              System metrics
+            </p>
           </CardContent>
         </Card>
       </div>

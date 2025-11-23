@@ -38,7 +38,9 @@ import {
   Zap,
   Printer,
   UserCheck,
-  Briefcase
+  Briefcase,
+  Activity,
+  Database
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -463,6 +465,60 @@ export function AppSidebar() {
                             <a href="/admin/users/new">
                               <User className="h-4 w-4" />
                               <span>Create User</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </Collapsible>
+            </SidebarGroup>
+
+            {/* System Monitoring Section */}
+            <SidebarGroup>
+              <Collapsible defaultOpen={false} className="group/collapsible">
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton data-testid="nav-system-expand">
+                        <Activity />
+                        <span>System</span>
+                        <svg
+                          className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M12 6L8 10L4 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-rate-limits">
+                            <a href="/admin/system/rate-limits">
+                              <Activity className="h-4 w-4" />
+                              <span>Rate Limiting</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-database">
+                            <a href="/admin/system/database">
+                              <Database className="h-4 w-4" />
+                              <span>Database</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-system-analytics">
+                            <a href="/admin/system/analytics">
+                              <BarChart3 className="h-4 w-4" />
+                              <span>Analytics</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

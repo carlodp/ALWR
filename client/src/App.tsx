@@ -29,6 +29,9 @@ import AdminReports from "@/pages/admin-reports";
 import AdminAuditLogs from "@/pages/admin-audit-logs";
 import AdminEmailTemplates from "@/pages/admin-email-templates";
 import AdminPhysicalCardOrders from "@/pages/admin-physical-card-orders";
+import AdminSystemRateLimits from "@/pages/admin-system-rate-limits";
+import AdminSystemDatabase from "@/pages/admin-system-database";
+import AdminSystemAnalytics from "@/pages/admin-system-analytics";
 import AdminReview from "@/pages/admin-review";
 import AdminReviewExpired from "@/pages/admin-review-expired";
 import AdminReconcile from "@/pages/admin-reconcile";
@@ -107,6 +110,9 @@ function Router() {
           <Route path="/admin/users" component={AdminUsers} />
           <Route path="/admin/users/new" component={AdminCreateUser} />
           <Route path="/admin/user-roles" component={AdminUserRoles} />
+          <Route path="/admin/system/rate-limits" component={AdminSystemRateLimits} />
+          <Route path="/admin/system/database" component={AdminSystemDatabase} />
+          <Route path="/admin/system/analytics" component={AdminSystemAnalytics} />
           <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
