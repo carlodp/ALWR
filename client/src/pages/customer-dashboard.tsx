@@ -2,15 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, CreditCard, User, Upload, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileText, CreditCard, User, Upload, AlertCircle, CheckCircle2, Clock, Lock, Shield, Activity, HelpCircle, DollarSign, Eye, EyeOff } from "lucide-react";
 import type { Customer, Subscription, Document } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CustomerDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [showSecuritySection, setShowSecuritySection] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -248,6 +250,74 @@ export default function CustomerDashboard() {
         </CardContent>
       </Card>
 
+      {/* Account Security Status */}
+      <Card data-testid="card-security-status">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Account Security
+              </CardTitle>
+              <CardDescription>Your account protection status</CardDescription>
+            </div>
+            <Badge variant={customer?.twoFactorEnabled ? "default" : "secondary"} data-testid="badge-2fa-status">
+              {customer?.twoFactorEnabled ? "Protected" : "Not Protected"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-6 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between p-3 rounded-lg bg-muted/50" data-testid="item-2fa-status">
+                <div className="flex items-start gap-3">
+                  <Lock className={`h-5 w-5 mt-0.5 ${customer?.twoFactorEnabled ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`} />
+                  <div>
+                    <p className="font-medium text-sm">Two-Factor Authentication</p>
+                    <p className="text-xs text-muted-foreground">
+                      {customer?.twoFactorEnabled ? 'Enabled - Your account is protected' : 'Disabled - Enhance security'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start justify-between p-3 rounded-lg bg-muted/50" data-testid="item-last-login">
+                <div className="flex items-start gap-3">
+                  <Activity className="h-5 w-5 mt-0.5 text-blue-600 dark:text-blue-400" />
+                  <div>
+                    <p className="font-medium text-sm">Last Login</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user?.lastLoginAt 
+                        ? `${new Date(user.lastLoginAt).toLocaleDateString()} at ${new Date(user.lastLoginAt).toLocaleTimeString()}`
+                        : 'This is your first login'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                asChild 
+                className="w-full mt-2"
+                data-testid="button-manage-security"
+              >
+                <a href="/customer/profile">
+                  Manage Security Settings
+                </a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Recent Documents */}
       <Card>
         <CardHeader>
@@ -312,6 +382,38 @@ export default function CustomerDashboard() {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Help & Support */}
+      <Card data-testid="card-help-support">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5" />
+            Help & Support
+          </CardTitle>
+          <CardDescription>Quick answers and support resources</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Button variant="outline" size="sm" asChild data-testid="button-help-documents">
+              <a href="#documents">How to Upload Documents</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild data-testid="button-help-security">
+              <a href="#security">Enable 2FA</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild data-testid="button-help-subscription">
+              <a href="/customer/subscription">Manage Subscription</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild data-testid="button-help-contact">
+              <a href="/emergency-access">Emergency Access</a>
+            </Button>
+          </div>
+          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-sm" data-testid="section-support-info">
+            <p className="text-blue-900 dark:text-blue-100">
+              Need assistance? Contact our support team at <a href="mailto:support@alwr.org" className="font-medium hover:underline">support@alwr.org</a>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
