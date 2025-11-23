@@ -4,6 +4,47 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
+
+/**
+ * App Component - Root Application Entry Point
+ * 
+ * Main application structure and routing logic.
+ * 
+ * Architecture:
+ * 1. QueryClientProvider: Manages server state and caching
+ * 2. ThemeProvider: Dark/light mode toggle and persistence
+ * 3. TooltipProvider: Global tooltip context
+ * 4. SidebarProvider: Sidebar state management
+ * 5. Router: Conditional rendering based on authentication
+ * 
+ * Routing Strategy:
+ * - Unauthenticated users: See auth pages (login, signup, forgot-password, profile-setup)
+ * - Authenticated customers: See customer pages (dashboard, documents, profile, etc.)
+ * - Authenticated admins: See admin pages + customer pages
+ * - 404 pages: For any unmatched routes
+ * 
+ * Authentication Flow:
+ * - useAuth hook checks if user is authenticated and their role
+ * - Router conditionally renders pages based on role and auth status
+ * - useSessionExpiry: Handles session timeout warnings
+ * - useAutoExtendSession: Auto-extends session on activity
+ * - useKeyboardShortcuts: Enables keyboard navigation
+ * 
+ * File Organization:
+ * - Pages organized in folders: auth/, customer/, admin/, shared/
+ * - Components organized by type: shared/, cards/, forms/, dialogs/, layouts/, inputs/
+ * - Hooks in hooks/ directory for reusable logic
+ * - Utils in lib/ directory for helper functions
+ * 
+ * Key Features:
+ * - Client-side routing with wouter
+ * - Real-time query management with TanStack Query
+ * - Toast notifications for user feedback
+ * - Dark/light theme support
+ * - Session management with auto-extend
+ * - Keyboard shortcuts support
+ */
+
 // Shared Components
 import { AppSidebar } from "@/components/shared/sidebar";
 import { MobileHeader } from "@/components/shared/header";

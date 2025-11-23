@@ -20,6 +20,35 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+/**
+ * Login Page Component
+ * 
+ * Entry point for customer and staff authentication.
+ * 
+ * Functionality:
+ * - Email/password authentication form
+ * - Form validation using Zod schema
+ * - Auto-redirect authenticated users to dashboard
+ * - Error handling with toast notifications
+ * - Loading state during authentication
+ * 
+ * Form Validation Rules:
+ * - Email: Must be valid email format
+ * - Password: Non-empty string
+ * 
+ * API Endpoint:
+ * - POST /api/auth/login - Authenticates user and returns session
+ * 
+ * Post-Login Flow:
+ * 1. Submit credentials to /api/auth/login
+ * 2. Invalidate auth query to refetch user data
+ * 3. Redirect to dashboard (/)
+ * 
+ * Error Handling:
+ * - Invalid credentials: Shows error message
+ * - Network errors: Shows descriptive error toast
+ * - Already logged in: Redirects automatically
+ */
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();

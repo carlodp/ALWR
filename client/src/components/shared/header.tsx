@@ -1,7 +1,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLocation } from "wouter";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { SessionTimer } from "@/components/session-timer";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { SessionTimer } from "@/components/shared/session-timer";
 
 export function MobileHeader() {
   const [location] = useLocation();

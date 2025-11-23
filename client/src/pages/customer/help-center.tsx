@@ -7,6 +7,44 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ArrowLeft, Search, FileText, Lock, CreditCard, Shield, Upload, Eye } from "lucide-react";
 import { useLocation } from "wouter";
 
+/**
+ * CustomerHelpCenter Component
+ * 
+ * Comprehensive self-service help documentation for customers.
+ * 
+ * Content Structure:
+ * - 8 Detailed Guides with step-by-step instructions:
+ *   1. How to Upload Documents (8 steps)
+ *   2. Enable Two-Factor Authentication (8 steps)
+ *   3. Manage Your Subscription (8 steps)
+ *   4. View and Manage Documents (8 steps)
+ *   5. Backup Codes and Account Recovery (7 steps)
+ *   6. Set Up Emergency Access (7 steps)
+ *   7. View and Download Your ID Card (7 steps)
+ *   8. View Payment History and Invoices (7 steps)
+ * 
+ * - 8 FAQs covering common topics:
+ *   - Data security and encryption
+ *   - When to update documents
+ *   - Password reset procedures
+ *   - Multiple emergency contacts
+ *   - Subscription expiration
+ *   - Support contact
+ *   - Data export options
+ *   - File format support
+ * 
+ * Features:
+ * - Full-text search across guides and FAQs
+ * - Category filtering (Documents, Security, Billing, Emergency, ID Card)
+ * - Expandable tips for each guide
+ * - Relative category counts and progress
+ * - Mobile-responsive accordion layout
+ * 
+ * Usage:
+ * - Customers access from dashboard "Visit Help Center" link
+ * - Sidebar navigation links to specific guides
+ * - Search bar filters all content in real-time
+ */
 interface Guide {
   id: string;
   title: string;

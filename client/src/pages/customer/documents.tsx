@@ -26,6 +26,34 @@ interface DocumentVersion {
   changeNotes?: string;
 }
 
+/**
+ * CustomerDocuments Component
+ * 
+ * Complete document management system for customers.
+ * 
+ * Key Features:
+ * - Upload new documents (Living Will, Healthcare Directive, DNR, etc.)
+ * - Version control: Track all document changes with timestamps
+ * - Age tracking: Shows how old each document is (e.g., "3 months old")
+ * - "Needs Review" alerts: Red badge for documents >1 year old
+ * - Type-based filtering: Click document type badges to filter
+ * - Real-time search: Search by filename across all documents
+ * - Bulk selection: Select multiple documents for future operations
+ * - Document details: View file size, upload date, and change notes
+ * 
+ * API Endpoints Used:
+ * - GET /api/customer/documents - Fetch all documents
+ * - POST /api/customer/documents - Upload new document
+ * - GET /api/customer/documents/:id/versions - Fetch version history
+ * - POST /api/customer/documents/:id/upload-version - Create new version
+ * - DELETE /api/customer/documents/:id - Delete document
+ * 
+ * State Management:
+ * - searchQuery: Filter documents by filename
+ * - filterType: Filter by document type (null = all)
+ * - selectedDocuments: Bulk selection with Set<string>
+ * - expandedVersions: Track which document's versions are showing
+ */
 export default function CustomerDocuments() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();

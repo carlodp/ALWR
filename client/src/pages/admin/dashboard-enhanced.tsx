@@ -22,9 +22,23 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { DashboardMetricCard } from "@/components/dashboard-metric-card";
+import { DashboardMetricCard } from "@/components/cards/metric";
 import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 
+/**
+ * AdminDashboardEnhanced Component
+ * 
+ * Real-time admin control center showing comprehensive system metrics and analytics.
+ * Features:
+ * - Live WebSocket-based data updates (5-second refresh)
+ * - Primary metrics: Total Customers, Active Subscriptions, Documents, Revenue
+ * - Secondary metrics: Expiring subscriptions, new customers, active users
+ * - Real-time activity feed with status indicators
+ * - System health monitoring and connection status
+ * 
+ * Access Control: Admin-only (redirects non-admin users)
+ * Data Source: WebSocket connection via useRealtimeDashboard hook
+ */
 export default function AdminDashboardEnhanced() {
   const { user, isLoading: authLoading, isAdmin } = useAuth();
   const { toast } = useToast();

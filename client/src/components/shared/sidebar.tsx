@@ -49,6 +49,52 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { SessionTimer } from "@/components/session-timer";
 import { Separator } from "@/components/ui/separator";
 
+/**
+ * AppSidebar Component
+ * 
+ * Main navigation sidebar shown on all authenticated pages.
+ * 
+ * Structure:
+ * - Header: User avatar with initials and name
+ * - Content: Role-based menu (Customer or Admin)
+ * - Footer: Theme toggle, session timer, logout button
+ * 
+ * Role-Based Navigation:
+ * 
+ * CUSTOMER MENU:
+ * - Dashboard: Main customer portal
+ * - Documents: Document management (upload, view, download)
+ * - Activity: Account activity audit log
+ * - Profile: View/edit personal information
+ * - Subscription: Manage subscription status and billing
+ * - Payments: View invoices and payment history
+ * - ID Card: View/download digital ID card
+ * - Physical Card: Order physical ID cards
+ * - Emergency Access: Configure emergency contacts
+ * - Help Center: Comprehensive help documentation
+ * 
+ * ADMIN MENU:
+ * - Dashboard: Real-time system overview
+ * - Customers: Customer management and profiles
+ * - Users: System user management
+ * - Subscriptions: Subscription tracking and management
+ * - Reports: Reporting and analytics
+ * - Email Queue: Email delivery status
+ * - Audit Logs: System activity tracking
+ * - Import/Export: Data management
+ * - Agents: Agent account management
+ * - Resellers: Reseller partner management
+ * - Backup Jobs: Backup status monitoring
+ * - System Settings: Configuration management
+ * 
+ * Features:
+ * - User profile section with avatar fallback
+ * - Session timer showing remaining time
+ * - Dark/light theme toggle
+ * - Logout functionality
+ * - Collapsible admin menu sections
+ * - Active route highlighting
+ */
 export function AppSidebar() {
   const { user, isAdmin } = useAuth();
 

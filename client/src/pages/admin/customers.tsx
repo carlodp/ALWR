@@ -17,6 +17,40 @@ type CustomerWithUser = Customer & {
   documentCount: number;
 };
 
+/**
+ * AdminCustomers Component
+ * 
+ * Admin dashboard for managing all customer accounts and information.
+ * 
+ * Features:
+ * - View all customers in a sortable table
+ * - Search by: email, first name, last name, or ID card number
+ * - Filter by subscription status (active, inactive, trial, cancelled, pending)
+ * - View customer details with one-click navigation
+ * - Create new customer accounts
+ * - See document counts and subscription status at a glance
+ * 
+ * Table Columns:
+ * - Name: Customer full name
+ * - Email: Contact email address
+ * - Status: Subscription status (color-coded badge)
+ * - Documents: Count of uploaded documents
+ * - ID Card: Customer's unique ID card number
+ * - Actions: View detail, Edit, Delete buttons
+ * 
+ * API Endpoint:
+ * - GET /api/admin/customers - Fetch all customers with details
+ * 
+ * Navigation:
+ * - Click "View" to see customer-detail.tsx page
+ * - Click "Create Customer" button to add new customer
+ * 
+ * Status Color Coding:
+ * - active: green (default)
+ * - trial: secondary gray
+ * - cancelled: secondary gray
+ * - inactive: red (destructive)
+ */
 export default function AdminCustomers() {
   const { isAdmin } = useAuth();
   const [, setLocation] = useLocation();

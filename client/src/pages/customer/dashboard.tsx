@@ -10,6 +10,25 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * CustomerDashboard Component
+ * 
+ * Main landing page for authenticated customers.
+ * 
+ * Features Displayed:
+ * - Quick stats: Account type, subscription status, documents on file
+ * - Security status: 2FA status and last login information
+ * - Recent documents: Preview of 3 most recent documents
+ * - Help & Support: Mini FAQ accordion with 3 common questions
+ * - Quick action buttons: Upload docs, manage subscription, view help center
+ * 
+ * Data Sources:
+ * - Customer profile: /api/customer/profile
+ * - Subscription status: /api/customer/subscription
+ * - Documents list: /api/customer/documents
+ * 
+ * Access Control: Customer-only (authenticated users)
+ */
 export default function CustomerDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();

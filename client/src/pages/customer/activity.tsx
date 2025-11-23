@@ -17,6 +17,35 @@ interface ActivityLog {
   details?: string;
 }
 
+/**
+ * CustomerActivity Component
+ * 
+ * Complete account activity audit log providing transparency and security.
+ * 
+ * Purpose:
+ * - Show customers what's happening with their account
+ * - Provide security visibility (login attempts, password changes, 2FA events)
+ * - Track document activity (uploads, views, downloads)
+ * - Log emergency contact access to documents
+ * 
+ * Features:
+ * - Timeline view with relative timestamps ("2h ago", "3d ago")
+ * - 5 activity categories:
+ *   - Login: Login events with device, browser, IP info
+ *   - Security: Password changes, 2FA toggles
+ *   - Document: Uploads, views, downloads with file details
+ *   - Access: Emergency contact access logs
+ *   - Other: Subscription renewals, profile updates
+ * - Full-text search across all activities
+ * - Category filtering with colored badges
+ * - Detailed event information expandable per activity
+ * - Privacy notice explaining account monitoring
+ * 
+ * API Endpoint:
+ * - GET /api/customer/activity - Fetch all activity logs
+ * 
+ * Note: Currently using mock data (mockActivityData) - connect to API endpoint when backend is ready
+ */
 export default function CustomerActivity() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
