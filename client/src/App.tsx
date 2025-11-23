@@ -32,7 +32,9 @@ import AdminReconcile from "@/pages/admin-reconcile";
 import AdminProcess from "@/pages/admin-process";
 import AdminPrint from "@/pages/admin-print";
 import AdminAgents from "@/pages/admin-agents";
+import AdminCreateAgent from "@/pages/admin-create-agent";
 import AdminResellers from "@/pages/admin-resellers";
+import AdminCreateReseller from "@/pages/admin-create-reseller";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
 import GlobalSearch from "@/pages/global-search";
@@ -76,7 +78,9 @@ function Router() {
           <Route path="/admin/process" component={AdminProcess} />
           <Route path="/admin/print" component={AdminPrint} />
           <Route path="/admin/agents" component={AdminAgents} />
+          <Route path="/admin/agents/new" component={AdminCreateAgent} />
           <Route path="/admin/resellers" component={AdminResellers} />
+          <Route path="/admin/resellers/new" component={AdminCreateReseller} />
           <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
