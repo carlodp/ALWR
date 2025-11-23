@@ -44,10 +44,7 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/auth/login", data);
 
       if (response.ok) {
         toast({
@@ -109,6 +106,7 @@ export default function Login() {
                         <Input
                           placeholder="you@example.com"
                           type="email"
+                          autoComplete="email"
                           {...field}
                           data-testid="input-email"
                           disabled={isLoading}
@@ -130,6 +128,7 @@ export default function Login() {
                         <Input
                           placeholder="Enter your password"
                           type="password"
+                          autoComplete="current-password"
                           {...field}
                           data-testid="input-password"
                           disabled={isLoading}

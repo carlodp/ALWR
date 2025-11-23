@@ -13,7 +13,7 @@ import type { User } from "@shared/schema";
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: User | undefined;
     }
   }
 }
