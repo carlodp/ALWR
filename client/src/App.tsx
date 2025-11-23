@@ -152,7 +152,7 @@ function Router() {
       )}
 
       {/* Admin Routes - must come before customer routes */}
-      {isAuthenticated && isAdmin && (
+      {isAuthenticated && (isAdmin || isSuperAdmin) && (
         <>
           <Route path="/" component={AdminDashboard} />
           <Route path="/admin/dashboard" component={AdminDashboard} />
