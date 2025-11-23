@@ -13,7 +13,6 @@ import { useAutoExtendSession } from "@/hooks/useAutoExtendSession";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import NotFound from "@/pages/not-found";
-import Landing from "@/pages/landing";
 import CustomerDashboard from "@/pages/customer-dashboard";
 import CustomerDocuments from "@/pages/customer-documents";
 import CustomerProfile from "@/pages/customer-profile";
@@ -61,7 +60,7 @@ function Router() {
       {/* Public Routes */}
       {!isAuthenticated && (
         <>
-          <Route path="/" component={Landing} />
+          <Route path="/" component={Login} />
           <Route path="/login" component={Login} />
           <Route path="/signup" component={Signup} />
           <Route path="/forgot-password" component={ForgotPassword} />

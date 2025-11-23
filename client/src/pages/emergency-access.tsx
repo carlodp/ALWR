@@ -112,8 +112,8 @@ export default function EmergencyAccess() {
             <Shield className="h-8 w-8 text-destructive" />
             <span className="text-xl font-bold">ALWR Emergency Access</span>
           </div>
-          <Button variant="outline" asChild data-testid="button-back-home">
-            <a href="/">Back to Home</a>
+          <Button variant="outline" asChild data-testid="button-back-login">
+            <a href="/login">Back to Login</a>
           </Button>
         </div>
       </header>

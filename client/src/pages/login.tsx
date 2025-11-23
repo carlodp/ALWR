@@ -179,14 +179,6 @@ export default function Login() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="text-center text-sm text-muted-foreground">
-          <p>
-            <a href="/" className="text-primary hover:underline" data-testid="link-home">
-              Back to home
-            </a>
-          </p>
-        </div>
       </div>
     </div>
   );
