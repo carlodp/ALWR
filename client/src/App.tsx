@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { MobileHeader } from "@/components/mobile-header";
 import { useAuth } from "@/hooks/useAuth";
+import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import CustomerDashboard from "@/pages/customer-dashboard";
@@ -115,6 +116,9 @@ function Router() {
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Monitor session expiry
+  useSessionExpiry();
 
   // Sidebar configuration - responsive for mobile
   const sidebarStyle = {
