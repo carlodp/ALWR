@@ -206,6 +206,19 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - Ran VACUUM ANALYZE for query optimization
 - Database size: ~1.2 MB total, optimized for performance
 
+**Session Timeout Implementation (Session 10):**
+- **30-minute inactivity auto-logout** enabled in `server/replitAuth.ts`
+- Session TTL changed from 7 days to 30 minutes (`sessionTtl = 30 * 60 * 1000`)
+- `resave: true` means each request extends the session TTL (standard inactivity pattern)
+- PostgreSQL session store (connect-pg-simple) auto-cleans expired sessions after 30 minutes
+- Sessions do NOT persist across app restarts (expires after inactivity)
+- Users automatically logged out when:
+  - 30 minutes of no activity/requests
+  - Session expires in database
+  - User makes request and session is invalid
+- Cookie-based tracking: `maxAge` and database `ttl` aligned for consistency
+- **Note**: If user is actively using the app, each request extends the 30-minute timer
+
 ### Frontend Dependencies (WordPress)
 - **WordPress**: CMS for public website, customer portal, admin interface.
 - Connects to this API via REST endpoints.
