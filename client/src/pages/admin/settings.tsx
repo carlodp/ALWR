@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Lock, Database, Mail, Bell, ToggleRight, Key } from "lucide-react";
+import { Settings, Lock, Database, Mail, Bell, ToggleRight, Key, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { SystemSettings } from "@shared/schema";
 
 /**
  * AdminSettings Component
@@ -22,11 +27,13 @@ import { useToast } from "@/hooks/use-toast";
  * 5. Features: Feature toggles, experimental features
  * 6. API: API key management, rate limits
  * 7. Logging: Audit log settings, retention policies
+ * 8. Backend Config: Auto logout, session management, rate limiting (Super Admin only)
  * 
- * Access Control: Admin-only
+ * Access Control: Admin (regular settings) and Super Admin (backend config)
  */
 export default function AdminSettings() {
   const { toast } = useToast();
+  const { isSuperAdmin } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
 
@@ -101,7 +108,7 @@ export default function AdminSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+        <TabsList className={`grid w-full ${isSuperAdmin ? 'grid-cols-4 lg:grid-cols-8' : 'grid-cols-4 lg:grid-cols-7'}`}>
           <TabsTrigger value="general" className="text-xs sm:text-sm">General</TabsTrigger>
           <TabsTrigger value="security" className="text-xs sm:text-sm">Security</TabsTrigger>
           <TabsTrigger value="email" className="text-xs sm:text-sm">Email</TabsTrigger>
@@ -109,6 +116,7 @@ export default function AdminSettings() {
           <TabsTrigger value="features" className="text-xs sm:text-sm">Features</TabsTrigger>
           <TabsTrigger value="api" className="text-xs sm:text-sm">API</TabsTrigger>
           <TabsTrigger value="logging" className="text-xs sm:text-sm">Logging</TabsTrigger>
+          {isSuperAdmin && <TabsTrigger value="backend" className="text-xs sm:text-sm">Backend Config</TabsTrigger>}
         </TabsList>
 
         {/* GENERAL SETTINGS */}
@@ -678,6 +686,13 @@ export default function AdminSettings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* BACKEND CONFIGURATION - SUPER ADMIN ONLY */}
+        {isSuperAdmin && (
+          <TabsContent value="backend" className="space-y-4">
+            <BackendConfigurationTab />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Save Button */}
@@ -691,6 +706,299 @@ export default function AdminSettings() {
           {isSaving ? "Saving..." : "Save All Settings"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// Backend Configuration Component
+function BackendConfigurationTab() {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState<Partial<SystemSettings>>({});
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['/api/admin/settings/system'],
+    queryFn: async () => {
+      const response = await apiRequest('/api/admin/settings/system', 'GET');
+      return response as SystemSettings;
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (updates: Partial<SystemSettings>) => {
+      const response = await apiRequest('/api/admin/settings/system', 'PATCH', updates);
+      return response as SystemSettings;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings/system'] });
+      toast({
+        title: "Success",
+        description: "Backend settings updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setFormData(settings);
+    }
+  }, [settings]);
+
+  const handleToggle = (key: keyof SystemSettings, value: boolean) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleNumberChange = (key: keyof SystemSettings, value: number) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = () => {
+    updateMutation.mutate(formData);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-8 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Auto Logout Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            Auto Logout & Idle Timeout
+          </CardTitle>
+          <CardDescription>Control idle timeout warnings and automatic logout behavior</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <p className="font-semibold">Enable Idle Timeout</p>
+                <p className="text-sm text-muted-foreground">Automatically logout users after inactivity</p>
+              </div>
+              <button
+                onClick={() => handleToggle('idleTimeoutEnabled', !formData.idleTimeoutEnabled)}
+                className={`h-6 w-11 rounded-full transition-colors ${
+                  formData.idleTimeoutEnabled ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+                data-testid="toggle-idle-timeout"
+              >
+                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${
+                  formData.idleTimeoutEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                }`} />
+              </button>
+            </div>
+
+            {formData.idleTimeoutEnabled && (
+              <>
+                <div className="p-4 border rounded-lg space-y-2">
+                  <label className="text-sm font-semibold">Minutes Before Warning Popup</label>
+                  <p className="text-xs text-muted-foreground">How long until idle warning appears</p>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={formData.idleWarningMinutes || 25}
+                    onChange={(e) => handleNumberChange('idleWarningMinutes', parseInt(e.target.value) || 25)}
+                    className="w-full px-3 py-2 border rounded-md"
+                    data-testid="input-idle-warning-minutes"
+                  />
+                </div>
+
+                <div className="p-4 border rounded-lg space-y-2">
+                  <label className="text-sm font-semibold">Countdown Minutes</label>
+                  <p className="text-xs text-muted-foreground">Time remaining on warning popup before logout</p>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={formData.idleCountdownMinutes || 5}
+                    onChange={(e) => handleNumberChange('idleCountdownMinutes', parseInt(e.target.value) || 5)}
+                    className="w-full px-3 py-2 border rounded-md"
+                    data-testid="input-idle-countdown-minutes"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Session Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Session Management</CardTitle>
+          <CardDescription>Control session duration and concurrent session limits</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 border rounded-lg space-y-2">
+            <label className="text-sm font-semibold">Session Timeout (Minutes)</label>
+            <p className="text-xs text-muted-foreground">Maximum session duration before automatic logout</p>
+            <input
+              type="number"
+              min="15"
+              max="480"
+              value={formData.sessionTimeoutMinutes || 30}
+              onChange={(e) => handleNumberChange('sessionTimeoutMinutes', parseInt(e.target.value) || 30)}
+              className="w-full px-3 py-2 border rounded-md"
+              data-testid="input-session-timeout"
+            />
+          </div>
+
+          <div className="p-4 border rounded-lg space-y-2">
+            <label className="text-sm font-semibold">Max Concurrent Sessions</label>
+            <p className="text-xs text-muted-foreground">Maximum number of simultaneous sessions per user</p>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              value={formData.maxConcurrentSessions || 5}
+              onChange={(e) => handleNumberChange('maxConcurrentSessions', parseInt(e.target.value) || 5)}
+              className="w-full px-3 py-2 border rounded-md"
+              data-testid="input-max-sessions"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Rate Limiting */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rate Limiting & Security</CardTitle>
+          <CardDescription>Control API rate limits and login security</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="space-y-1">
+              <p className="font-semibold">Enable Rate Limiting</p>
+              <p className="text-sm text-muted-foreground">Restrict API requests per minute</p>
+            </div>
+            <button
+              onClick={() => handleToggle('rateLimitEnabled', !formData.rateLimitEnabled)}
+              className={`h-6 w-11 rounded-full transition-colors ${
+                formData.rateLimitEnabled ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+              data-testid="toggle-rate-limiting"
+            >
+              <div className={`h-5 w-5 rounded-full bg-white transition-transform ${
+                formData.rateLimitEnabled ? 'translate-x-5' : 'translate-x-0.5'
+              }`} />
+            </button>
+          </div>
+
+          {formData.rateLimitEnabled && (
+            <div className="p-4 border rounded-lg space-y-2">
+              <label className="text-sm font-semibold">Requests Per Minute</label>
+              <p className="text-xs text-muted-foreground">Global API request rate limit</p>
+              <input
+                type="number"
+                min="10"
+                max="1000"
+                value={formData.requestsPerMinute || 60}
+                onChange={(e) => handleNumberChange('requestsPerMinute', parseInt(e.target.value) || 60)}
+                className="w-full px-3 py-2 border rounded-md"
+                data-testid="input-requests-per-minute"
+              />
+            </div>
+          )}
+
+          <div className="p-4 border rounded-lg space-y-2">
+            <label className="text-sm font-semibold">Failed Login Lockout Threshold</label>
+            <p className="text-xs text-muted-foreground">Number of failed attempts before account lock</p>
+            <input
+              type="number"
+              min="3"
+              max="20"
+              value={formData.failedLoginLockoutThreshold || 5}
+              onChange={(e) => handleNumberChange('failedLoginLockoutThreshold', parseInt(e.target.value) || 5)}
+              className="w-full px-3 py-2 border rounded-md"
+              data-testid="input-lockout-threshold"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Document Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Document Management</CardTitle>
+          <CardDescription>Control file upload restrictions</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 border rounded-lg space-y-2">
+            <label className="text-sm font-semibold">Max Upload Size (MB)</label>
+            <p className="text-xs text-muted-foreground">Maximum file size for document uploads</p>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={formData.maxUploadSizeMB || 10}
+              onChange={(e) => handleNumberChange('maxUploadSizeMB', parseInt(e.target.value) || 10)}
+              className="w-full px-3 py-2 border rounded-md"
+              data-testid="input-max-upload-size"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Two-Factor Authentication */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Two-Factor Authentication</CardTitle>
+          <CardDescription>Control 2FA requirements</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="space-y-1">
+              <p className="font-semibold">Require 2FA for All Users</p>
+              <p className="text-sm text-muted-foreground">Enforce two-factor authentication globally</p>
+            </div>
+            <button
+              onClick={() => handleToggle('twoFactorAuthRequired', !formData.twoFactorAuthRequired)}
+              className={`h-6 w-11 rounded-full transition-colors ${
+                formData.twoFactorAuthRequired ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+              data-testid="toggle-2fa-required"
+            >
+              <div className={`h-5 w-5 rounded-full bg-white transition-transform ${
+                formData.twoFactorAuthRequired ? 'translate-x-5' : 'translate-x-0.5'
+              }`} />
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <Button
+        onClick={handleSave}
+        disabled={updateMutation.isPending}
+        className="w-full"
+        size="lg"
+        data-testid="button-save-backend-settings"
+      >
+        {updateMutation.isPending ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Saving...
+          </>
+        ) : (
+          'Save Backend Configuration'
+        )}
+      </Button>
     </div>
   );
 }

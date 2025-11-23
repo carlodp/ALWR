@@ -87,7 +87,6 @@ import AdminCustomers from "@/pages/admin/customers";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
 import AdminUserDetail from "@/pages/admin/user-detail";
 import AdminSettings from "@/pages/admin/settings";
-import SuperAdminSettings from "@/pages/admin/super-admin-settings";
 import AdminCreateCustomer from "@/pages/admin/create-customer";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminRenewalReminders from "@/pages/admin/renewal-reminders";
@@ -153,12 +152,6 @@ function Router() {
         </>
       )}
 
-      {/* Super Admin Routes - highest privilege */}
-      {isAuthenticated && isSuperAdmin && (
-        <>
-          <Route path="/admin/super-settings" component={SuperAdminSettings} />
-        </>
-      )}
 
       {/* Admin Routes - must come before customer routes */}
       {isAuthenticated && (isAdmin || isSuperAdmin) && (

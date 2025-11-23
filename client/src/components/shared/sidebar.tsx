@@ -232,14 +232,8 @@ export function AppSidebar() {
       title: "Settings",
       url: "/admin/settings",
       icon: Lock,
-      section: "ADMIN"
-    },
-    {
-      title: "Super Admin Settings",
-      url: "/admin/super-settings",
-      icon: Shield,
       section: "ADMIN",
-      superAdminOnly: true
+      superAdminOnly: false
     },
   ];
 
