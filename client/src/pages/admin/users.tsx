@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Clock, Plus } from "lucide-react";
+import { Search, Clock, Plus, Dot } from "lucide-react";
 import { useState } from "react";
 import type { User } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * AdminUsers Component
@@ -32,6 +33,7 @@ export default function AdminUsers() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { user: currentUser } = useAuth();
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -63,6 +65,30 @@ export default function AdminUsers() {
   const getResellerData = (userId: string) => {
     const resellersList = Array.isArray(resellers) ? resellers : resellers?.data;
     return resellersList?.find((r: any) => r.userId === userId);
+  };
+
+  const isUserOnline = (userId: string) => {
+    return currentUser?.id === userId;
+  };
+
+  const formatLastLogin = (lastLoginAt: string | null | undefined) => {
+    if (!lastLoginAt) return "Never";
+    try {
+      const date = new Date(lastLoginAt);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString();
+    } catch {
+      return "Unknown";
+    }
   };
 
   return (
@@ -132,12 +158,19 @@ export default function AdminUsers() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
-                        <Badge
-                          variant={user.accountStatus === "active" ? "default" : "secondary"}
-                          data-testid={`badge-status-${user.id}`}
-                        >
-                          {user.accountStatus}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {isUserOnline(user.id) ? (
+                            <div className="flex items-center gap-1">
+                              <Dot className="h-4 w-4 text-green-500 fill-green-500" data-testid={`indicator-online-${user.id}`} />
+                              <span className="text-sm font-medium text-green-600 dark:text-green-400">Online</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">{formatLastLogin((user as any).lastLoginAt)}</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <Button

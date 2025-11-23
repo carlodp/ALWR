@@ -33,68 +33,56 @@ export function useRealtimeDashboard(userId: string | undefined, enabled: boolea
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const connectWebSocket = useCallback(() => {
-    if (!userId || !enabled) return;
-
-    try {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      // Build proper WebSocket URL - handle cases where port might be undefined
-      const host = window.location.host || window.location.hostname;
-      const wsUrl = `${protocol}//${host}?userId=${userId}&stream=stats`;
-      
-      const ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        setIsConnected(true);
-        console.log("Connected to real-time dashboard");
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          
-          if (message.type === "stats" && message.data) {
-            setData(message.data);
-            setIsLoading(false);
-          }
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        setIsConnected(false);
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        console.log("Disconnected from real-time dashboard");
-        // Attempt to reconnect after 3 seconds
-        setTimeout(() => connectWebSocket(), 3000);
-      };
-
-      return ws;
-    } catch (error) {
-      console.error("Error connecting to WebSocket:", error);
-      setIsLoading(false);
-    }
-  }, [userId, enabled]);
-
+  // Fetch initial data from REST API
   useEffect(() => {
     if (!enabled || !userId) {
       setIsLoading(false);
       return;
     }
 
-    const ws = connectWebSocket();
-
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch("/api/admin/analytics/dashboard");
+        if (response.ok) {
+          const dashboardData = await response.json();
+          // Transform API response to RealtimeDashboardData format
+          setData({
+            totalCustomers: dashboardData.totalCustomers || 0,
+            activeSubscriptions: dashboardData.activeSubscriptions || 0,
+            totalDocuments: dashboardData.totalDocuments || 0,
+            expiringSubscriptions: dashboardData.expiringSubscriptions || 0,
+            monthlyRevenue: dashboardData.monthlyRevenue || 0,
+            activeUsers: dashboardData.activeUsers || 0,
+            newCustomersToday: dashboardData.newCustomersToday || 0,
+            documentsUploadedToday: dashboardData.documentsUploadedToday || 0,
+            subscriptionsExpiredToday: dashboardData.subscriptionsExpiredToday || 0,
+            systemHealth: dashboardData.systemHealth || {
+              status: "healthy",
+              uptime: 100,
+              databaseStatus: "operational",
+            },
+            metrics: dashboardData.metrics || {
+              customerGrowth: 0,
+              revenueGrowth: 0,
+              documentGrowth: 0,
+            },
+            recentActivity: dashboardData.recentActivity || [],
+          });
+          setIsConnected(true);
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setIsLoading(false);
       }
     };
-  }, [connectWebSocket, enabled, userId]);
+
+    fetchDashboardData();
+    
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchDashboardData, 10000);
+    return () => clearInterval(interval);
+  }, [enabled, userId]);
 
   return {
     data,
