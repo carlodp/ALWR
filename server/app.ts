@@ -16,6 +16,7 @@ import { seedMockData } from "./seed-mock-data";
 import { logger } from "./logger";
 import { globalLimiter, setSecureHeaders, sanitizeError } from "./security";
 import { swaggerSpec } from "./swagger";
+import { emailQueue } from "./email-queue";
 
 export function log(message: string, source = "express") {
   logger.info(message, source);
@@ -69,6 +70,13 @@ async function initStripe() {
 
 // Initialize Stripe
 await initStripe();
+
+// ============================================================================
+// EMAIL QUEUE INITIALIZATION
+// ============================================================================
+
+// Start the email queue processor
+emailQueue.start();
 
 // ============================================================================
 // STRIPE WEBHOOK ROUTE (Must be BEFORE express.json())

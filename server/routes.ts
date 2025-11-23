@@ -3615,6 +3615,107 @@ startxref
     }
   });
 
+  // ============================================================================
+  // EMAIL QUEUE ROUTES
+  // ============================================================================
+
+  /**
+   * GET /api/admin/email-queue/stats
+   * Get email queue statistics
+   */
+  app.get("/api/admin/email-queue/stats", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { emailQueue } = await import('./email-queue');
+      const stats = await emailQueue.getStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting queue stats:", error);
+      res.status(500).json({ message: "Failed to get queue stats" });
+    }
+  });
+
+  /**
+   * GET /api/admin/email-queue
+   * List emails in queue with optional filtering
+   */
+  app.get("/api/admin/email-queue", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { emailQueue } = await import('./email-queue');
+      const status = req.query.status as any;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const emails = await emailQueue.listEmails({
+        status,
+        limit,
+        offset,
+      });
+
+      res.json({
+        emails,
+        count: emails.length,
+        limit,
+        offset,
+      });
+    } catch (error) {
+      console.error("Error listing emails:", error);
+      res.status(500).json({ message: "Failed to list emails" });
+    }
+  });
+
+  /**
+   * POST /api/admin/email-queue/send
+   * Send a test email (admin only)
+   */
+  app.post("/api/admin/email-queue/send", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { emailQueue } = await import('./email-queue');
+      const { recipientEmail, subject, htmlContent } = req.body;
+
+      if (!recipientEmail || !subject || !htmlContent) {
+        return res.status(400).json({
+          message: "Missing required fields: recipientEmail, subject, htmlContent",
+        });
+      }
+
+      const emailId = await emailQueue.enqueue({
+        recipientEmail,
+        subject,
+        htmlContent,
+        notificationType: 'custom_admin',
+      });
+
+      res.status(201).json({
+        message: "Email queued successfully",
+        emailId: (emailId as any).id,
+      });
+    } catch (error) {
+      console.error("Error queuing email:", error);
+      res.status(500).json({ message: "Failed to queue email" });
+    }
+  });
+
+  /**
+   * POST /api/admin/email-queue/:id/retry
+   * Retry a failed email
+   */
+  app.post("/api/admin/email-queue/:id/retry", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { emailQueue } = await import('./email-queue');
+      const { id } = req.params;
+
+      await emailQueue.retryEmail(id);
+
+      res.json({
+        message: "Email scheduled for retry",
+        emailId: id,
+      });
+    } catch (error) {
+      console.error("Error retrying email:", error);
+      res.status(500).json({ message: "Failed to retry email" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 
