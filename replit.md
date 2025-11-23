@@ -57,28 +57,36 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - **ws (WebSocket)**: Real-time stats streaming.
 - **TypeScript**: Type safety and development tooling.
 
-### Latest Build Session (Session 3)
+### Latest Build Session (Session 3-4)
 **Tier 1 MVP Features Completed:**
-1. **Full Users Module** ✅ - 9 new admin endpoints for user CRUD + role management
-2. **Email Verification System** ✅ - 2 endpoints for email verification with 24-hour tokens
-3. **Password Reset Flow** ✅ - 2 endpoints for forgot password and token validation
+1. **Full Users Module** ✅ - 9 admin endpoints for user CRUD + role management
+2. **Email Verification System** ✅ - 2 endpoints for email verification (24-hour tokens)
+3. **Password Reset Flow** ✅ - 2 endpoints for forgot password & token validation
+4. **Custom Email/Password Authentication** ✅ - Standalone login/register system
 
-**Total API Endpoints: 65+** (up from 57)
+**Total API Endpoints: 67+** (up from 57)
 - Users Module: 9 endpoints (list, get, create, update, change role, delete, activity)
+- Custom Auth: 2 endpoints (register, login with password hashing & account locking)
 - Email/Password: 4 endpoints (send verification, verify email, forgot password, reset password)
 - All previous modules: 52+ endpoints
 
 **Features Deployed:**
-- Role-based access control (admin, customer, agent, support)
-- User deactivation and role management
-- Email verification with 24-hour expiration
-- Password reset with 1-hour token expiration
-- Security: email existence not revealed in forgot password
-- Rate limiting ready for login/verification attempts
-- Comprehensive audit logging for all user operations
+- ✅ Custom email/password authentication with bcrypt hashing
+- ✅ Account lockout after 5 failed login attempts (15-min exponential backoff)
+- ✅ Login attempt tracking and session management
+- ✅ Password strength validation (min 8 characters)
+- ✅ Role-based access control (admin, customer, agent, support)
+- ✅ User management: create, read, update, delete, deactivate
+- ✅ Email verification with 24-hour expiration tokens
+- ✅ Password reset with 1-hour expiration tokens
+- ✅ Security: email existence not revealed in login/forgot password
+- ✅ Rate limiting on auth endpoints (5 attempts per 15 minutes)
+- ✅ Comprehensive audit logging for all user operations
+- ✅ Last login tracking
 
 **Database Schema Updates:**
-- Added to users table: emailVerified, emailVerificationToken, emailVerificationTokenExpiresAt, passwordResetToken, passwordResetTokenExpiresAt, passwordResetAttempts
+- Added to users table: passwordHash, lastLoginAt, loginAttempts, lockedUntil
+- Maintained: emailVerified, emailVerificationToken, emailVerificationTokenExpiresAt, passwordResetToken, passwordResetTokenExpiresAt, passwordResetAttempts
 
 ### Frontend Dependencies (WordPress)
 - **WordPress**: CMS for public website, customer portal, admin interface.

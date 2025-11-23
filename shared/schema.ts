@@ -100,6 +100,12 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").default('customer').notNull(),
   
+  // Custom Password Authentication
+  passwordHash: varchar("password_hash"), // bcrypt hashed password - optional for custom auth
+  lastLoginAt: timestamp("last_login_at"),
+  loginAttempts: integer("login_attempts").default(0),
+  lockedUntil: timestamp("locked_until"),
+  
   // Email Verification
   emailVerified: boolean("email_verified").default(false).notNull(),
   emailVerificationToken: varchar("email_verification_token"),

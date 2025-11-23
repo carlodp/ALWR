@@ -29,6 +29,9 @@ export interface IStorage {
   verifyEmail(token: string): Promise<boolean>;
   setPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<void>;
   resetPassword(token: string): Promise<string | undefined>;
+  setPassword(userId: string, passwordHash: string): Promise<void>;
+  recordLoginAttempt(userId: string, success: boolean): Promise<void>;
+  lockAccount(userId: string, lockedUntil: Date): Promise<void>;
 
   // Customer Operations
   getCustomer(userId: string): Promise<Customer | undefined>;
@@ -241,6 +244,50 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, user.id));
 
     return user.id;
+  }
+
+  async setPassword(userId: string, passwordHash: string): Promise<void> {
+    await db.update(users)
+      .set({ 
+        passwordHash, 
+        loginAttempts: 0,
+        lockedUntil: undefined,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async recordLoginAttempt(userId: string, success: boolean): Promise<void> {
+    if (success) {
+      await db.update(users)
+        .set({ 
+          lastLoginAt: new Date(),
+          loginAttempts: 0,
+          lockedUntil: undefined,
+          updatedAt: new Date() 
+        })
+        .where(eq(users.id, userId));
+    } else {
+      const user = await this.getUser(userId);
+      if (user) {
+        const newAttempts = (user.loginAttempts || 0) + 1;
+        await db.update(users)
+          .set({ 
+            loginAttempts: newAttempts,
+            updatedAt: new Date() 
+          })
+          .where(eq(users.id, userId));
+      }
+    }
+  }
+
+  async lockAccount(userId: string, lockedUntil: Date): Promise<void> {
+    await db.update(users)
+      .set({ 
+        lockedUntil,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId));
   }
 
   async listAllUsers(limit: number = 1000, offset: number = 0): Promise<User[]> {

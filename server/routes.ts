@@ -19,6 +19,7 @@ import { setupStatsWebSocket, notifyStatsChange } from "./websocketStats";
 import { authLimiter, apiLimiter, sanitizeError, isValidId, isValidEmail, isValidPassword } from "./security";
 import { logger } from "./logger";
 import { isAdmin, hasPermission } from "./usersService";
+import { hashPassword, verifyPassword, validatePassword, validateEmail, isAccountLocked, calculateLockUntil } from "./authService";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -2095,6 +2096,163 @@ startxref
     } catch (error) {
       console.error("Error getting user activity:", error);
       res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  // ============================================================================
+  // CUSTOM EMAIL/PASSWORD AUTHENTICATION
+  // ============================================================================
+
+  // Register new user with email and password
+  app.post("/api/auth/register", authLimiter, async (req: any, res: Response) => {
+    try {
+      const { email, password, confirmPassword, firstName, lastName } = req.body;
+
+      // Validate inputs
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      // Validate password
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message });
+      }
+
+      // Check passwords match
+      if (password !== confirmPassword) {
+        return res.status(400).json({ message: "Passwords do not match" });
+      }
+
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+
+      // Create user
+      const user = await storage.upsertUser({
+        email,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        role: 'customer',
+        passwordHash,
+      });
+
+      // Log action
+      await storage.createAuditLog({
+        userId: user.id,
+        actorName: firstName && lastName ? `${firstName} ${lastName}` : email,
+        actorRole: 'customer',
+        action: 'login',
+        resourceType: 'user',
+        resourceId: user.id,
+        details: { action: 'account_created' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.status(201).json({
+        message: "Account created successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error("Error registering user:", error);
+      res.status(500).json({ message: "Failed to register user" });
+    }
+  });
+
+  // Login with email and password
+  app.post("/api/auth/login", authLimiter, async (req: any, res: Response) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.passwordHash) {
+        // Security: Don't reveal if email exists
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Check if account is locked
+      if (user.lockedUntil && isAccountLocked(user.lockedUntil)) {
+        return res.status(429).json({ message: "Account is temporarily locked. Please try again later." });
+      }
+
+      // Verify password
+      const passwordValid = await verifyPassword(password, user.passwordHash);
+      if (!passwordValid) {
+        // Record failed login attempt
+        const newAttempts = (user.loginAttempts || 0) + 1;
+        
+        if (newAttempts >= 5) {
+          const lockedUntil = calculateLockUntil(newAttempts);
+          await storage.lockAccount(user.id, lockedUntil);
+          return res.status(429).json({ message: "Too many failed login attempts. Account locked for 15 minutes." });
+        }
+
+        // Record failed attempt
+        await storage.recordLoginAttempt(user.id, false);
+
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Record successful login
+      await storage.recordLoginAttempt(user.id, true);
+
+      // Set session - user is now authenticated
+      req.login(user, (err: any) => {
+        if (err) {
+          console.error("Login session error:", err);
+          return res.status(500).json({ message: "Failed to establish session" });
+        }
+
+        // Log successful login
+        storage.createAuditLog({
+          userId: user.id,
+          actorName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+          actorRole: user.role,
+          action: 'login',
+          resourceType: 'user',
+          resourceId: user.id,
+          details: { method: 'email_password' },
+          success: true,
+          ipAddress: req.ip || undefined,
+          userAgent: req.headers['user-agent'] || undefined,
+        }).catch(err => console.error("Error logging login:", err));
+
+        res.json({
+          message: "Logged in successfully",
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+          },
+        });
+      });
+    } catch (error) {
+      console.error("Error during login:", error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
 
