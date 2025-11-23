@@ -462,6 +462,68 @@ export const emailNotifications = pgTable("email_notifications", {
 ]);
 
 // ============================================================================
+// AGENTS MODULE
+// ============================================================================
+
+export const agents = pgTable("agents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Agent Status
+  status: varchar("status").default('active').notNull(), // active, inactive, suspended
+  
+  // Organization/Agency Info
+  agencyName: varchar("agency_name"),
+  agencyPhone: varchar("agency_phone"),
+  agencyAddress: text("agency_address"),
+  
+  // License/Credentials
+  licenseNumber: varchar("license_number"),
+  licenseExpiresAt: timestamp("license_expires_at"),
+  
+  // Commission & Payment
+  commissionRate: varchar("commission_rate"), // e.g., "10.5" for 10.5%
+  stripeConnectId: varchar("stripe_connect_id"), // For payouts
+  
+  // Performance Tracking
+  totalCustomersAssigned: integer("total_customers_assigned").default(0),
+  totalDocumentsProcessed: integer("total_documents_processed").default(0),
+  totalRevenueGenerated: integer("total_revenue_generated").default(0), // in cents
+  
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_agent_user_id").on(table.userId),
+  index("idx_agent_status").on(table.status),
+]);
+
+// Agent-Customer Assignments (tracks which customers an agent manages)
+export const agentCustomerAssignments = pgTable("agent_customer_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  agentId: varchar("agent_id").references(() => agents.id).notNull(),
+  customerId: varchar("customer_id").references(() => customers.id).notNull(),
+  
+  // Assignment Details
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  unassignedAt: timestamp("unassigned_at"),
+  isActive: boolean("is_active").default(true).notNull(),
+  
+  // Performance on this customer
+  documentCount: integer("document_count").default(0),
+  lastContactAt: timestamp("last_contact_at"),
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_assignment_agent_id").on(table.agentId),
+  index("idx_assignment_customer_id").on(table.customerId),
+  index("idx_assignment_is_active").on(table.isActive),
+]);
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -539,6 +601,25 @@ export const emailNotificationsRelations = relations(emailNotifications, ({ one 
   }),
 }));
 
+export const agentsRelations = relations(agents, ({ one, many }) => ({
+  user: one(users, {
+    fields: [agents.userId],
+    references: [users.id],
+  }),
+  assignments: many(agentCustomerAssignments),
+}));
+
+export const agentCustomerAssignmentsRelations = relations(agentCustomerAssignments, ({ one }) => ({
+  agent: one(agents, {
+    fields: [agentCustomerAssignments.agentId],
+    references: [agents.id],
+  }),
+  customer: one(customers, {
+    fields: [agentCustomerAssignments.customerId],
+    references: [customers.id],
+  }),
+}));
+
 // ============================================================================
 // INSERT SCHEMAS (For Validation)
 // ============================================================================
@@ -611,6 +692,22 @@ export const insertEmailNotificationSchema = createInsertSchema(emailNotificatio
   retryCount: true,
 });
 
+export const insertAgentSchema = createInsertSchema(agents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  totalCustomersAssigned: true,
+  totalDocumentsProcessed: true,
+  totalRevenueGenerated: true,
+});
+
+export const insertAgentCustomerAssignmentSchema = createInsertSchema(agentCustomerAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  documentCount: true,
+});
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -647,6 +744,12 @@ export type EmailTemplate = typeof emailTemplates.$inferSelect;
 
 export type InsertEmailNotification = z.infer<typeof insertEmailNotificationSchema>;
 export type EmailNotification = typeof emailNotifications.$inferSelect;
+
+export type InsertAgent = z.infer<typeof insertAgentSchema>;
+export type Agent = typeof agents.$inferSelect;
+
+export type InsertAgentCustomerAssignment = z.infer<typeof insertAgentCustomerAssignmentSchema>;
+export type AgentCustomerAssignment = typeof agentCustomerAssignments.$inferSelect;
 
 // Global Search Results
 export interface GlobalSearchResult {

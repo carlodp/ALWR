@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
-  customerTags, physicalCardOrders, emailTemplates, emailNotifications,
+  customerTags, physicalCardOrders, emailTemplates, emailNotifications, agents, agentCustomerAssignments,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -10,7 +10,8 @@ import {
   type CustomerTag, type InsertCustomerTag,
   type PhysicalCardOrder, type InsertPhysicalCardOrder,
   type EmailTemplate, type InsertEmailTemplate,
-  type EmailNotification, type InsertEmailNotification
+  type EmailNotification, type InsertEmailNotification,
+  type Agent, type InsertAgent, type AgentCustomerAssignment, type InsertAgentCustomerAssignment
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -32,6 +33,21 @@ export interface IStorage {
   setPassword(userId: string, passwordHash: string): Promise<void>;
   recordLoginAttempt(userId: string, success: boolean): Promise<void>;
   lockAccount(userId: string, lockedUntil: Date): Promise<void>;
+
+  // Agent Operations
+  createAgent(data: InsertAgent): Promise<Agent>;
+  getAgent(agentId: string): Promise<Agent | undefined>;
+  getAgentByUserId(userId: string): Promise<Agent | undefined>;
+  listAgents(limit?: number, offset?: number): Promise<Agent[]>;
+  updateAgent(agentId: string, data: Partial<InsertAgent>): Promise<Agent | undefined>;
+  deleteAgent(agentId: string): Promise<void>;
+  
+  // Agent-Customer Assignments
+  assignCustomerToAgent(agentId: string, customerId: string): Promise<AgentCustomerAssignment>;
+  unassignCustomer(agentId: string, customerId: string): Promise<void>;
+  getAgentCustomers(agentId: string): Promise<AgentCustomerAssignment[]>;
+  getCustomerAgent(customerId: string): Promise<Agent | undefined>;
+  updateAssignment(assignmentId: string, data: Partial<AgentCustomerAssignment>): Promise<AgentCustomerAssignment | undefined>;
 
   // Customer Operations
   getCustomer(userId: string): Promise<Customer | undefined>;
@@ -288,6 +304,114 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date() 
       })
       .where(eq(users.id, userId));
+  }
+
+  async createAgent(data: InsertAgent): Promise<Agent> {
+    const [agent] = await db.insert(agents).values(data).returning();
+    return agent;
+  }
+
+  async getAgent(agentId: string): Promise<Agent | undefined> {
+    return db.query.agents.findFirst({
+      where: eq(agents.id, agentId),
+    });
+  }
+
+  async getAgentByUserId(userId: string): Promise<Agent | undefined> {
+    return db.query.agents.findFirst({
+      where: eq(agents.userId, userId),
+    });
+  }
+
+  async listAgents(limit: number = 1000, offset: number = 0): Promise<Agent[]> {
+    return db.query.agents.findMany({
+      limit,
+      offset,
+    });
+  }
+
+  async updateAgent(agentId: string, data: Partial<InsertAgent>): Promise<Agent | undefined> {
+    const [updated] = await db.update(agents)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(agents.id, agentId))
+      .returning();
+    return updated;
+  }
+
+  async deleteAgent(agentId: string): Promise<void> {
+    // Soft delete - mark as inactive
+    await db.update(agents)
+      .set({ status: 'inactive', updatedAt: new Date() })
+      .where(eq(agents.id, agentId));
+  }
+
+  async assignCustomerToAgent(agentId: string, customerId: string): Promise<AgentCustomerAssignment> {
+    // Check if already assigned
+    const existing = await db.query.agentCustomerAssignments.findFirst({
+      where: and(
+        eq(agentCustomerAssignments.agentId, agentId),
+        eq(agentCustomerAssignments.customerId, customerId),
+        eq(agentCustomerAssignments.isActive, true),
+      ),
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    // Create new assignment
+    const [assignment] = await db.insert(agentCustomerAssignments)
+      .values({ agentId, customerId, isActive: true })
+      .returning();
+
+    // Update agent stats
+    const agent = await this.getAgent(agentId);
+    if (agent) {
+      await this.updateAgent(agentId, {
+        totalCustomersAssigned: (agent.totalCustomersAssigned || 0) + 1,
+      });
+    }
+
+    return assignment;
+  }
+
+  async unassignCustomer(agentId: string, customerId: string): Promise<void> {
+    await db.update(agentCustomerAssignments)
+      .set({ isActive: false, unassignedAt: new Date(), updatedAt: new Date() })
+      .where(and(
+        eq(agentCustomerAssignments.agentId, agentId),
+        eq(agentCustomerAssignments.customerId, customerId),
+      ));
+  }
+
+  async getAgentCustomers(agentId: string): Promise<AgentCustomerAssignment[]> {
+    return db.query.agentCustomerAssignments.findMany({
+      where: and(
+        eq(agentCustomerAssignments.agentId, agentId),
+        eq(agentCustomerAssignments.isActive, true),
+      ),
+    });
+  }
+
+  async getCustomerAgent(customerId: string): Promise<Agent | undefined> {
+    const assignment = await db.query.agentCustomerAssignments.findFirst({
+      where: and(
+        eq(agentCustomerAssignments.customerId, customerId),
+        eq(agentCustomerAssignments.isActive, true),
+      ),
+    });
+
+    if (!assignment) return undefined;
+
+    return this.getAgent(assignment.agentId);
+  }
+
+  async updateAssignment(assignmentId: string, data: Partial<AgentCustomerAssignment>): Promise<AgentCustomerAssignment | undefined> {
+    const [updated] = await db.update(agentCustomerAssignments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(agentCustomerAssignments.id, assignmentId))
+      .returning();
+    return updated;
   }
 
   async listAllUsers(limit: number = 1000, offset: number = 0): Promise<User[]> {

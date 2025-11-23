@@ -57,36 +57,52 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - **ws (WebSocket)**: Real-time stats streaming.
 - **TypeScript**: Type safety and development tooling.
 
-### Latest Build Session (Session 3-4)
+### Latest Build Session (Session 5)
 **Tier 1 MVP Features Completed:**
 1. **Full Users Module** ✅ - 9 admin endpoints for user CRUD + role management
 2. **Email Verification System** ✅ - 2 endpoints for email verification (24-hour tokens)
 3. **Password Reset Flow** ✅ - 2 endpoints for forgot password & token validation
 4. **Custom Email/Password Authentication** ✅ - Standalone login/register system
+5. **Agents Module** ✅ - Full agent management with customer assignments
 
-**Total API Endpoints: 67+** (up from 57)
+**Total API Endpoints: 77+** (up from 67)
 - Users Module: 9 endpoints (list, get, create, update, change role, delete, activity)
 - Custom Auth: 2 endpoints (register, login with password hashing & account locking)
 - Email/Password: 4 endpoints (send verification, verify email, forgot password, reset password)
-- All previous modules: 52+ endpoints
+- **Agents Module: 9 endpoints** (list, get, create, update, delete, assign customer, unassign customer, get agent customers, get customer's agent)
+- All previous modules: 43+ endpoints
 
-**Features Deployed:**
-- ✅ Custom email/password authentication with bcrypt hashing
-- ✅ Account lockout after 5 failed login attempts (15-min exponential backoff)
-- ✅ Login attempt tracking and session management
-- ✅ Password strength validation (min 8 characters)
-- ✅ Role-based access control (admin, customer, agent, support)
-- ✅ User management: create, read, update, delete, deactivate
-- ✅ Email verification with 24-hour expiration tokens
-- ✅ Password reset with 1-hour expiration tokens
-- ✅ Security: email existence not revealed in login/forgot password
-- ✅ Rate limiting on auth endpoints (5 attempts per 15 minutes)
-- ✅ Comprehensive audit logging for all user operations
-- ✅ Last login tracking
+**New Agents Module Endpoints:**
+1. `GET /api/agents` - List all agents (admin only, with pagination)
+2. `POST /api/agents` - Create new agent (admin only)
+3. `GET /api/agents/:agentId` - Get agent details (admin or self)
+4. `PATCH /api/agents/:agentId` - Update agent info (admin only)
+5. `DELETE /api/agents/:agentId` - Delete/deactivate agent (admin only)
+6. `POST /api/agents/:agentId/assign-customer` - Assign customer to agent (admin only)
+7. `POST /api/agents/:agentId/unassign-customer` - Unassign customer from agent (admin only)
+8. `GET /api/agents/:agentId/customers` - Get all customers assigned to agent
+9. `GET /api/customers/:customerId/agent` - Get agent assigned to customer
 
-**Database Schema Updates:**
-- Added to users table: passwordHash, lastLoginAt, loginAttempts, lockedUntil
-- Maintained: emailVerified, emailVerificationToken, emailVerificationTokenExpiresAt, passwordResetToken, passwordResetTokenExpiresAt, passwordResetAttempts
+**Agents Module Features:**
+- ✅ Agent profile management with agency info (name, phone, address)
+- ✅ License tracking with expiration dates
+- ✅ Commission rate tracking for agent payouts
+- ✅ Performance metrics (customers assigned, documents processed, revenue generated)
+- ✅ Customer assignment/unassignment with tracking
+- ✅ Agent-Customer relationship management
+- ✅ Audit logging for all agent operations (create, update, delete, assign, unassign)
+- ✅ Role-based permissions (admin-only operations, agent self-access)
+- ✅ Soft delete for agents (mark as inactive instead of hard delete)
+- ✅ Automatic performance tracking when assigning/unassigning customers
+
+**Database Schema - New Tables:**
+- `agents` table: Stores agent profiles with user reference, status, agency info, license, commission, and performance metrics
+- `agent_customer_assignments` table: Links agents to customers they manage, tracks active/inactive assignments and performance per customer
+
+**Database Schema Updates (Overall):**
+- Authentication fields: passwordHash, lastLoginAt, loginAttempts, lockedUntil
+- Agents module: agents table, agent_customer_assignments table with proper indexing
+- Maintained: emailVerified, emailVerificationToken, passwordResetToken, all 2FA fields
 
 ### Frontend Dependencies (WordPress)
 - **WordPress**: CMS for public website, customer portal, admin interface.

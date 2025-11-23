@@ -1792,6 +1792,324 @@ startxref
   });
 
   // ============================================================================
+  // AGENTS MODULE
+  // ============================================================================
+
+  // List all agents (admin only)
+  app.get("/api/agents", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const limit = Math.min(parseInt(req.query.limit) || 50, 1000);
+      const offset = parseInt(req.query.offset) || 0;
+
+      const agentList = await storage.listAgents(limit, offset);
+      res.json({
+        data: agentList,
+        count: agentList.length,
+        limit,
+        offset,
+      });
+    } catch (error) {
+      console.error("Error listing agents:", error);
+      res.status(500).json({ message: "Failed to list agents" });
+    }
+  });
+
+  // Create agent (admin only)
+  app.post("/api/agents", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { userId, agencyName, agencyPhone, agencyAddress, licenseNumber, licenseExpiresAt, commissionRate, notes } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'agent') {
+        return res.status(400).json({ message: "User must have agent role" });
+      }
+
+      const agent = await storage.createAgent({
+        userId,
+        status: 'active',
+        agencyName: agencyName || null,
+        agencyPhone: agencyPhone || null,
+        agencyAddress: agencyAddress || null,
+        licenseNumber: licenseNumber || null,
+        licenseExpiresAt: licenseExpiresAt ? new Date(licenseExpiresAt) : null,
+        commissionRate: commissionRate || null,
+        notes: notes || null,
+      });
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'agent',
+        resourceId: agent.id,
+        details: { action: 'agent_created' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.status(201).json(agent);
+    } catch (error) {
+      console.error("Error creating agent:", error);
+      res.status(500).json({ message: "Failed to create agent" });
+    }
+  });
+
+  // Get agent by ID (admin or self)
+  app.get("/api/agents/:agentId", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { agentId } = req.params;
+      const agent = await storage.getAgent(agentId);
+
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      if (!isAdmin(req.user.dbUser) && req.user.dbUser.id !== agent.userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      res.json(agent);
+    } catch (error) {
+      console.error("Error getting agent:", error);
+      res.status(500).json({ message: "Failed to get agent" });
+    }
+  });
+
+  // Update agent (admin only)
+  app.patch("/api/agents/:agentId", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { agentId } = req.params;
+      const { agencyName, agencyPhone, agencyAddress, licenseNumber, licenseExpiresAt, commissionRate, status, notes } = req.body;
+
+      const agent = await storage.updateAgent(agentId, {
+        agencyName: agencyName || undefined,
+        agencyPhone: agencyPhone || undefined,
+        agencyAddress: agencyAddress || undefined,
+        licenseNumber: licenseNumber || undefined,
+        licenseExpiresAt: licenseExpiresAt ? new Date(licenseExpiresAt) : undefined,
+        commissionRate: commissionRate || undefined,
+        status: status || undefined,
+        notes: notes || undefined,
+      });
+
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'agent',
+        resourceId: agent.id,
+        details: { action: 'agent_updated' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json(agent);
+    } catch (error) {
+      console.error("Error updating agent:", error);
+      res.status(500).json({ message: "Failed to update agent" });
+    }
+  });
+
+  // Delete agent (admin only)
+  app.delete("/api/agents/:agentId", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { agentId } = req.params;
+      const agent = await storage.getAgent(agentId);
+
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      await storage.deleteAgent(agentId);
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'agent',
+        resourceId: agentId,
+        details: { action: 'agent_deleted' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({ message: "Agent deleted" });
+    } catch (error) {
+      console.error("Error deleting agent:", error);
+      res.status(500).json({ message: "Failed to delete agent" });
+    }
+  });
+
+  // Assign customer to agent (admin only)
+  app.post("/api/agents/:agentId/assign-customer", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { agentId } = req.params;
+      const { customerId } = req.body;
+
+      if (!customerId) {
+        return res.status(400).json({ message: "customerId is required" });
+      }
+
+      const agent = await storage.getAgent(agentId);
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      const customer = await storage.getCustomerById(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const assignment = await storage.assignCustomerToAgent(agentId, customerId);
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'agent',
+        resourceId: agentId,
+        details: { action: 'customer_assigned', customerId },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.status(201).json(assignment);
+    } catch (error) {
+      console.error("Error assigning customer to agent:", error);
+      res.status(500).json({ message: "Failed to assign customer" });
+    }
+  });
+
+  // Unassign customer from agent (admin only)
+  app.post("/api/agents/:agentId/unassign-customer", requireAuth, async (req: any, res: Response) => {
+    try {
+      if (!isAdmin(req.user.dbUser)) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { agentId } = req.params;
+      const { customerId } = req.body;
+
+      if (!customerId) {
+        return res.status(400).json({ message: "customerId is required" });
+      }
+
+      const agent = await storage.getAgent(agentId);
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      await storage.unassignCustomer(agentId, customerId);
+
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName || ''} ${req.user.dbUser.lastName || ''}`.trim() || req.user.dbUser.email,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'agent',
+        resourceId: agentId,
+        details: { action: 'customer_unassigned', customerId },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({ message: "Customer unassigned from agent" });
+    } catch (error) {
+      console.error("Error unassigning customer from agent:", error);
+      res.status(500).json({ message: "Failed to unassign customer" });
+    }
+  });
+
+  // Get customers assigned to agent
+  app.get("/api/agents/:agentId/customers", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { agentId } = req.params;
+      const agent = await storage.getAgent(agentId);
+
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      if (!isAdmin(req.user.dbUser) && req.user.dbUser.id !== agent.userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const assignments = await storage.getAgentCustomers(agentId);
+      res.json({
+        agentId,
+        assignments,
+        count: assignments.length,
+      });
+    } catch (error) {
+      console.error("Error getting agent customers:", error);
+      res.status(500).json({ message: "Failed to get agent customers" });
+    }
+  });
+
+  // Get agent for a customer
+  app.get("/api/customers/:customerId/agent", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { customerId } = req.params;
+      const customer = await storage.getCustomerById(customerId);
+
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      if (!isAdmin(req.user.dbUser) && req.user.dbUser.id !== customer.userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const agent = await storage.getCustomerAgent(customerId);
+      if (!agent) {
+        return res.status(404).json({ message: "No agent assigned to customer" });
+      }
+
+      res.json(agent);
+    } catch (error) {
+      console.error("Error getting customer agent:", error);
+      res.status(500).json({ message: "Failed to get customer agent" });
+    }
+  });
+
+  // ============================================================================
   // USER MANAGEMENT ROUTES (Admin Only)
   // ============================================================================
 
