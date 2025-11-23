@@ -32,9 +32,10 @@ export function useIdleTimeout() {
         setCountdownSeconds((prev) => {
           if (prev <= 1) {
             if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-            // Clear auth and redirect to login
+            // Clear auth and redirect to login with full page reload
             localStorage.removeItem("auth_token");
-            setLocation("/login");
+            sessionStorage.clear();
+            window.location.href = "/login";
             return 0;
           }
           return prev - 1;
