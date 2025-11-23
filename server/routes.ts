@@ -2461,7 +2461,7 @@ startxref
   // Create new user (admin)
   app.post("/api/admin/users", requireAdmin, async (req: any, res: Response) => {
     try {
-      const { email, firstName, lastName, role } = req.body;
+      const { email, firstName, lastName, role, password } = req.body;
 
       // Validate required fields
       if (!email) {
@@ -2472,6 +2472,16 @@ startxref
         return res.status(400).json({ message: "Invalid email format" });
       }
 
+      if (!password) {
+        return res.status(400).json({ message: "Password is required" });
+      }
+
+      // Validate password
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message });
+      }
+
       // Check if user already exists
       const existing = await storage.getUserByEmail(email);
       if (existing) {
@@ -2479,10 +2489,13 @@ startxref
       }
 
       // Validate role
-      const validRoles = ['customer', 'admin', 'agent'];
+      const validRoles = ['customer', 'admin', 'agent', 'reseller'];
       if (role && !validRoles.includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
 
       // Create user
       const user = await storage.upsertUser({
@@ -2490,6 +2503,7 @@ startxref
         firstName: firstName || '',
         lastName: lastName || '',
         role: role || 'customer',
+        passwordHash,
       });
 
       // Log action

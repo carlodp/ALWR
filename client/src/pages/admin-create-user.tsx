@@ -11,12 +11,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ArrowLeft } from "lucide-react";
+import { generatePassword, copyToClipboard } from "@/lib/passwordGenerator";
+import { ArrowLeft, Copy, RotateCw } from "lucide-react";
 
 const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  password: z.string().min(12, "Password must be at least 12 characters"),
   role: z.enum(["customer", "agent", "reseller", "admin"]),
   customerPhone: z.string().optional(),
   customerAddress: z.string().optional(),
@@ -40,6 +42,7 @@ export default function AdminCreateUser() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedRole, setSelectedRole] = useState<string>("");
+  const [passwordCopied, setPasswordCopied] = useState(false);
 
   const form = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -47,6 +50,7 @@ export default function AdminCreateUser() {
       email: "",
       firstName: "",
       lastName: "",
+      password: "",
       role: "customer",
       customerPhone: "",
       customerAddress: "",
@@ -65,12 +69,33 @@ export default function AdminCreateUser() {
     },
   });
 
+  const handleGeneratePassword = () => {
+    const newPassword = generatePassword();
+    form.setValue("password", newPassword, { shouldValidate: true });
+    setPasswordCopied(false);
+  };
+
+  const handleCopyPassword = async () => {
+    const password = form.getValues("password");
+    if (password) {
+      const success = await copyToClipboard(password);
+      if (success) {
+        setPasswordCopied(true);
+        toast({ title: "Password copied to clipboard" });
+        setTimeout(() => setPasswordCopied(false), 2000);
+      } else {
+        toast({ title: "Failed to copy password", variant: "destructive" });
+      }
+    }
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: CreateUserForm) => {
       const userRes = await apiRequest("POST", "/api/admin/users", {
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
+        password: data.password,
       });
       if (!userRes.ok) throw new Error("Failed to create user");
       const user = await userRes.json();
@@ -197,6 +222,57 @@ export default function AdminCreateUser() {
                     <FormControl>
                       <Input placeholder="john@example.com" {...field} data-testid="input-email" />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password *</FormLabel>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input 
+                            placeholder="Click 'Generate Password' to create a secure password" 
+                            {...field} 
+                            readOnly 
+                            data-testid="input-password"
+                            className="font-mono text-sm"
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={handleGeneratePassword}
+                          data-testid="button-generate-password"
+                          title="Generate a secure password"
+                        >
+                          <RotateCw className="h-4 w-4" />
+                        </Button>
+                        {field.value && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopyPassword}
+                            data-testid="button-copy-password"
+                            title="Copy password to clipboard"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {field.value && (
+                        <p className="text-xs text-muted-foreground">
+                          Password: {field.value.length} characters
+                        </p>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

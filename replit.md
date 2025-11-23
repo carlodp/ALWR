@@ -104,9 +104,14 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - `resellers` table: Stores reseller profiles with user reference, status, company info, partner tier, commission, and performance metrics
 - `reseller_customer_referrals` table: Links resellers to customers they referred, tracks performance metrics per customer
 
-**Frontend Architecture - Unified Create User + Role Assignment (Session 7):**
+**Frontend Architecture - Unified Create User + Role Assignment (Session 7 & 8):**
 - **Single-Page Create User Flow** - All in `/admin/users/new`:
-  - Step 1: Basic Information (email, firstName, lastName)
+  - Step 1: Basic Information (email, firstName, lastName, **password**)
+    - **Password Generation**: Generate Password button (RotateCw icon) creates secure 16-char passwords
+    - Excludes ambiguous chars (0/O, 1/l/I) to avoid login errors
+    - Mix of uppercase, lowercase, numbers, special chars (!@#$%^&*-_=+)
+    - Copy Password button (Copy icon) copies to clipboard for easy distribution
+    - Read-only display of generated password with character count
   - Step 2: Select Role (customer, agent, reseller, admin)
   - Step 3: Role-Specific Fields (appear dynamically based on role)
     - Customer: phone, address (optional)
@@ -114,6 +119,7 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
     - Reseller: companyName*, phone, address, taxId, partnerTier, commissionRate, paymentTerms
     - Admin: no additional fields
   - Creates both user account AND assigns role in one submission
+  - **Password Security**: Passwords are bcrypt-hashed on backend before storage
 - **User Management Pages**:
   - `admin-users.tsx` - View all accounts with search/filter
   - `admin-user-roles.tsx` - View and manage user roles (display-only interface for now)
@@ -127,6 +133,26 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - Agents module: agents table, agent_customer_assignments table with proper indexing
 - **Resellers module: resellers table, reseller_customer_referrals table with proper indexing**
 - Maintained: emailVerified, emailVerificationToken, passwordResetToken, all 2FA fields
+
+**Session 8 Updates - Password Generator Feature:**
+- **New Module**: `client/src/lib/passwordGenerator.ts`
+  - `generatePassword(length?: number)` - Generates secure 16-char random passwords
+  - `copyToClipboard(text: string)` - Copies password to browser clipboard with feedback
+- **Updated Endpoints**: `POST /api/admin/users` now accepts password field
+  - Validates password meets minimum requirements (12+ chars)
+  - Hashes password with bcrypt before storage
+  - Added 'reseller' to validRoles list for admin user creation
+- **Updated Component**: `/admin/users/new` (admin-create-user.tsx)
+  - Added password field to Step 1 with Generate and Copy buttons
+  - Password generation integrated into form validation
+  - Read-only password display field with character count
+  - Toast notifications for copy success/failure
+- **Key Features**:
+  - Admin generates passwords instead of users choosing weak ones
+  - Ambiguous character exclusion (0/O, 1/l/I, etc.)
+  - Secure random number generation
+  - One-click copying to clipboard
+  - Applies to all user roles (customer, agent, reseller, admin)
 
 ### Frontend Dependencies (WordPress)
 - **WordPress**: CMS for public website, customer portal, admin interface.
