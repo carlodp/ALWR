@@ -19,7 +19,7 @@ import CustomerProfile from "@/pages/customer-profile";
 import CustomerSubscription from "@/pages/customer-subscription";
 import CustomerPayments from "@/pages/customer-payments";
 import CustomerIdCard from "@/pages/customer-id-card";
-import AdminDashboard from "@/pages/admin-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard-enhanced";
 import AdminCustomers from "@/pages/admin-customers";
 import AdminCustomerDetail from "@/pages/admin-customer-detail";
 import AdminCreateCustomer from "@/pages/admin-create-customer";

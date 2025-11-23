@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { calculateStats, invalidateStatsCache, type ReportsData } from './statsService';
+import { calculateDashboardStats, invalidateStatsCache, type DashboardStats } from './statsService';
 
 type StatsSubscriber = {
   ws: WebSocket;
@@ -55,7 +55,7 @@ function startBroadcast() {
     }
 
     try {
-      const stats = await calculateStats();
+      const stats = await calculateDashboardStats();
       const message = JSON.stringify({
         type: 'stats',
         data: stats,
@@ -83,7 +83,7 @@ export function notifyStatsChange() {
   invalidateStatsCache();
   // Force an immediate broadcast by sending to all subscribers
   if (subscribers.size > 0) {
-    calculateStats()
+    calculateDashboardStats()
       .then(stats => {
         const message = JSON.stringify({
           type: 'stats',
