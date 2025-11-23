@@ -83,6 +83,8 @@ import CustomerActivity from "@/pages/customer/activity";
 import AdminDashboard from "@/pages/admin/dashboard-enhanced";
 import AdminCustomers from "@/pages/admin/customers";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
+import AdminUserDetail from "@/pages/admin/user-detail";
+import AdminSettings from "@/pages/admin/settings";
 import AdminCreateCustomer from "@/pages/admin/create-customer";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminRenewalReminders from "@/pages/admin/renewal-reminders";
@@ -163,6 +165,8 @@ function Router() {
           <Route path="/admin/resellers" component={AdminResellers} />
           <Route path="/admin/users" component={AdminUsers} />
           <Route path="/admin/users/new" component={AdminCreateUser} />
+          <Route path="/admin/users/:id" component={AdminUserDetail} />
+          <Route path="/admin/settings" component={AdminSettings} />
           <Route path="/admin/user-roles" component={AdminUserRoles} />
           <Route path="/admin/system/rate-limits" component={AdminSystemRateLimits} />
           <Route path="/admin/system/database" component={AdminSystemDatabase} />

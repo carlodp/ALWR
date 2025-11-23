@@ -38,7 +38,9 @@ export function useRealtimeDashboard(userId: string | undefined, enabled: boolea
 
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}?userId=${userId}&stream=stats`;
+      // Build proper WebSocket URL - handle cases where port might be undefined
+      const host = window.location.host || window.location.hostname;
+      const wsUrl = `${protocol}//${host}?userId=${userId}&stream=stats`;
       
       const ws = new WebSocket(wsUrl);
 

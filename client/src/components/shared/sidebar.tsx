@@ -228,6 +228,12 @@ export function AppSidebar() {
       icon: BarChart3,
       section: "TOOLS"
     },
+    {
+      title: "Settings",
+      url: "/admin/settings",
+      icon: Lock,
+      section: "ADMIN"
+    },
   ];
 
   const menuItems = isAdmin ? adminMenuItems : customerMenuItems;
