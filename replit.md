@@ -29,6 +29,9 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
     - Request Payload Size Limits (Security #5) - Default 5MB, documents up to 50MB, settings 100KB, prevents memory exhaustion
     - Secrets Rotation Policy (Security #6) - Documented rotation schedule for SESSION_SECRET (monthly), DATABASE_PASSWORD (quarterly), ENCRYPTION_MASTER_KEY (quarterly)
     - Column-Level PII Encryption (Security #7) - AES-256-GCM encryption service ready for implementation on users.email, firstName, lastName, customers data
+    - API Key Authentication (Security #8) - Full API key management system with SHA256 hashing, expiration, revocation, and permission-based access control
+    - Enhanced Audit Logging (Security #9) - Comprehensive audit trail for all admin actions, security events, and sensitive operations (35+ audit action types)
+    - IP Whitelisting (Security #10) - Restrict admin endpoints to whitelisted IP addresses via ADMIN_IPS environment variable
 -   **Database Schema**: Comprises tables for Users, Customers, Subscriptions, Documents, Emergency Access Logs, Customer Notes, Audit Logs, Physical Card Orders, Email Templates, Agents, Resellers, failed login attempts, and data export requests. Includes database indices on frequently queried columns and slow query logging with N+1 detection.
 -   **UI/UX Interaction (WordPress Frontend)**: The API supports user creation flow, dynamic field rendering, integrated password generation, and manages all public-facing and customer portal interactions via the external WordPress instance.
 -   **Enhanced Account Management**: Includes Forgot Password Flow, 2-step Profile Setup Wizard, Account Status Badges, and an enhanced Admin User Creation process, with an Admin dashboard feature for editing user accounts including role-based field visibility.

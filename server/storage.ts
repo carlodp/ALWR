@@ -3,6 +3,7 @@ import {
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
   customerTags, physicalCardOrders, emailTemplates, emailNotifications, agents, agentCustomerAssignments,
   resellers, resellerCustomerReferrals, failedLoginAttempts, dataExports, reportSchedules, reportHistory, systemSettings,
+  apiKeys,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -16,7 +17,8 @@ import {
   type Reseller, type InsertReseller, type ResellerCustomerReferral, type InsertResellerCustomerReferral,
   type FailedLoginAttempt, type InsertFailedLoginAttempt,
   type DataExport, type InsertDataExport, type ReportSchedule, type InsertReportSchedule,
-  type ReportHistory, type InsertReportHistory, type SystemSettings, type InsertSystemSettings
+  type ReportHistory, type InsertReportHistory, type SystemSettings, type InsertSystemSettings,
+  type ApiKey, type InsertApiKey
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 import { encryptField, decryptField } from "./encryption";
@@ -239,6 +241,16 @@ export interface IStorage {
   // Analytics
   getSubscriptionsForAnalytics(): Promise<Subscription[]>;
   listDocuments(): Promise<Document[]>;
+
+  // API Keys (SECURITY #8)
+  createApiKey(key: InsertApiKey): Promise<ApiKey>;
+  getApiKeyById(keyId: string): Promise<ApiKey | undefined>;
+  getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
+  listApiKeys(userId: string): Promise<ApiKey[]>;
+  updateApiKeyUsage(keyId: string): Promise<void>;
+  revokeApiKey(keyId: string, revokedBy: string): Promise<ApiKey | undefined>;
+  deleteApiKey(keyId: string): Promise<void>;
+  listValidApiKeys(userId: string): Promise<ApiKey[]>; // Not expired, not revoked
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1562,6 +1574,74 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updated;
+  }
+
+  // ============================================================================
+  // API KEYS (SECURITY #8)
+  // ============================================================================
+
+  async createApiKey(key: InsertApiKey): Promise<ApiKey> {
+    const [created] = await db.insert(apiKeys).values(key).returning();
+    return created;
+  }
+
+  async getApiKeyById(keyId: string): Promise<ApiKey | undefined> {
+    return await db.query.apiKeys.findFirst({
+      where: eq(apiKeys.id, keyId),
+    });
+  }
+
+  async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
+    return await db.query.apiKeys.findFirst({
+      where: eq(apiKeys.keyHash, keyHash),
+    });
+  }
+
+  async listApiKeys(userId: string): Promise<ApiKey[]> {
+    return await db.query.apiKeys.findMany({
+      where: eq(apiKeys.createdBy, userId),
+      orderBy: [desc(apiKeys.createdAt)],
+    });
+  }
+
+  async updateApiKeyUsage(keyId: string): Promise<void> {
+    await db
+      .update(apiKeys)
+      .set({
+        lastUsedAt: new Date(),
+        usageCount: sql`${apiKeys.usageCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(apiKeys.id, keyId));
+  }
+
+  async revokeApiKey(keyId: string, revokedBy: string): Promise<ApiKey | undefined> {
+    const [updated] = await db
+      .update(apiKeys)
+      .set({
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedBy,
+        updatedAt: new Date(),
+      })
+      .where(eq(apiKeys.id, keyId))
+      .returning();
+    return updated;
+  }
+
+  async deleteApiKey(keyId: string): Promise<void> {
+    await db.delete(apiKeys).where(eq(apiKeys.id, keyId));
+  }
+
+  async listValidApiKeys(userId: string): Promise<ApiKey[]> {
+    const now = new Date();
+    return await db.query.apiKeys.findMany({
+      where: and(
+        eq(apiKeys.createdBy, userId),
+        eq(apiKeys.isRevoked, false),
+      ),
+      orderBy: [desc(apiKeys.createdAt)],
+    });
   }
 }
 

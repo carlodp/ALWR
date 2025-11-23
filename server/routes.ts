@@ -22,6 +22,8 @@ import { logger } from "./logger";
 import { isAdmin, hasPermission } from "./usersService";
 import { hashPassword, verifyPassword, validatePassword, validateEmail, isAccountLocked, calculateLockUntil } from "./authService";
 import { versionDetectionMiddleware, getVersionInfoEndpoint } from "./api-versioning";
+import { requireAdminIP } from "./ip-whitelist-middleware";
+import { auditLog } from "./audit-logging-helper";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -1310,8 +1312,11 @@ startxref
   });
 
   // ============================================================================
-  // ADMIN ROUTES
+  // ADMIN ROUTES (with IP Whitelisting - SECURITY #10)
   // ============================================================================
+
+  // Apply IP whitelist middleware to all admin routes
+  app.use('/api/admin', requireAdminIP);
 
   // Admin dashboard stats
   app.get("/api/admin/dashboard", requireAdmin, async (req: any, res: Response) => {

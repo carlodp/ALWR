@@ -40,17 +40,43 @@ export const auditActionEnum = pgEnum('alwr_audit_action', [
   'document_download',
   'document_delete',
   'document_bulk_delete',
+  'document_accessed',
+  'document_exported',
   'emergency_access',
   'profile_update',
   'subscription_create',
   'subscription_update',
+  'subscription_cancelled',
+  'subscription_renewed',
   'customer_create',
   'customer_update',
   'customer_export',
   'two_factor_enable',
   'two_factor_disable',
+  'two_factor_failed',
   'login',
-  'logout'
+  'logout',
+  'failed_login_attempt',
+  'account_locked',
+  'account_unlocked',
+  'user_create',
+  'user_update',
+  'user_delete',
+  'user_role_change',
+  'user_suspend',
+  'user_activate',
+  'admin_login',
+  'admin_failed_login',
+  'admin_logout',
+  'admin_export_data',
+  'admin_bulk_action',
+  'admin_settings_change',
+  'password_changed',
+  'password_reset',
+  'password_reset_failed',
+  'api_key_created',
+  'api_key_revoked',
+  'ip_whitelist_changed'
 ]);
 
 export const emailNotificationTypeEnum = pgEnum('alwr_email_notification_type', [
@@ -600,6 +626,45 @@ export const emailNotifications = pgTable("email_notifications", {
 ]);
 
 // ============================================================================
+// API KEYS (SECURITY #8)
+// ============================================================================
+
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Key identification
+  name: varchar("name").notNull(),
+  description: text("description"),
+  keyHash: varchar("key_hash").notNull(), // SHA256 hash of the actual key
+  
+  // Owner information
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  
+  // Usage tracking
+  lastUsedAt: timestamp("last_used_at"),
+  usageCount: integer("usage_count").default(0),
+  
+  // Lifecycle
+  expiresAt: timestamp("expires_at"),
+  isRevoked: boolean("is_revoked").default(false).notNull(),
+  revokedAt: timestamp("revoked_at"),
+  revokedBy: varchar("revoked_by").references(() => users.id),
+  
+  // Permissions (JSON array of permission strings)
+  // e.g., ["read:customers", "read:documents", "write:subscriptions"]
+  permissions: text("permissions").array().notNull(),
+  
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_api_key_hash").on(table.keyHash),
+  index("idx_api_key_created_by").on(table.createdBy),
+  index("idx_api_key_revoked").on(table.isRevoked),
+  index("idx_api_key_expires_at").on(table.expiresAt),
+  index("idx_api_key_last_used").on(table.lastUsedAt),
+]);
+
+// ============================================================================
 // AGENTS MODULE
 // ============================================================================
 
@@ -672,6 +737,18 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   uploadedDocuments: many(documents),
   auditLogs: many(auditLogs),
+  apiKeys: many(apiKeys),
+}));
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  createdByUser: one(users, {
+    fields: [apiKeys.createdBy],
+    references: [users.id],
+  }),
+  revokedByUser: one(users, {
+    fields: [apiKeys.revokedBy],
+    references: [users.id],
+  }),
 }));
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
@@ -960,6 +1037,15 @@ export const insertAgentCustomerAssignmentSchema = createInsertSchema(agentCusto
   documentCount: true,
 });
 
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastUsedAt: true,
+  usageCount: true,
+  revokedAt: true,
+});
+
 export const insertResellerSchema = createInsertSchema(resellers).omit({
   id: true,
   createdAt: true,
@@ -1077,6 +1163,9 @@ export type ReportHistory = typeof reportHistory.$inferSelect;
 
 export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;
+
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
 
 // Global Search Results
 export interface GlobalSearchResult {
