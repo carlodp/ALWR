@@ -17,7 +17,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { TrendingUp, Plus, Clock, CheckCircle, AlertCircle, Zap } from "lucide-react";
+import { TrendingUp, Plus, Clock, CheckCircle, AlertCircle, Zap, Trash2, Copy, Search } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -41,6 +43,8 @@ export default function AdminReports() {
   const { toast } = useToast();
   const { data: reports, isLoading: statsLoading } = useRealtimeStats();
   const [openDialog, setOpenDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deleteScheduleId, setDeleteScheduleId] = useState<string | null>(null);
 
   const form = useForm<ReportScheduleFormData>({
     resolver: zodResolver(reportScheduleSchema),
@@ -95,8 +99,40 @@ export default function AdminReports() {
   const toggleSchedule = useMutation({
     mutationFn: (scheduleId: string) =>
       apiRequest("PATCH", `/api/admin/reports/schedules/${scheduleId}/toggle`, {}),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      toast({
+        title: "Success",
+        description: `Schedule ${data.isActive ? "enabled" : "disabled"}`,
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/reports/schedules"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle schedule",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete schedule mutation
+  const deleteSchedule = useMutation({
+    mutationFn: (scheduleId: string) =>
+      apiRequest("DELETE", `/api/admin/reports/schedules/${scheduleId}`, {}),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Schedule deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/reports/schedules"] });
+      setDeleteScheduleId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete schedule",
+        variant: "destructive",
+      });
     },
   });
 
@@ -297,6 +333,32 @@ export default function AdminReports() {
 
       {/* Automated Report Schedules Section */}
       <div className="space-y-4">
+        {/* Summary Card */}
+        {!schedulesLoading && schedules && schedules.length > 0 && (
+          <Card data-testid="card-schedule-summary">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Schedules</p>
+                  <p className="text-2xl font-bold" data-testid="text-total-schedules">{schedules.length}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Active</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-active-schedules">
+                    {schedules.filter((s: any) => s.isActive).length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Inactive</p>
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400" data-testid="text-inactive-schedules">
+                    {schedules.filter((s: any) => !s.isActive).length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Automated Report Schedules</h2>
@@ -466,6 +528,20 @@ export default function AdminReports() {
           </Dialog>
         </div>
 
+        {/* Search Bar */}
+        {!schedulesLoading && schedules && schedules.length > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search schedules by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-schedule-search"
+            />
+          </div>
+        )}
+
         {/* Schedules List */}
         <div className="grid gap-4">
           {schedulesLoading ? (
@@ -475,7 +551,9 @@ export default function AdminReports() {
               ))}
             </div>
           ) : schedules && schedules.length > 0 ? (
-            schedules.map((schedule: any) => (
+            schedules
+              .filter((s: any) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((schedule: any) => (
               <Card key={schedule.id} data-testid={`card-schedule-${schedule.id}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -509,14 +587,62 @@ export default function AdminReports() {
                       <p className="font-medium">{schedule.recipientEmails?.length || 0} email(s)</p>
                     </div>
                   </div>
+                  {/* Recipient Emails Preview */}
+                  <div className="pt-3 border-t">
+                    <div className="flex items-start justify-between mb-3">
+                      <p className="text-xs text-muted-foreground">Recipients</p>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const emails = schedule.recipientEmails?.join(", ") || "";
+                          navigator.clipboard.writeText(emails);
+                          toast({
+                            title: "Copied",
+                            description: "Recipient emails copied to clipboard",
+                          });
+                        }}
+                        data-testid={`button-copy-emails-${schedule.id}`}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-sm font-medium truncate" title={schedule.recipientEmails?.join(", ")}>
+                      {schedule.recipientEmails?.join(", ") || "No recipients"}
+                    </p>
+                  </div>
+
+                  {/* Next Scheduled Time */}
+                  {schedule.nextScheduledAt && (
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground">Next Scheduled</p>
+                      <p className="text-sm font-medium">
+                        {new Date(schedule.nextScheduledAt).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
                   <div className="pt-3 border-t flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => toggleSchedule.mutate(schedule.id)}
+                      disabled={toggleSchedule.isPending}
                       data-testid={`button-toggle-schedule-${schedule.id}`}
                     >
                       {schedule.isActive ? "Disable" : "Enable"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteScheduleId(schedule.id)}
+                      disabled={deleteSchedule.isPending}
+                      data-testid={`button-delete-schedule-${schedule.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -524,12 +650,46 @@ export default function AdminReports() {
             ))
           ) : (
             <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                No scheduled reports yet. Create one to get started.
+              <CardContent className="pt-6">
+                <div className="text-center space-y-3">
+                  <Zap className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">No scheduled reports yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create your first automated report to get started. Reports will be generated and emailed automatically on the schedule you define.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deleteScheduleId} onOpenChange={(open) => !open && setDeleteScheduleId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Schedule</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. The schedule will be permanently deleted, but existing report history will be retained.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex gap-3 justify-end">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deleteScheduleId) {
+                    deleteSchedule.mutate(deleteScheduleId);
+                  }
+                }}
+                className="bg-destructive hover:bg-destructive/90"
+                data-testid="button-confirm-delete"
+              >
+                Delete
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Report History */}

@@ -1765,6 +1765,28 @@ startxref
     }
   });
 
+  // Delete report schedule (admin)
+  app.delete("/api/admin/reports/schedules/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const schedule = await storage.getReportSchedule(id);
+      
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+
+      if (schedule.userId !== req.user.dbUser.id && req.user.dbUser.role !== 'super_admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      await storage.deleteReportSchedule(id);
+      res.json({ message: "Schedule deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting schedule:", error);
+      res.status(500).json({ message: "Failed to delete schedule" });
+    }
+  });
+
   // Get report history (admin)
   app.get("/api/admin/reports/history", requireAdmin, async (req: any, res: Response) => {
     try {

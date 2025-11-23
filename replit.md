@@ -32,17 +32,34 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 
 ## Recent Implementations (November 23, 2025)
 
-### Automated Report Scheduling
-**Features**:
+### Automated Report Scheduling + QoL Enhancements
+**Core Features**:
 - Report types: Revenue, Subscriptions, Customers, Documents, Comprehensive
 - Schedule frequencies: Daily, Weekly, Monthly with custom delivery times
 - Multi-recipient email support per schedule
 - Schedule enable/disable toggle
 - Report history tracking with delivery status (pending/sent/failed)
-- API endpoints: GET /api/admin/reports/schedules, POST /api/admin/reports/schedules, PATCH /api/admin/reports/schedules/:id/toggle, GET /api/admin/reports/history
+- API endpoints: GET/POST/PATCH/DELETE schedules, GET history
 - Database tables: report_schedules, report_history with full CRUD storage methods
-- Integrated into Reports page (/admin/reports) with UI for creating and managing schedules
-- Dashboard card linking to Reports section
+
+**Quality of Life Improvements**:
+- Delete schedule functionality with confirmation dialog
+- Search/filter schedules by name (real-time filtering)
+- Schedule summary card (showing total, active, inactive counts)
+- Next scheduled time display on each schedule
+- Copy recipient emails button (one-click to clipboard)
+- Better toast notifications with status feedback on toggle actions
+- Enhanced empty state with icon and helpful guidance text
+- Disabled state management for buttons during mutations
+- Improved error messages and user feedback
+
+**UI/UX Enhancements**:
+- Professional card-based schedule layout
+- Color-coded status indicators (green for active, orange for inactive)
+- Visual feedback on button interactions
+- Responsive grid layout for schedule details
+- Grouped action buttons (Enable/Disable, Delete, Copy)
+- Truncated email display with full text on hover
 
 ### Real-Time Dashboard Analytics
 **Features**:
