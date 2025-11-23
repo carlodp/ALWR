@@ -32,6 +32,35 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 
 ## Recent Implementations (November 23, 2025)
 
+### #2 & #3: Document Management Enhancements + Activity/Audit Log
+
+**Document Management Enhancements** (`/customer/documents`):
+- ✅ **Document Age Tracking**: Shows how old each document is (e.g., "3 months old", "1 year old")
+- ✅ **"Needs Review" Indicators**: Red badge + alert for documents older than 1 year
+- ✅ **Type-Based Filtering**: Click badges to filter by Living Will, Healthcare Directive, Power of Attorney, DNR, etc.
+- ✅ **Real-Time Search**: Search by filename across all documents
+- ✅ **Better Organization**: Shows filtered count (e.g., "3 of 8 documents")
+- ✅ **Status Icons**: Clock icon shows document age at a glance
+- ✅ **Bulk Selection**: Select multiple documents for future bulk operations
+- ✅ **Smart Alerts**: Warns users to update old documents with helpful guidance
+
+**Customer Activity/Audit Log** (`/customer/activity`):
+- ✅ **Complete Activity Timeline**: Shows all account activities with timestamps
+- ✅ **Activity Categories**: Login, Security, Document, Access, Other
+- ✅ **Search Functionality**: Full-text search across all activities
+- ✅ **Category Filtering**: Click badges to filter by type
+- ✅ **Detailed Events**: Includes:
+  - Login history (device, browser, IP)
+  - Password changes
+  - 2FA toggles (enabled/disabled)
+  - Document uploads with file details
+  - Document views/downloads
+  - Emergency access requests and access logs
+  - Subscription renewals
+- ✅ **Privacy Notice**: Transparency about account monitoring
+- ✅ **Time Formatting**: "2h ago", "3d ago", etc. for easy readability
+- ✅ **Color-Coded Badges**: Visual distinction between activity types
+
 ### Enhanced Customer Dashboard & Help Center
 **Dashboard Features Added**:
 - Account security status section showing 2FA status and last login time
@@ -69,15 +98,16 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 - **Responsive design** for mobile and desktop
 
 **Customer Features Overview**:
-- Dashboard: Metrics, quick actions, security status, recent documents, mini FAQs, help center link
-- Profile: View/edit contact info, emergency contacts, password change, 2FA management
-- Documents: Upload, version control, download, organize by type
-- Subscription: View status, manage billing, upgrade/downgrade
-- Payments: View invoices, download receipts, payment history
-- ID Card: View/download digital ID card
-- Physical Card: Order physical ID cards
-- Emergency Access: Set up emergency contact access
-- Help Center: Comprehensive guides, FAQs, searchable documentation
+- **Dashboard**: Metrics, quick actions, security status, recent documents, mini FAQs, help center link
+- **Profile**: View/edit contact info, emergency contacts, password change, 2FA management
+- **Documents**: Upload, version control, download, organize by type, age tracking, "Needs Review" alerts, type filtering
+- **Subscription**: View status, manage billing, upgrade/downgrade
+- **Payments**: View invoices, download receipts, payment history
+- **ID Card**: View/download digital ID card
+- **Physical Card**: Order physical ID cards
+- **Emergency Access**: Set up emergency contact access
+- **Activity Log**: Complete audit trail with search and filtering
+- **Help Center**: Comprehensive guides, FAQs, searchable documentation
 
 ## Implementation Timeline (November 23, 2025)
 

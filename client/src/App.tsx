@@ -44,6 +44,7 @@ import AdminCreateUser from "@/pages/admin-create-user";
 import AdminUserRoles from "@/pages/admin-user-roles";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import CustomerHelpCenter from "@/pages/customer-help-center";
+import CustomerActivity from "@/pages/customer-activity";
 import EmergencyAccess from "@/pages/emergency-access";
 import GlobalSearch from "@/pages/global-search";
 import Login from "@/pages/login";
@@ -131,6 +132,7 @@ function Router() {
           <Route path="/customer/id-card" component={CustomerIdCard} />
           <Route path="/customer/physical-card-order" component={CustomerPhysicalCardOrder} />
           <Route path="/customer/help" component={CustomerHelpCenter} />
+          <Route path="/customer/activity" component={CustomerActivity} />
           <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>

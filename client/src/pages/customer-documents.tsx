@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { FileText, Upload, Download, Trash2, Search, AlertCircle, ArrowLeft, History, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Upload, Download, Trash2, Search, AlertCircle, ArrowLeft, History, ChevronDown, Clock, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -32,6 +33,8 @@ export default function CustomerDocuments() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState<string>("living_will");
   const [description, setDescription] = useState("");
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+  const [filterType, setFilterType] = useState<string | null>(null);
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/customer/documents"],
@@ -168,6 +171,25 @@ export default function CustomerDocuments() {
     },
   });
 
+  const getDocumentAge = (createdAt?: string) => {
+    if (!createdAt) return { days: 0, label: "Recently added" };
+    const now = new Date();
+    const docDate = new Date(createdAt);
+    const days = Math.floor((now.getTime() - docDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (days < 1) return { days: 0, label: "Today" };
+    if (days < 7) return { days, label: `${days} days old` };
+    if (days < 30) return { days, label: `${Math.floor(days / 7)} weeks old` };
+    if (days < 365) return { days, label: `${Math.floor(days / 30)} months old` };
+    return { days, label: `${Math.floor(days / 365)} years old` };
+  };
+
+  const getNeedsReview = (createdAt?: string) => {
+    if (!createdAt) return false;
+    const days = Math.floor((new Date().getTime() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    return days > 365; // Needs review if older than 1 year
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -195,9 +217,11 @@ export default function CustomerDocuments() {
     uploadMutation.mutate(formData);
   };
 
-  const filteredDocuments = documents?.filter((doc) =>
-    doc.fileName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDocuments = documents?.filter((doc) => {
+    const matchesSearch = doc.fileName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = !filterType || doc.fileType === filterType;
+    return matchesSearch && matchesType;
+  });
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -298,22 +322,47 @@ export default function CustomerDocuments() {
       {/* Documents List */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div>
-              <CardTitle>Your Documents</CardTitle>
-              <CardDescription>
-                {documents?.length || 0} document{documents?.length !== 1 ? 's' : ''} stored securely
-              </CardDescription>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div>
+                <CardTitle>Your Documents</CardTitle>
+                <CardDescription>
+                  {filteredDocuments?.length || 0} of {documents?.length || 0} document{documents?.length !== 1 ? 's' : ''} stored securely
+                </CardDescription>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search documents..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search"
+                />
+              </div>
             </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search documents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-                data-testid="input-search"
-              />
+
+            {/* Filter by Type */}
+            <div className="flex flex-wrap gap-2">
+              <Badge
+                variant={!filterType ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setFilterType(null)}
+                data-testid="badge-filter-all"
+              >
+                All Types
+              </Badge>
+              {Array.from(new Set(documents?.map((d) => d.fileType) || [])).map((type) => (
+                <Badge
+                  key={type}
+                  variant={filterType === type ? "default" : "outline"}
+                  className="cursor-pointer capitalize"
+                  onClick={() => setFilterType(type)}
+                  data-testid={`badge-filter-${type}`}
+                >
+                  {type?.replace(/_/g, " ")}
+                </Badge>
+              ))}
             </div>
           </div>
         </CardHeader>
@@ -333,7 +382,10 @@ export default function CustomerDocuments() {
             </div>
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <div className="space-y-3">
-              {filteredDocuments.map((doc) => (
+              {filteredDocuments.map((doc) => {
+                const age = getDocumentAge(doc.createdAt);
+                const needsReview = getNeedsReview(doc.createdAt);
+                return (
                 <Collapsible key={doc.id} open={expandedVersions === doc.id} onOpenChange={(open) => setExpandedVersions(open ? doc.id : null)}>
                   <div
                     className="border rounded-lg hover-elevate"
@@ -344,13 +396,24 @@ export default function CustomerDocuments() {
                         <FileText className="h-6 w-6 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate" data-testid={`text-filename-${doc.id}`}>
-                          {doc.fileName}
-                        </h3>
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-medium truncate" data-testid={`text-filename-${doc.id}`}>
+                            {doc.fileName}
+                          </h3>
+                          {needsReview && (
+                            <Badge variant="destructive" className="flex-shrink-0 gap-1" data-testid={`badge-needs-review-${doc.id}`}>
+                              <AlertTriangle className="h-3 w-3" />
+                              Needs Review
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                           <span className="capitalize">{doc.fileType.replace(/_/g, ' ')}</span>
                           <span>{formatFileSize(doc.fileSize)}</span>
-                          <span>Uploaded {new Date(doc.createdAt!).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {age.label}
+                          </span>
                           {doc.currentVersion && doc.currentVersion > 1 && (
                             <span>v{doc.currentVersion}</span>
                           )}
@@ -397,6 +460,14 @@ export default function CustomerDocuments() {
                     </div>
 
                     <CollapsibleContent className="border-t bg-muted/50 p-4">
+                      {needsReview && (
+                        <Alert className="mb-4 border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+                          <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                          <AlertDescription className="text-orange-800 dark:text-orange-100 ml-2">
+                            This document hasn't been updated in over a year. Consider reviewing or updating it to ensure accuracy.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                       <div className="space-y-6">
                         {/* Upload New Version Section */}
                         {versioningDocId === doc.id ? (
@@ -530,7 +601,8 @@ export default function CustomerDocuments() {
                     </CollapsibleContent>
                   </div>
                 </Collapsible>
-              ))}
+              );
+              })}
             </div>
           ) : (
             <div className="text-center py-12 space-y-4">

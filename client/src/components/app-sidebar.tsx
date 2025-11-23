@@ -87,6 +87,11 @@ export function AppSidebar() {
       icon: CreditCard,
     },
     {
+      title: "Activity",
+      url: "/customer/activity",
+      icon: Activity,
+    },
+    {
       title: "Profile",
       url: "/customer/profile",
       icon: User,
