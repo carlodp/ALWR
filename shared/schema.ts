@@ -100,6 +100,16 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").default('customer').notNull(),
   
+  // Email Verification
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  emailVerificationToken: varchar("email_verification_token"),
+  emailVerificationTokenExpiresAt: timestamp("email_verification_token_expires_at"),
+  
+  // Password Reset
+  passwordResetToken: varchar("password_reset_token"),
+  passwordResetTokenExpiresAt: timestamp("password_reset_token_expires_at"),
+  passwordResetAttempts: integer("password_reset_attempts").default(0),
+  
   // Two-Factor Authentication (TOTP-based)
   twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
   twoFactorSecret: varchar("two_factor_secret"), // Encrypted in production

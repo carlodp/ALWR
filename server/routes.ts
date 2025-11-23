@@ -18,6 +18,7 @@ import { calculateStats, invalidateStatsCache } from "./statsService";
 import { setupStatsWebSocket, notifyStatsChange } from "./websocketStats";
 import { authLimiter, apiLimiter, sanitizeError, isValidId, isValidEmail, isValidPassword } from "./security";
 import { logger } from "./logger";
+import { isAdmin, hasPermission } from "./usersService";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -1786,6 +1787,460 @@ startxref
     } catch (error) {
       console.error("Error exporting customers:", error);
       res.status(500).json({ message: "Failed to export customers" });
+    }
+  });
+
+  // ============================================================================
+  // USER MANAGEMENT ROUTES (Admin Only)
+  // ============================================================================
+
+  // List all users (admin)
+  app.get("/api/admin/users", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit) || 100, 1000);
+      const offset = parseInt(req.query.offset) || 0;
+      
+      const allUsers = await storage.listAllUsers(limit, offset);
+      
+      // Enrich with customer data if applicable
+      const enriched = await Promise.all(
+        allUsers.map(async (user) => {
+          const customer = user.role === 'customer' ? await storage.getCustomer(user.id) : null;
+          return {
+            ...user,
+            twoFactorSecret: undefined, // Never expose in API
+            twoFactorBackupCodes: undefined, // Never expose in API
+            customerProfile: customer || null,
+            displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+          };
+        })
+      );
+
+      res.json({
+        users: enriched,
+        pagination: {
+          limit,
+          offset,
+          total: allUsers.length,
+        },
+      });
+    } catch (error) {
+      console.error("Error listing users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Get user details (admin or self)
+  app.get("/api/admin/users/:id", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      // Allow users to view their own profile, admins can view anyone
+      if (req.user.dbUser.id !== id && req.user.dbUser.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const customer = user.role === 'customer' ? await storage.getCustomer(id) : null;
+      
+      res.json({
+        ...user,
+        twoFactorSecret: undefined,
+        twoFactorBackupCodes: undefined,
+        customerProfile: customer,
+        displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+      });
+    } catch (error) {
+      console.error("Error getting user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Create new user (admin)
+  app.post("/api/admin/users", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { email, firstName, lastName, role } = req.body;
+
+      // Validate required fields
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      if (!isValidEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      // Check if user already exists
+      const existing = await storage.getUserByEmail(email);
+      if (existing) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Validate role
+      const validRoles = ['customer', 'admin', 'agent'];
+      if (role && !validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      // Create user
+      const user = await storage.upsertUser({
+        email,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        role: role || 'customer',
+      });
+
+      // Log action
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'customer_create',
+        resourceType: 'user',
+        resourceId: user.id,
+        details: { email, firstName, lastName, role },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.status(201).json({
+        ...user,
+        twoFactorSecret: undefined,
+        twoFactorBackupCodes: undefined,
+        displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+      });
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Update user (admin)
+  app.put("/api/admin/users/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { firstName, lastName, email } = req.body;
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Validate email if changed
+      if (email && email !== user.email) {
+        if (!isValidEmail(email)) {
+          return res.status(400).json({ message: "Invalid email format" });
+        }
+        const existing = await storage.getUserByEmail(email);
+        if (existing) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+      }
+
+      // Update user
+      const updated = await storage.upsertUser({
+        id,
+        email: email || user.email,
+        firstName: firstName !== undefined ? firstName : user.firstName,
+        lastName: lastName !== undefined ? lastName : user.lastName,
+        role: user.role,
+      });
+
+      // Log action
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'user',
+        resourceId: id,
+        details: { firstName, lastName, email },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({
+        ...updated,
+        twoFactorSecret: undefined,
+        twoFactorBackupCodes: undefined,
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Change user role (admin)
+  app.patch("/api/admin/users/:id/role", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      // Validate role
+      const validRoles = ['customer', 'admin', 'agent'];
+      if (!role || !validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prevent demoting the last admin
+      if (user.role === 'admin' && role !== 'admin') {
+        const adminCount = await storage.countUsersWithRole('admin');
+        if (adminCount <= 1) {
+          return res.status(400).json({ message: "Cannot demote the last admin" });
+        }
+      }
+
+      // Update role
+      await storage.updateUserRole(id, role);
+
+      // Log action
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'user',
+        resourceId: id,
+        details: { roleChanged: `${user.role} -> ${role}` },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      const updated = await storage.getUser(id);
+      res.json({
+        ...updated,
+        twoFactorSecret: undefined,
+        twoFactorBackupCodes: undefined,
+      });
+    } catch (error) {
+      console.error("Error changing user role:", error);
+      res.status(500).json({ message: "Failed to change user role" });
+    }
+  });
+
+  // Delete/deactivate user (admin)
+  app.delete("/api/admin/users/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prevent deleting the last admin
+      if (user.role === 'admin') {
+        const adminCount = await storage.countUsersWithRole('admin');
+        if (adminCount <= 1) {
+          return res.status(400).json({ message: "Cannot delete the last admin" });
+        }
+      }
+
+      // Mark as inactive instead of hard delete
+      await storage.updateUserStatus(id, 'inactive');
+
+      // Log action
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'customer_update',
+        resourceType: 'user',
+        resourceId: id,
+        details: { action: 'deactivated' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({ message: "User deactivated successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Get user activity/sessions (admin or self)
+  app.get("/api/admin/users/:id/activity", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Allow users to view their own activity, admins can view anyone
+      if (req.user.dbUser.id !== id && req.user.dbUser.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      // Get recent audit logs for this user
+      const logs = await storage.listAuditLogsFiltered({
+        limit: 50,
+        searchQuery: id,
+      });
+
+      res.json({
+        userId: id,
+        recentActivity: logs,
+      });
+    } catch (error) {
+      console.error("Error getting user activity:", error);
+      res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  // ============================================================================
+  // EMAIL VERIFICATION & PASSWORD RESET
+  // ============================================================================
+
+  // Send verification email
+  app.post("/api/auth/send-verification-email", requireAuth, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.dbUser.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+
+      // Generate verification token
+      const token = randomUUID();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      await storage.setEmailVerificationToken(userId, token, expiresAt);
+
+      // Log action
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'profile_update',
+        resourceType: 'user',
+        resourceId: userId,
+        details: { action: 'send_verification_email' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      // TODO: In production, send email with verification link
+      // For now, return the token in development
+      const isDev = process.env.NODE_ENV === 'development';
+      
+      res.json({
+        message: "Verification email sent",
+        token: isDev ? token : undefined,
+        expiresAt,
+      });
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+      res.status(500).json({ message: "Failed to send verification email" });
+    }
+  });
+
+  // Verify email with token
+  app.post("/api/auth/verify-email/:token", async (req: any, res: Response) => {
+    try {
+      const { token } = req.params;
+
+      const success = await storage.verifyEmail(token);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      res.json({ message: "Email verified successfully" });
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
+  // Request password reset
+  app.post("/api/auth/forgot-password", async (req: any, res: Response) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Security: Don't reveal if email exists
+        return res.json({ message: "If email exists, password reset link has been sent" });
+      }
+
+      // Generate reset token
+      const token = randomUUID();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.setPasswordResetToken(user.id, token, expiresAt);
+
+      // Log action
+      await storage.createAuditLog({
+        userId: user.id,
+        actorName: `${user.firstName} ${user.lastName}`,
+        actorRole: user.role,
+        action: 'profile_update',
+        resourceType: 'user',
+        resourceId: user.id,
+        details: { action: 'forgot_password' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      // TODO: In production, send email with reset link
+      // For now, return the token in development
+      const isDev = process.env.NODE_ENV === 'development';
+
+      res.json({
+        message: "If email exists, password reset link has been sent",
+        token: isDev ? token : undefined,
+        expiresAt: isDev ? expiresAt : undefined,
+      });
+    } catch (error) {
+      console.error("Error requesting password reset:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password/:token", async (req: any, res: Response) => {
+    try {
+      const { token } = req.params;
+
+      const userId = await storage.resetPassword(token);
+      
+      if (!userId) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // In a real system, the client would then call a password change endpoint
+      // This endpoint just validates the token and marks it as used
+      
+      res.json({ 
+        message: "Password reset token validated",
+        userId,
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 

@@ -20,9 +20,15 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(userId: string, role: 'customer' | 'admin' | 'agent'): Promise<void>;
+  updateUserStatus(userId: string, status: 'active' | 'suspended' | 'locked' | 'inactive'): Promise<void>;
+  countUsersWithRole(role: 'customer' | 'admin' | 'agent'): Promise<number>;
   listAllUsers(limit?: number, offset?: number): Promise<User[]>;
   updateUserTwoFactor(userId: string, enabled: boolean, secret?: string, backupCodes?: string[]): Promise<User | undefined>;
   getUserTwoFactorStatus(userId: string): Promise<{ enabled: boolean; secret?: string; backupCodes?: string[] } | undefined>;
+  setEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void>;
+  verifyEmail(token: string): Promise<boolean>;
+  setPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<void>;
+  resetPassword(token: string): Promise<string | undefined>;
 
   // Customer Operations
   getCustomer(userId: string): Promise<Customer | undefined>;
@@ -162,6 +168,79 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ role, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  async updateUserStatus(userId: string, status: 'active' | 'suspended' | 'locked' | 'inactive'): Promise<void> {
+    // For now, we'll update the account status via the customers table if customer exists
+    // In the future, we could add a status column directly to users table
+    const customer = await this.getCustomer(userId);
+    if (customer) {
+      await db.update(customers)
+        .set({ accountStatus: status === 'active' ? 'active' : 'expired', updatedAt: new Date() })
+        .where(eq(customers.id, customer.id));
+    }
+  }
+
+  async countUsersWithRole(role: 'customer' | 'admin' | 'agent'): Promise<number> {
+    const result = await db.query.users.findMany({
+      where: eq(users.role, role),
+    });
+    return result.length;
+  }
+
+  async setEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+    await db.update(users)
+      .set({ emailVerificationToken: token, emailVerificationTokenExpiresAt: expiresAt })
+      .where(eq(users.id, userId));
+  }
+
+  async verifyEmail(token: string): Promise<boolean> {
+    const user = await db.query.users.findFirst({
+      where: eq(users.emailVerificationToken, token),
+    });
+
+    if (!user || !user.emailVerificationTokenExpiresAt || new Date() > user.emailVerificationTokenExpiresAt) {
+      return false;
+    }
+
+    await db.update(users)
+      .set({ 
+        emailVerified: true, 
+        emailVerificationToken: undefined,
+        emailVerificationTokenExpiresAt: undefined,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, user.id));
+
+    return true;
+  }
+
+  async setPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+    await db.update(users)
+      .set({ passwordResetToken: token, passwordResetTokenExpiresAt: expiresAt })
+      .where(eq(users.id, userId));
+  }
+
+  async resetPassword(token: string): Promise<string | undefined> {
+    const user = await db.query.users.findFirst({
+      where: eq(users.passwordResetToken, token),
+    });
+
+    if (!user || !user.passwordResetTokenExpiresAt || new Date() > user.passwordResetTokenExpiresAt) {
+      return undefined;
+    }
+
+    // Return userId for the password reset to be completed by the client
+    await db.update(users)
+      .set({ 
+        passwordResetToken: undefined,
+        passwordResetTokenExpiresAt: undefined,
+        passwordResetAttempts: 0,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, user.id));
+
+    return user.id;
   }
 
   async listAllUsers(limit: number = 1000, offset: number = 0): Promise<User[]> {
