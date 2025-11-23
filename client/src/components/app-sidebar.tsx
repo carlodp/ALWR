@@ -43,6 +43,9 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SessionTimer } from "@/components/session-timer";
+import { Separator } from "@/components/ui/separator";
 
 export function AppSidebar() {
   const { user, isAdmin } = useAuth();
@@ -521,6 +524,9 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t p-4">
         <div className="space-y-4">
+          {/* Session Timer - only show if authenticated */}
+          {user && <SessionTimer />}
+          
           {/* User Info */}
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
@@ -537,23 +543,30 @@ export function AppSidebar() {
             </div>
           </div>
 
-          {/* Logout Button */}
-          <Button
-            variant="outline"
-            className="w-full"
-            data-testid="button-logout"
-            onClick={async () => {
-              try {
-                await fetch("/api/auth/logout", { method: "POST" });
-                window.location.href = "/";
-              } catch (error) {
-                console.error("Logout failed:", error);
-              }
-            }}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <Separator className="my-2" />
+
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-2">
+            <ThemeToggle />
+            {/* Logout Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              data-testid="button-logout"
+              onClick={async () => {
+                try {
+                  await fetch("/api/auth/logout", { method: "POST" });
+                  window.location.href = "/";
+                } catch (error) {
+                  console.error("Logout failed:", error);
+                }
+              }}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>

@@ -1,5 +1,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLocation } from "wouter";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SessionTimer } from "@/components/session-timer";
 
 export function MobileHeader() {
   const [location] = useLocation();
@@ -32,7 +34,10 @@ export function MobileHeader() {
         <h1 className="text-sm font-semibold flex-1 text-center truncate">
           {getPageTitle()}
         </h1>
-        <div className="w-10" />
+        <div className="flex items-center gap-1">
+          <SessionTimer />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

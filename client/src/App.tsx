@@ -8,6 +8,10 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { MobileHeader } from "@/components/mobile-header";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useAutoExtendSession } from "@/hooks/useAutoExtendSession";
+import { ThemeProvider } from "@/components/theme-provider";
+import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import CustomerDashboard from "@/pages/customer-dashboard";
@@ -117,8 +121,12 @@ function Router() {
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   
-  // Monitor session expiry
+  // Monitor session expiry and auto-extend
   useSessionExpiry();
+  useAutoExtendSession();
+  
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
 
   // Sidebar configuration - responsive for mobile
   const sidebarStyle = {
@@ -134,6 +142,7 @@ function AppContent() {
             <AppSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
               <MobileHeader />
+              <BreadcrumbNav />
               <main className="flex-1 overflow-auto">
                 <Router />
               </main>
@@ -150,9 +159,11 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppContent />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

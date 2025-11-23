@@ -46,3 +46,88 @@ This Replit instance hosts the custom API backend, which is an **Express.js** an
 - **speakeasy**: For TOTP-based two-factor authentication.
 - **ws (WebSocket)**: For real-time statistics streaming.
 - **WordPress**: External CMS and frontend for the entire ALWR system, consuming this API.
+
+## Quality of Life Improvements - Session 11 (Advanced Frontend Features)
+
+### 6 New QoL Improvements Implemented (No New Dependencies!)
+
+All improvements use existing modules: `next-themes`, `lucide-react`, `wouter`, shadcn components, TanStack Query.
+
+#### 1. **Dark/Light Mode Theme Toggle** 🌓
+- **Components**: `theme-provider.tsx` (wrapper), `theme-toggle.tsx` (button)
+- **Location**: Mobile header (top-right) + Sidebar footer (next to Sign Out)
+- **Features**:
+  - Moon/Sun icon toggle button
+  - Persists user preference via localStorage
+  - Auto-detects system dark mode preference
+  - Smooth theme transitions across entire app
+- **Data testid**: `button-theme-toggle`
+
+#### 2. **Live Session Timer Display** ⏱️
+- **Component**: `SessionTimer` in `session-timer.tsx`
+- **Location**: Sidebar footer + Mobile header
+- **Features**:
+  - Shows remaining session time (mm:ss format)
+  - Only displays during final 5 minutes (doesn't clutter UI)
+  - Badge turns red as warning when < 5 min
+  - Auto-updates every second
+  - Hidden when session is healthy
+- **Data testid**: `session-timer`
+
+#### 3. **Global Keyboard Shortcuts** ⌨️
+- **Hook**: `useKeyboardShortcuts` in `hooks/useKeyboardShortcuts.ts`
+- **Shortcuts**:
+  - `Cmd+K` (Mac) / `Ctrl+K` (Windows) → Open Global Search (`/search`)
+  - `Cmd+/` / `Ctrl+/` → Navigate to Dashboard
+- **UX**: Non-intrusive, only works when app has focus
+- **Implementation**: Global window event listener with cleanup
+
+#### 4. **Auto-Extend Session on Activity** 🔄
+- **Hook**: `useAutoExtendSession` in `hooks/useAutoExtendSession.ts`
+- **Features**:
+  - Automatically extends session TTL on user activity
+  - Tracks: mouse clicks, keyboard input, scrolling, touch events
+  - Prevents unwanted logouts during active use
+  - Silent operation (no user feedback needed)
+  - Uses TanStack Query to refetch `/api/auth/user` endpoint
+- **Events Monitored**: `mousedown`, `keydown`, `scroll`, `touchstart`, `click` (passive listeners)
+
+#### 5. **Breadcrumb Navigation** 🗺️
+- **Component**: `BreadcrumbNav` in `components/breadcrumb-nav.tsx`
+- **Location**: Between mobile header and main content (desktop-only, hidden on mobile)
+- **Features**:
+  - Auto-generates from current URL path
+  - Clickable links to parent pages (faster navigation)
+  - Current page shown as non-clickable text
+  - Auto-hidden on home page
+  - Example: Home > Admin > Customers > Detail
+- **Data testids**: `breadcrumb-*` for each navigation segment
+
+#### 6. **Complete App Integration** 🎯
+- **Updated Files**:
+  - `client/src/App.tsx`: ThemeProvider wrapper, all hooks integrated
+  - `client/src/components/app-sidebar.tsx`: Theme toggle + session timer in footer
+  - `client/src/components/mobile-header.tsx`: Theme toggle + session timer in mobile header
+  - `client/src/components/breadcrumb-nav.tsx`: Navigation breadcrumb display
+
+### Why These Improvements Matter
+
+**User Experience**:
+- ✅ Dark mode reduces eye strain for evening use
+- ✅ Session timer prevents confusion about unexpected logouts
+- ✅ Keyboard shortcuts enable power users
+- ✅ Auto-extend keeps productive sessions alive
+- ✅ Breadcrumbs help navigate complex dashboards
+
+**Code Quality**:
+- ✅ Zero new dependencies (uses already-installed packages)
+- ✅ Modular hooks for reusability
+- ✅ Performance optimized (minimal re-renders)
+- ✅ Accessibility first (keyboard shortcuts, theme detection)
+- ✅ Mobile-responsive design
+
+**Developer Friendly**:
+- ✅ All components have `data-testid` for testing
+- ✅ Clear separation of concerns (hooks vs components)
+- ✅ Well-documented code
+- ✅ Easy to extend or customize
