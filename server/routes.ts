@@ -61,7 +61,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AUTHENTICATION ROUTES
   // ============================================================================
 
-  // Get current user
+  /**
+   * @swagger
+   * /auth/user:
+   *   get:
+   *     summary: Get current authenticated user
+   *     description: Retrieve the current user information for the authenticated session
+   *     tags:
+   *       - Authentication
+   *     security:
+   *       - sessionAuth: []
+   *     responses:
+   *       200:
+   *         description: Current user object
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/User'
+   *       401:
+   *         description: Not authenticated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.get("/api/auth/user", async (req: any, res: Response) => {
     try {
       if (!req.user?.dbUser) {
@@ -78,7 +101,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CUSTOMER PROFILE ROUTES
   // ============================================================================
 
-  // Get customer profile
+  /**
+   * @swagger
+   * /customer/profile:
+   *   get:
+   *     summary: Get customer profile
+   *     description: Retrieve the customer profile information. Auto-creates profile if it doesn't exist.
+   *     tags:
+   *       - Customer Profile
+   *     security:
+   *       - sessionAuth: []
+   *     responses:
+   *       200:
+   *         description: Customer profile object
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Customer'
+   *       401:
+   *         description: Not authenticated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Server error
+   */
   app.get("/api/customer/profile", requireAuth, async (req: any, res: Response) => {
     try {
       let customer = await storage.getCustomer(req.user.dbUser.id);
@@ -99,7 +147,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update customer profile
+  /**
+   * @swagger
+   * /customer/profile:
+   *   put:
+   *     summary: Update customer profile
+   *     description: Update customer profile information with validation and audit logging
+   *     tags:
+   *       - Customer Profile
+   *     security:
+   *       - sessionAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/Customer'
+   *     responses:
+   *       200:
+   *         description: Updated customer profile
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Customer'
+   *       400:
+   *         description: Invalid input
+   *       401:
+   *         description: Not authenticated
+   *       404:
+   *         description: Customer not found
+   *       500:
+   *         description: Server error
+   */
   app.put("/api/customer/profile", requireAuth, async (req: any, res: Response) => {
     try {
       const customer = await storage.getCustomer(req.user.dbUser.id);
@@ -166,7 +245,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Change customer password - Rate limited to prevent brute force
+  /**
+   * @swagger
+   * /customer/password:
+   *   post:
+   *     summary: Change customer password
+   *     description: Change the customer password with rate limiting to prevent brute force attacks
+   *     tags:
+   *       - Customer Profile
+   *     security:
+   *       - sessionAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               currentPassword:
+   *                 type: string
+   *               newPassword:
+   *                 type: string
+   *               confirmPassword:
+   *                 type: string
+   *             required:
+   *               - currentPassword
+   *               - newPassword
+   *               - confirmPassword
+   *     responses:
+   *       200:
+   *         description: Password changed successfully
+   *       400:
+   *         description: Invalid input or validation error
+   *       401:
+   *         description: Not authenticated
+   *       429:
+   *         description: Rate limit exceeded
+   *       500:
+   *         description: Server error
+   */
   app.post("/api/customer/password", authLimiter, requireAuth, async (req: any, res: Response) => {
     try {
       const { currentPassword, newPassword, confirmPassword } = req.body;
@@ -219,7 +336,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SUBSCRIPTION ROUTES
   // ============================================================================
 
-  // Get customer subscription
+  /**
+   * @swagger
+   * /customer/subscription:
+   *   get:
+   *     summary: Get customer subscription
+   *     description: Retrieve the current subscription for the authenticated customer
+   *     tags:
+   *       - Subscriptions
+   *     security:
+   *       - sessionAuth: []
+   *     responses:
+   *       200:
+   *         description: Subscription object or null if no subscription exists
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Subscription'
+   *       401:
+   *         description: Not authenticated
+   *       404:
+   *         description: Customer not found
+   *       500:
+   *         description: Server error
+   */
   app.get("/api/customer/subscription", requireAuth, async (req: any, res: Response) => {
     try {
       const customer = await storage.getCustomer(req.user.dbUser.id);
@@ -235,7 +375,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get customer payment history
+  /**
+   * @swagger
+   * /customer/payments:
+   *   get:
+   *     summary: Get customer payment history
+   *     description: Retrieve payment history and invoices for the authenticated customer
+   *     tags:
+   *       - Subscriptions
+   *     security:
+   *       - sessionAuth: []
+   *     responses:
+   *       200:
+   *         description: Payment history with customer details
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 customer:
+   *                   type: object
+   *                   properties:
+   *                     firstName:
+   *                       type: string
+   *                     lastName:
+   *                       type: string
+   *                     email:
+   *                       type: string
+   *                       format: email
+   *                 payments:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: string
+   *                       date:
+   *                         type: string
+   *                         format: date
+   *                       amount:
+   *                         type: number
+   *                       currency:
+   *                         type: string
+   *                       status:
+   *                         type: string
+   *       401:
+   *         description: Not authenticated
+   *       404:
+   *         description: Customer not found
+   *       500:
+   *         description: Server error
+   */
   app.get("/api/customer/payments", requireAuth, async (req: any, res: Response) => {
     try {
       const customer = await storage.getCustomer(req.user.dbUser.id);
@@ -466,7 +656,49 @@ startxref
   // DOCUMENT ROUTES
   // ============================================================================
 
-  // Upload document
+  /**
+   * @swagger
+   * /customer/documents/upload:
+   *   post:
+   *     summary: Upload a new document
+   *     description: Upload a living will, healthcare directive, or other legal document. Supports PDF, DOC, and DOCX files up to 10MB.
+   *     tags:
+   *       - Documents
+   *     security:
+   *       - sessionAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               file:
+   *                 type: string
+   *                 format: binary
+   *               fileType:
+   *                 type: string
+   *                 enum: [living_will, healthcare_directive, power_of_attorney, dnr, other]
+   *               description:
+   *                 type: string
+   *             required:
+   *               - file
+   *     responses:
+   *       200:
+   *         description: Document uploaded successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Document'
+   *       400:
+   *         description: No file uploaded or invalid input
+   *       401:
+   *         description: Not authenticated
+   *       404:
+   *         description: Customer not found
+   *       500:
+   *         description: Server error
+   */
   app.post("/api/customer/documents/upload", requireAuth, upload.single('file'), async (req: any, res: Response) => {
     try {
       if (!req.file) {
@@ -540,7 +772,30 @@ startxref
     }
   });
 
-  // List customer documents
+  /**
+   * @swagger
+   * /customer/documents:
+   *   get:
+   *     summary: List all customer documents
+   *     description: Retrieve all documents uploaded by the authenticated customer
+   *     tags:
+   *       - Documents
+   *     security:
+   *       - sessionAuth: []
+   *     responses:
+   *       200:
+   *         description: Array of customer documents
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Document'
+   *       401:
+   *         description: Not authenticated
+   *       500:
+   *         description: Server error
+   */
   app.get("/api/customer/documents", requireAuth, async (req: any, res: Response) => {
     try {
       const customer = await storage.getCustomer(req.user.dbUser.id);
@@ -848,7 +1103,58 @@ startxref
   // EMERGENCY ACCESS ROUTES
   // ============================================================================
 
-  // Verify emergency access - Rate limited to prevent brute force
+  /**
+   * @swagger
+   * /emergency-access/verify:
+   *   post:
+   *     summary: Verify emergency access to documents
+   *     description: 3-step verification process for emergency responders to access customer documents. Rate limited to prevent brute force.
+   *     tags:
+   *       - Emergency Access
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               idCardNumber:
+   *                 type: string
+   *                 description: Customer ALWR ID card number
+   *               lastName:
+   *                 type: string
+   *                 description: Customer last name
+   *               dateOfBirth:
+   *                 type: string
+   *                 format: date
+   *                 description: Customer date of birth
+   *             required:
+   *               - idCardNumber
+   *               - lastName
+   *               - dateOfBirth
+   *     responses:
+   *       200:
+   *         description: Emergency access verified successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 documents:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/Document'
+   *       400:
+   *         description: Invalid input or verification failed
+   *       404:
+   *         description: Customer not found
+   *       429:
+   *         description: Rate limit exceeded
+   *       500:
+   *         description: Server error
+   */
   app.post("/api/emergency-access/verify", authLimiter, async (req: Request, res: Response) => {
     try {
       // Validate request body

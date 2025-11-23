@@ -6,6 +6,7 @@ import express, {
   Response,
   NextFunction,
 } from "express";
+import swaggerUi from 'swagger-ui-express';
 
 import { registerRoutes } from "./routes";
 import { runMigrations } from 'stripe-replit-sync';
@@ -14,6 +15,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { seedMockData } from "./seed-mock-data";
 import { logger } from "./logger";
 import { globalLimiter, setSecureHeaders, sanitizeError } from "./security";
+import { swaggerSpec } from "./swagger";
 
 export function log(message: string, source = "express") {
   logger.info(message, source);
@@ -128,6 +130,22 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: false }));
+
+// ============================================================================
+// SWAGGER/OPENAPI DOCUMENTATION
+// ============================================================================
+
+app.use('/api/docs', swaggerUi.serve);
+app.get('/api/docs', swaggerUi.setup(swaggerSpec, { 
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'ALWR API Documentation',
+}));
+
+app.get('/api/docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
