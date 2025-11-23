@@ -4252,6 +4252,83 @@ startxref
     }
   });
 
+  // ============================================================================
+  // SYSTEM SETTINGS ROUTES (SUPER ADMIN ONLY)
+  // ============================================================================
+
+  /**
+   * GET /api/admin/settings/system
+   * Get system settings for backend configuration
+   */
+  app.get("/api/admin/settings/system", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const settings = await storage.getSystemSettings?.();
+      
+      if (!settings) {
+        // Return default settings if none exist
+        const defaults = {
+          idleTimeoutEnabled: true,
+          idleWarningMinutes: 25,
+          idleCountdownMinutes: 5,
+          sessionTimeoutMinutes: 30,
+          maxConcurrentSessions: 5,
+          rateLimitEnabled: true,
+          requestsPerMinute: 60,
+          failedLoginLockoutThreshold: 5,
+          maxUploadSizeMB: 10,
+          twoFactorAuthRequired: false,
+        };
+        return res.json(defaults);
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching system settings:", error);
+      res.status(500).json({ message: "Failed to fetch system settings" });
+    }
+  });
+
+  /**
+   * PATCH /api/admin/settings/system
+   * Update system settings
+   */
+  app.patch("/api/admin/settings/system", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const updates = req.body;
+      
+      // Validate that updates are for allowed fields
+      const allowedFields = [
+        'idleTimeoutEnabled',
+        'idleWarningMinutes',
+        'idleCountdownMinutes',
+        'sessionTimeoutMinutes',
+        'maxConcurrentSessions',
+        'rateLimitEnabled',
+        'requestsPerMinute',
+        'failedLoginLockoutThreshold',
+        'maxUploadSizeMB',
+        'twoFactorAuthRequired',
+      ];
+      
+      for (const key of Object.keys(updates)) {
+        if (!allowedFields.includes(key)) {
+          return res.status(400).json({ message: `Invalid setting: ${key}` });
+        }
+      }
+      
+      const settings = await storage.updateSystemSettings?.(updates);
+      
+      if (!settings) {
+        return res.status(500).json({ message: "Failed to update system settings" });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating system settings:", error);
+      res.status(500).json({ message: "Failed to update system settings" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 

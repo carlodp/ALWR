@@ -843,6 +843,35 @@ export const resellerCustomerReferralsRelations = relations(resellerCustomerRefe
   }),
 }));
 
+// System Settings for Backend Configuration
+export const systemSettings = pgTable("system_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Auto Logout Settings
+  idleTimeoutEnabled: boolean("idle_timeout_enabled").default(true),
+  idleWarningMinutes: integer("idle_warning_minutes").default(25),
+  idleCountdownMinutes: integer("idle_countdown_minutes").default(5),
+  
+  // Session Management
+  sessionTimeoutMinutes: integer("session_timeout_minutes").default(30),
+  maxConcurrentSessions: integer("max_concurrent_sessions").default(5),
+  
+  // Rate Limiting
+  rateLimitEnabled: boolean("rate_limit_enabled").default(true),
+  requestsPerMinute: integer("requests_per_minute").default(60),
+  failedLoginLockoutThreshold: integer("failed_login_lockout_threshold").default(5),
+  
+  // Document Management
+  maxUploadSizeMB: integer("max_upload_size_mb").default(10),
+  
+  // Two-Factor Authentication
+  twoFactorAuthRequired: boolean("two_factor_auth_required").default(false),
+  
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // ============================================================================
 // INSERT SCHEMAS (For Validation)
 // ============================================================================
@@ -979,6 +1008,12 @@ export const insertReportHistorySchema = createInsertSchema(reportHistory).omit(
   generatedAt: true,
 });
 
+export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -1039,6 +1074,9 @@ export type ReportSchedule = typeof reportSchedules.$inferSelect;
 
 export type InsertReportHistory = z.infer<typeof insertReportHistorySchema>;
 export type ReportHistory = typeof reportHistory.$inferSelect;
+
+export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
+export type SystemSettings = typeof systemSettings.$inferSelect;
 
 // Global Search Results
 export interface GlobalSearchResult {

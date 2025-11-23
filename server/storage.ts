@@ -2,7 +2,7 @@ import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
   customerTags, physicalCardOrders, emailTemplates, emailNotifications, agents, agentCustomerAssignments,
-  resellers, resellerCustomerReferrals, failedLoginAttempts, dataExports, reportSchedules, reportHistory,
+  resellers, resellerCustomerReferrals, failedLoginAttempts, dataExports, reportSchedules, reportHistory, systemSettings,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -16,7 +16,7 @@ import {
   type Reseller, type InsertReseller, type ResellerCustomerReferral, type InsertResellerCustomerReferral,
   type FailedLoginAttempt, type InsertFailedLoginAttempt,
   type DataExport, type InsertDataExport, type ReportSchedule, type InsertReportSchedule,
-  type ReportHistory, type InsertReportHistory
+  type ReportHistory, type InsertReportHistory, type SystemSettings, type InsertSystemSettings
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -145,6 +145,10 @@ export interface IStorage {
   createReportHistory(data: InsertReportHistory & { generatedAt?: Date }): Promise<ReportHistory>;
   listReportHistory(userId: string): Promise<ReportHistory[]>;
   getReportHistoryBySchedule(scheduleId: string): Promise<ReportHistory[]>;
+
+  // System Settings
+  getSystemSettings(): Promise<SystemSettings | undefined>;
+  updateSystemSettings(updates: Partial<InsertSystemSettings>): Promise<SystemSettings | undefined>;
 
   // Customer Tags
   addCustomerTag(tag: InsertCustomerTag): Promise<CustomerTag>;
@@ -1442,6 +1446,52 @@ export class DatabaseStorage implements IStorage {
       where: eq(reportHistory.scheduleId, scheduleId),
       orderBy: [desc(reportHistory.generatedAt)],
     });
+  }
+
+  // ============================================================================
+  // SYSTEM SETTINGS
+  // ============================================================================
+
+  async getSystemSettings(): Promise<SystemSettings | undefined> {
+    const result = await db.query.systemSettings.findFirst();
+    return result;
+  }
+
+  async updateSystemSettings(updates: Partial<InsertSystemSettings>): Promise<SystemSettings | undefined> {
+    let settings = await this.getSystemSettings();
+    
+    if (!settings) {
+      // Create default settings if none exist
+      const [newSettings] = await db
+        .insert(systemSettings)
+        .values({
+          idleTimeoutEnabled: true,
+          idleWarningMinutes: 25,
+          idleCountdownMinutes: 5,
+          sessionTimeoutMinutes: 30,
+          maxConcurrentSessions: 5,
+          rateLimitEnabled: true,
+          requestsPerMinute: 60,
+          failedLoginLockoutThreshold: 5,
+          maxUploadSizeMB: 10,
+          twoFactorAuthRequired: false,
+        })
+        .returning();
+      settings = newSettings;
+    }
+    
+    if (!settings) return undefined;
+    
+    const [updated] = await db
+      .update(systemSettings)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(systemSettings.id, settings.id))
+      .returning();
+    
+    return updated;
   }
 }
 
