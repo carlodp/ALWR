@@ -224,8 +224,8 @@ export default function Signup() {
               </form>
             </Form>
 
-            {/* Login Link */}
-            <div className="mt-6 text-center">
+            {/* Login Links */}
+            <div className="mt-6 space-y-3 text-center">
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <a
@@ -234,6 +234,16 @@ export default function Signup() {
                   data-testid="link-login"
                 >
                   Sign in
+                </a>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                For business accounts, contact{" "}
+                <a
+                  href="/"
+                  className="text-primary hover:underline font-medium"
+                  data-testid="link-business"
+                >
+                  sales@alwr.com
                 </a>
               </p>
             </div>

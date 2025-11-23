@@ -131,3 +131,106 @@ All improvements use existing modules: `next-themes`, `lucide-react`, `wouter`, 
 - ✅ Clear separation of concerns (hooks vs components)
 - ✅ Well-documented code
 - ✅ Easy to extend or customize
+
+## Enhanced Account Creation & Roles - Session 12
+
+### 5 Major Frontend Improvements
+
+#### 1. **Forgot Password Flow** 🔐
+- **Page**: `forgot-password.tsx` (public route)
+- **Features**:
+  - Email-based password reset request
+  - Success confirmation screen
+  - Link from login page
+  - Rate-limited endpoint for security
+  - Token-based password reset with 1-hour expiry
+- **Backend**: `/api/auth/forgot-password` (already implemented)
+- **Data testid**: `button-send-reset`, `input-email`
+
+#### 2. **Profile Setup Wizard** 👤
+- **Page**: `profile-setup.tsx` (protected route)
+- **Features**:
+  - 2-step onboarding after signup
+  - Step 1: First/Last name (required)
+  - Step 2: Phone + Address (optional)
+  - Progress indicator with percentage
+  - Skip option to complete later
+  - Auto-redirect on completion
+- **Auto-triggers**: After signup completion
+- **Data testids**: `button-next`, `button-back`, `button-complete`, `button-skip`
+
+#### 3. **Account Status Badge** 🎫
+- **Component**: `AccountStatusBadge` in `components/account-status-badge.tsx`
+- **Features**:
+  - Shows account status (active/expired)
+  - Color-coded: green for active, red for expired
+  - Icon + text display
+  - Sizes: sm, md, lg
+  - Used in admin-users and admin-user-roles
+- **Data testid**: `account-status-{status}`
+
+#### 4. **Enhanced Admin User Creation** 👥
+- **Improvements**:
+  - Role selection with descriptive text
+  - Info box explains each role:
+    - **Customer**: Individual/family healthcare directive storage
+    - **Agent**: Healthcare agency representative
+    - **Reseller**: Business partner with commission
+    - **Admin**: Full system access
+  - Clear 3-step form (Basic Info → Role → Role Details)
+  - Password generator + copy button
+  - Validation for all fields
+- **Data testid**: `select-role`, `button-generate-password`, `button-copy-password`
+
+#### 5. **Improved Admin Users List** 📊
+- **Enhancements**:
+  - Displays account status (active/expired) for each user
+  - Shows "Active" indicator with clock icon if user has recent login
+  - Better role + status stacking in UI
+  - Color-coded badges for quick scanning
+  - Click to navigate to user detail page
+- **Data testids**: `badge-role-{id}`, `account-status-{status}`
+
+### Authentication Endpoints (Backend Ready)
+- ✅ `POST /api/auth/forgot-password` - Request password reset
+- ✅ `POST /api/auth/reset-password/:token` - Validate reset token
+- ✅ `POST /api/auth/verify-email/:token` - Email verification
+- ✅ `POST /api/auth/send-verification-email` - Resend verification
+
+### User Flow Improvements
+
+**New User (Customer) Flow:**
+1. Sign up at `/signup` → Create account
+2. Auto-redirect to `/profile-setup` → Complete profile (2-step wizard)
+3. Login to dashboard
+
+**Forgot Password Flow:**
+1. Click "Forgot password?" on `/login`
+2. Enter email at `/forgot-password`
+3. Receive reset link (check email)
+4. Set new password via reset link
+5. Login with new password
+
+**Admin Creating User Flow:**
+1. Navigate to `/admin/users`
+2. Click "Create User"
+3. Fill basic info (email, first/last name)
+4. Generate secure 16-char password (copy to share)
+5. Select role (with descriptions)
+6. Fill role-specific details (agent/reseller/admin)
+7. Submit → User created and visible in user list
+
+**Key Pages**:
+- `/login` - Has "Forgot password?" link
+- `/signup` - Mentions "For business accounts, contact sales@alwr.com"
+- `/forgot-password` - Email-based password reset
+- `/profile-setup` - Post-signup onboarding
+- `/admin/users` - Shows account status + activity indicator
+- `/admin/users/new` - Create new user with role selector + descriptions
+
+### Architecture Notes
+- All frontend components use existing dependencies (no new packages)
+- Backend endpoints already implemented and tested
+- Routes integrated into App.tsx with proper authentication guards
+- Account status field available in User schema (active/expired)
+- Integration with existing session management and audit logging

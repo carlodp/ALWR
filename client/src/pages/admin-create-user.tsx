@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { generatePassword, copyToClipboard } from "@/lib/passwordGenerator";
-import { ArrowLeft, Copy, RotateCw } from "lucide-react";
+import { ArrowLeft, Copy, RotateCw, Info } from "lucide-react";
 
 const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -312,6 +312,19 @@ export default function AdminCreateUser() {
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                    {selectedRole && (
+                      <div className="mt-3 p-3 bg-muted rounded-md text-sm">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                          <p className="text-muted-foreground">
+                            {selectedRole === "customer" && "Individual or family account for storing healthcare directives"}
+                            {selectedRole === "agent" && "Healthcare agency representative managing customer accounts"}
+                            {selectedRole === "reseller" && "Business partner reselling ALWR services with commission rates"}
+                            {selectedRole === "admin" && "Staff account with full system access and administrative privileges"}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </FormItem>
                 )}
               />

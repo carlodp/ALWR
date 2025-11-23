@@ -45,6 +45,8 @@ import EmergencyAccess from "@/pages/emergency-access";
 import GlobalSearch from "@/pages/global-search";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import ForgotPassword from "@/pages/forgot-password";
+import ProfileSetup from "@/pages/profile-setup";
 
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();
@@ -62,7 +64,15 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route path="/login" component={Login} />
           <Route path="/signup" component={Signup} />
+          <Route path="/forgot-password" component={ForgotPassword} />
           <Route path="/emergency-access" component={EmergencyAccess} />
+        </>
+      )}
+
+      {/* Post-Auth Routes */}
+      {isAuthenticated && (
+        <>
+          <Route path="/profile-setup" component={ProfileSetup} />
         </>
       )}
 

@@ -152,8 +152,8 @@ export default function Login() {
               </form>
             </Form>
 
-            {/* Sign Up Link */}
-            <div className="mt-6 text-center">
+            {/* Sign Up & Forgot Password Links */}
+            <div className="mt-6 space-y-3 text-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <a
@@ -162,6 +162,16 @@ export default function Login() {
                   data-testid="link-signup"
                 >
                   Sign up
+                </a>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Forgot your password?{" "}
+                <a
+                  href="/forgot-password"
+                  className="text-primary hover:underline font-medium"
+                  data-testid="link-forgot-password"
+                >
+                  Reset it here
                 </a>
               </p>
             </div>
