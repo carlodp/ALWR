@@ -216,7 +216,7 @@ export function requireAdmin(req: any, res: any, next: any) {
     return res.status(401).json({ message: "Unauthorized - Authentication required" });
   }
   
-  if (req.user.dbUser.role !== 'admin') {
+  if (req.user.dbUser.role !== 'admin' && req.user.dbUser.role !== 'super_admin') {
     return res.status(403).json({ message: "Forbidden - Admin access required" });
   }
   
