@@ -45,8 +45,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { SessionTimer } from "@/components/session-timer";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { SessionTimer } from "@/components/shared/session-timer";
 import { Separator } from "@/components/ui/separator";
 
 /**
