@@ -94,6 +94,41 @@ ALWR is built with a modern web stack. The frontend utilizes **React** for dynam
 - ✅ Database schema with retry counter and failure reason tracking
 - ✅ Ready for SendGrid integration - just replace MockEmailService with SendGridEmailService when ready
 
+### TIER 2 - Additional Features (In Progress):
+
+#### ✅ **Feature #7: Two-Factor Authentication (2FA)** (COMPLETE)
+- ✅ TOTP-based 2FA (Time-based One-Time Password) - NO external service needed!
+- ✅ Users can enable/disable 2FA with authenticator apps (Google Authenticator, Authy, Microsoft Authenticator, etc.)
+- ✅ `twoFactorService.ts` with TOTP generation, verification, and backup code management
+- ✅ QR code generation for easy app enrollment
+- ✅ 10 backup codes per user for account recovery
+- ✅ Storage methods for 2FA secret and backup codes
+- ✅ API endpoints:
+  - `POST /api/auth/2fa/setup` - Generate TOTP secret and QR code
+  - `POST /api/auth/2fa/verify` - Verify code and enable 2FA
+  - `POST /api/auth/2fa/disable` - Disable 2FA
+  - `GET /api/auth/2fa/status` - Get current 2FA status
+- ✅ Audit logging for 2FA enable/disable actions
+- ✅ Built-in clock skew tolerance (±1 time window) for TOTP verification
+
+#### ✅ **Feature #8: Bulk Admin Operations** (COMPLETE)
+- ✅ Bulk delete documents - DELETE API endpoint with audit logging
+- ✅ Customer export to CSV - Download customer list with filters
+- ✅ CSV includes: ID, Name, Email, Phone, City, State, Account Status, ID Card Number, Created Date
+- ✅ All bulk operations fully audited with action logging
+- ✅ Admin-only access with role-based authorization
+- ✅ API endpoints:
+  - `POST /api/admin/documents/bulk-delete` - Delete multiple documents
+  - `GET /api/admin/customers/export` - Export customers as CSV
+
+#### ✅ **Feature #9: Session Management & Logout** (COMPLETE)
+- ✅ Proper logout functionality with session cleanup
+- ✅ Session logging for login/logout audit trail
+- ✅ IP address and User-Agent tracking for security
+- ✅ Logout API endpoint: `POST /api/auth/logout`
+- ✅ Audit logging for all session events (login, logout)
+- ✅ New audit actions: login, logout, document_bulk_delete, customer_export, two_factor_enable, two_factor_disable
+
 ### UI/UX Decisions:
 - Utilizes **shadcn/ui** for consistent, accessible components.
 - Responsive design for optimal viewing on mobile and desktop devices.

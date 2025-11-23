@@ -1726,6 +1726,171 @@ startxref
     }
   });
 
+  // ============================================================================
+  // TWO-FACTOR AUTHENTICATION
+  // ============================================================================
+
+  app.post("/api/auth/2fa/setup", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { twoFactorService } = await import("./twoFactorService");
+      const userId = req.user?.dbUser?.id;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const setup = await twoFactorService.generateTwoFactorSecret(req.user.dbUser.email);
+      res.json(setup);
+    } catch (error) {
+      console.error("Error generating 2FA secret:", error);
+      res.status(500).json({ message: "Failed to generate 2FA setup" });
+    }
+  });
+
+  app.post("/api/auth/2fa/verify", requireAuth, async (req: any, res: Response) => {
+    try {
+      const { twoFactorService } = await import("./twoFactorService");
+      const { token, backupCodes, secret } = req.body;
+      const userId = req.user?.dbUser?.id;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const result = twoFactorService.verifyTOTPCode(secret, token);
+      if (!result.valid) {
+        return res.status(400).json({ message: result.message });
+      }
+
+      // Enable 2FA
+      await storage.updateUserTwoFactor(userId, true, secret, backupCodes);
+      
+      // Log action
+      await storage.createAuditLog({
+        userId,
+        action: 'two_factor_enable',
+        resourceType: 'user',
+        resourceId: userId,
+        status: 'success',
+      });
+
+      res.json({ message: "Two-factor authentication enabled", backupCodes });
+    } catch (error) {
+      console.error("Error verifying 2FA:", error);
+      res.status(500).json({ message: "Failed to verify 2FA" });
+    }
+  });
+
+  app.post("/api/auth/2fa/disable", requireAuth, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.dbUser?.id;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      await storage.updateUserTwoFactor(userId, false);
+
+      // Log action
+      await storage.createAuditLog({
+        userId,
+        action: 'two_factor_disable',
+        resourceType: 'user',
+        resourceId: userId,
+        status: 'success',
+      });
+
+      res.json({ message: "Two-factor authentication disabled" });
+    } catch (error) {
+      console.error("Error disabling 2FA:", error);
+      res.status(500).json({ message: "Failed to disable 2FA" });
+    }
+  });
+
+  app.get("/api/auth/2fa/status", requireAuth, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.dbUser?.id;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const status = await storage.getUserTwoFactorStatus(userId);
+      res.json(status || { enabled: false });
+    } catch (error) {
+      console.error("Error fetching 2FA status:", error);
+      res.status(500).json({ message: "Failed to fetch 2FA status" });
+    }
+  });
+
+  // ============================================================================
+  // BULK OPERATIONS (Admin Only)
+  // ============================================================================
+
+  app.post("/api/admin/documents/bulk-delete", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { documentIds } = req.body;
+      if (!Array.isArray(documentIds) || documentIds.length === 0) {
+        return res.status(400).json({ message: "No documents provided" });
+      }
+
+      const deleted = await storage.bulkDeleteDocuments(documentIds);
+
+      // Log action
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        action: 'document_bulk_delete',
+        resourceType: 'document',
+        resourceId: 'bulk',
+        status: 'success',
+        details: { count: deleted, documentIds },
+      });
+
+      res.json({ message: `Deleted ${deleted} documents`, deleted });
+    } catch (error) {
+      console.error("Error bulk deleting documents:", error);
+      res.status(500).json({ message: "Failed to delete documents" });
+    }
+  });
+
+  app.get("/api/admin/customers/export", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { status } = req.query;
+      const csv = await storage.exportCustomersToCSV({ status });
+
+      // Log action
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        action: 'customer_export',
+        resourceType: 'customer',
+        resourceId: 'bulk',
+        status: 'success',
+        details: { filters: { status } },
+      });
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="customers.csv"');
+      res.send(csv);
+    } catch (error) {
+      console.error("Error exporting customers:", error);
+      res.status(500).json({ message: "Failed to export customers" });
+    }
+  });
+
+  // ============================================================================
+  // SESSION MANAGEMENT
+  // ============================================================================
+
+  app.post("/api/auth/logout", requireAuth, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.dbUser?.id;
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('user-agent');
+
+      if (userId) {
+        await storage.logUserSession(userId, 'logout', ipAddress, userAgent);
+      }
+
+      req.logout((err: any) => {
+        if (err) {
+          return res.status(500).json({ message: "Failed to logout" });
+        }
+        res.json({ message: "Logged out successfully" });
+      });
+    } catch (error) {
+      console.error("Error logging out:", error);
+      res.status(500).json({ message: "Failed to logout" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 

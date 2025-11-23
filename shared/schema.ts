@@ -39,12 +39,18 @@ export const auditActionEnum = pgEnum('alwr_audit_action', [
   'document_view',
   'document_download',
   'document_delete',
+  'document_bulk_delete',
   'emergency_access',
   'profile_update',
   'subscription_create',
   'subscription_update',
   'customer_create',
-  'customer_update'
+  'customer_update',
+  'customer_export',
+  'two_factor_enable',
+  'two_factor_disable',
+  'login',
+  'logout'
 ]);
 
 export const emailNotificationTypeEnum = pgEnum('alwr_email_notification_type', [
@@ -62,6 +68,12 @@ export const emailStatusEnum = pgEnum('alwr_email_status', [
   'sent',
   'failed',
   'bounced'
+]);
+
+export const twoFactorMethodEnum = pgEnum('alwr_2fa_method', [
+  'totp',
+  'email',
+  'backup_code'
 ]);
 
 // ============================================================================
@@ -87,6 +99,12 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").default('customer').notNull(),
+  
+  // Two-Factor Authentication (TOTP-based)
+  twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
+  twoFactorSecret: varchar("two_factor_secret"), // Encrypted in production
+  twoFactorBackupCodes: text("two_factor_backup_codes"), // JSON array of backup codes
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

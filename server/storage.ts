@@ -21,6 +21,8 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(userId: string, role: 'customer' | 'admin' | 'agent'): Promise<void>;
   listAllUsers(limit?: number, offset?: number): Promise<User[]>;
+  updateUserTwoFactor(userId: string, enabled: boolean, secret?: string, backupCodes?: string[]): Promise<User | undefined>;
+  getUserTwoFactorStatus(userId: string): Promise<{ enabled: boolean; secret?: string; backupCodes?: string[] } | undefined>;
 
   // Customer Operations
   getCustomer(userId: string): Promise<Customer | undefined>;
@@ -47,6 +49,7 @@ export interface IStorage {
   getDocument(documentId: string): Promise<Document | undefined>;
   listDocumentsByCustomer(customerId: string): Promise<Document[]>;
   deleteDocument(documentId: string): Promise<void>;
+  bulkDeleteDocuments(documentIds: string[]): Promise<number>; // Returns count deleted
   incrementDocumentAccess(documentId: string): Promise<void>;
   
   // Document Versioning
@@ -102,6 +105,12 @@ export interface IStorage {
 
   // Global Search
   globalSearch(query: string, limit?: number): Promise<any[]>;
+
+  // Bulk Operations
+  exportCustomersToCSV(filters?: { tags?: string[]; status?: string }): Promise<string>; // Returns CSV string
+  
+  // Session Management (for audit logging)
+  logUserSession(userId: string, action: 'login' | 'logout', ipAddress?: string, userAgent?: string): Promise<void>;
 
   // Dashboard Stats
   getDashboardStats(): Promise<{
@@ -784,6 +793,119 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return result;
+  }
+
+  // ============================================================================
+  // TWO-FACTOR AUTHENTICATION
+  // ============================================================================
+
+  async updateUserTwoFactor(
+    userId: string,
+    enabled: boolean,
+    secret?: string,
+    backupCodes?: string[]
+  ): Promise<User | undefined> {
+    const updateData: any = { twoFactorEnabled: enabled };
+    if (secret) {
+      updateData.twoFactorSecret = secret;
+    }
+    if (backupCodes) {
+      updateData.twoFactorBackupCodes = JSON.stringify(backupCodes);
+    }
+
+    const [result] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+
+    return result;
+  }
+
+  async getUserTwoFactorStatus(userId: string): Promise<{ enabled: boolean; secret?: string; backupCodes?: string[] } | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    return {
+      enabled: user.twoFactorEnabled,
+      secret: user.twoFactorSecret || undefined,
+      backupCodes: user.twoFactorBackupCodes ? JSON.parse(user.twoFactorBackupCodes) : undefined,
+    };
+  }
+
+  // ============================================================================
+  // BULK OPERATIONS
+  // ============================================================================
+
+  async bulkDeleteDocuments(documentIds: string[]): Promise<number> {
+    if (documentIds.length === 0) return 0;
+
+    // Delete all versions first
+    await db.delete(documentVersions).where(
+      documentVersions.documentId.inArray(documentIds)
+    );
+
+    // Delete documents
+    const result = await db.delete(documents).where(
+      documents.id.inArray(documentIds)
+    );
+
+    return documentIds.length;
+  }
+
+  async exportCustomersToCSV(filters?: { tags?: string[]; status?: string }): Promise<string> {
+    let customerList = await this.listCustomers(10000, 0);
+
+    // Apply filters
+    if (filters?.status) {
+      customerList = customerList.filter(c => c.accountStatus === filters.status);
+    }
+
+    // Build CSV
+    const headers = [
+      'Customer ID',
+      'Name',
+      'Email',
+      'Phone',
+      'City',
+      'State',
+      'Account Status',
+      'ID Card Number',
+      'Created Date',
+    ];
+
+    const rows = customerList.map(customer => {
+      const user = customer.userId;
+      return [
+        customer.id,
+        customer.firstName + ' ' + customer.lastName || 'N/A',
+        customer.email || 'N/A',
+        customer.phone || 'N/A',
+        customer.city || 'N/A',
+        customer.state || 'N/A',
+        customer.accountStatus,
+        customer.idCardNumber || 'N/A',
+        customer.createdAt ? new Date(customer.createdAt).toISOString() : 'N/A',
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+
+    return csvContent;
+  }
+
+  async logUserSession(userId: string, action: 'login' | 'logout', ipAddress?: string, userAgent?: string): Promise<void> {
+    await this.createAuditLog({
+      userId,
+      action: action as any,
+      resourceType: 'user',
+      resourceId: userId,
+      status: 'success',
+      details: { ipAddress, userAgent },
+    });
   }
 }
 
