@@ -264,7 +264,7 @@ export function AppSidebar() {
                           <SidebarMenuSubButton asChild data-testid="nav-create-customer">
                             <a href="/admin/customers/new">
                               <User className="h-4 w-4" />
-                              <span>New Customer</span>
+                              <span>Assign Customer</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -370,7 +370,7 @@ export function AppSidebar() {
                           <SidebarMenuSubButton asChild data-testid="nav-agents-new">
                             <a href="/admin/agents/new">
                               <UserCheck className="h-4 w-4" />
-                              <span>New Agent</span>
+                              <span>Assign Agent</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -416,7 +416,7 @@ export function AppSidebar() {
                           <SidebarMenuSubButton asChild data-testid="nav-resellers-new">
                             <a href="/admin/resellers/new">
                               <Briefcase className="h-4 w-4" />
-                              <span>New Reseller</span>
+                              <span>Assign Reseller</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
