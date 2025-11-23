@@ -11,10 +11,9 @@ async function seedMockData() {
   console.log("🌱 Seeding mock admin users...");
 
   try {
-    // Create admin and super_admin users
+    // Create only the super_admin user (carlo@wdmorgan.com)
     const adminUsers = [
-      { email: "super@admin.com", firstName: "Super", lastName: "Admin", password: "SuperAdmin123!", role: "super_admin" },
-      { email: "admin@alwr.com", firstName: "Admin", lastName: "User", password: "Admin123!", role: "admin" },
+      { email: "carlo@wdmorgan.com", firstName: "Carlo", lastName: "Morgan", password: "Carlo123!", role: "super_admin" },
     ];
 
     for (const adminUser of adminUsers) {

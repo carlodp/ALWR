@@ -10,6 +10,8 @@ The America Living Will Registry (ALWR) API is the custom backend for a 24/7 onl
 - Prefer working, secure features over perfect code
 - WordPress handles all UI/UX + CMS content (separate from this API)
 - NO Strapi CMS - WordPress provides all content management
+- **CRITICAL**: carlo@wdmorgan.com is the ONLY super admin account (password: Carlo123!)
+- Only create additional admin/agent/reseller accounts as needed via the admin panel
 
 ### System Architecture
 This Replit instance hosts a custom API backend built with Express.js and Node.js, offering over 80 REST API endpoints. It interacts with a PostgreSQL database using Drizzle ORM for type-safe operations. The architecture strictly separates the UI (handled by WordPress) from the business logic.
