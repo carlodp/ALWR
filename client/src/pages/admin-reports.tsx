@@ -1,18 +1,104 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeStats } from "@/hooks/useRealtimeStats";
-import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, Zap } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { TrendingUp, Plus, Clock, CheckCircle, AlertCircle, Zap } from "lucide-react";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+// Form schema for creating/editing report schedules
+const reportScheduleSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  reportType: z.enum(["revenue", "subscriptions", "customers", "documents", "comprehensive"]),
+  frequency: z.enum(["daily", "weekly", "monthly"]),
+  recipientEmails: z.string().min(1, "At least one email is required"),
+  includeCharts: z.boolean().default(true),
+  hour: z.number().min(0).max(23),
+  dayOfWeek: z.number().min(0).max(6).optional(),
+  dayOfMonth: z.number().min(1).max(31).optional(),
+});
+
+type ReportScheduleFormData = z.infer<typeof reportScheduleSchema>;
 
 export default function AdminReports() {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-  const { data: reports, isLoading } = useRealtimeStats();
+  const { data: reports, isLoading: statsLoading } = useRealtimeStats();
+  const [openDialog, setOpenDialog] = useState(false);
+
+  const form = useForm<ReportScheduleFormData>({
+    resolver: zodResolver(reportScheduleSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      reportType: "comprehensive",
+      frequency: "weekly",
+      recipientEmails: "",
+      includeCharts: true,
+      hour: 9,
+    },
+  });
+
+  // Fetch report schedules
+  const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
+    queryKey: ["/api/admin/reports/schedules"],
+    enabled: isAdmin && !authLoading,
+    staleTime: 30000,
+  });
+
+  // Fetch report history
+  const { data: history = [], isLoading: historyLoading } = useQuery({
+    queryKey: ["/api/admin/reports/history"],
+    enabled: isAdmin && !authLoading,
+    staleTime: 30000,
+  });
+
+  // Create schedule mutation
+  const createSchedule = useMutation({
+    mutationFn: (data: ReportScheduleFormData) =>
+      apiRequest("POST", "/api/admin/reports/schedules", {
+        ...data,
+        recipientEmails: data.recipientEmails.split(",").map(e => e.trim()),
+      }),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Report schedule created" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/reports/schedules"] });
+      form.reset();
+      setOpenDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create schedule",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Toggle schedule mutation
+  const toggleSchedule = useMutation({
+    mutationFn: (scheduleId: string) =>
+      apiRequest("PATCH", `/api/admin/reports/schedules/${scheduleId}/toggle`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/reports/schedules"] });
+    },
+  });
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -36,7 +122,7 @@ export default function AdminReports() {
       <div className="space-y-2">
         <h1 className="text-3xl md:text-4xl font-bold">Reports & Analytics</h1>
         <p className="text-muted-foreground text-lg">
-          Detailed business metrics and trends
+          Detailed business metrics, trends, and automated report scheduling
         </p>
       </div>
 
@@ -47,7 +133,7 @@ export default function AdminReports() {
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-32" />
             ) : (
               <>
@@ -65,7 +151,7 @@ export default function AdminReports() {
             <CardTitle className="text-sm font-medium">Average Revenue per Customer</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-32" />
             ) : (
               <>
@@ -86,7 +172,7 @@ export default function AdminReports() {
           <CardDescription>Monthly revenue overview</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {statsLoading ? (
             <Skeleton className="h-80 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -110,7 +196,7 @@ export default function AdminReports() {
           <CardDescription>Current subscription breakdown</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {statsLoading ? (
             <Skeleton className="h-80 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -143,7 +229,7 @@ export default function AdminReports() {
           <CardDescription>Weekly document uploads</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {statsLoading ? (
             <Skeleton className="h-80 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -174,7 +260,7 @@ export default function AdminReports() {
           <CardDescription>Customers with most documents on file</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {statsLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-12 w-full" />
@@ -208,6 +294,302 @@ export default function AdminReports() {
           )}
         </CardContent>
       </Card>
+
+      {/* Automated Report Schedules Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Automated Report Schedules</h2>
+            <p className="text-muted-foreground">Create and manage automatic report delivery</p>
+          </div>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-create-schedule">
+                <Plus className="h-4 w-4 mr-2" />
+                New Schedule
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create Report Schedule</DialogTitle>
+                <DialogDescription>
+                  Set up automatic report generation and email delivery
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => createSchedule.mutate(data))} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Schedule Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Weekly Revenue Report" {...field} data-testid="input-schedule-name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Add notes about this report..." {...field} data-testid="input-schedule-desc" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="reportType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Report Type</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-report-type">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="revenue">Revenue Report</SelectItem>
+                            <SelectItem value="subscriptions">Subscriptions Report</SelectItem>
+                            <SelectItem value="customers">Customers Report</SelectItem>
+                            <SelectItem value="documents">Documents Report</SelectItem>
+                            <SelectItem value="comprehensive">Comprehensive Report</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="frequency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Frequency</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-frequency">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hour"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Delivery Time (Hour)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            max="23" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            data-testid="input-hour"
+                          />
+                        </FormControl>
+                        <FormDescription>24-hour format (0-23)</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="recipientEmails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recipient Emails</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="email1@example.com, email2@example.com" 
+                            {...field}
+                            data-testid="input-emails"
+                          />
+                        </FormControl>
+                        <FormDescription>Comma-separated email addresses</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="includeCharts"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>Include Charts</FormLabel>
+                          <FormDescription>
+                            Include visual charts in email reports
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="checkbox-charts"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="w-full" disabled={createSchedule.isPending} data-testid="button-submit-schedule">
+                    {createSchedule.isPending ? "Creating..." : "Create Schedule"}
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Schedules List */}
+        <div className="grid gap-4">
+          {schedulesLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : schedules && schedules.length > 0 ? (
+            schedules.map((schedule: any) => (
+              <Card key={schedule.id} data-testid={`card-schedule-${schedule.id}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">{schedule.name}</CardTitle>
+                      {schedule.description && (
+                        <CardDescription>{schedule.description}</CardDescription>
+                      )}
+                    </div>
+                    <Badge variant={schedule.isActive ? "default" : "secondary"}>
+                      {schedule.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Report Type</p>
+                      <p className="font-medium capitalize">{schedule.reportType}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Frequency</p>
+                      <p className="font-medium capitalize">{schedule.frequency}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Delivery Time</p>
+                      <p className="font-medium">{schedule.hour}:00</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Recipients</p>
+                      <p className="font-medium">{schedule.recipientEmails?.length || 0} email(s)</p>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleSchedule.mutate(schedule.id)}
+                      data-testid={`button-toggle-schedule-${schedule.id}`}
+                    >
+                      {schedule.isActive ? "Disable" : "Enable"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                No scheduled reports yet. Create one to get started.
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Report History */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold">Recent Report History</h2>
+          <p className="text-muted-foreground">Generated and sent reports</p>
+        </div>
+
+        <div className="grid gap-4">
+          {historyLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : history && history.length > 0 ? (
+            history.slice(0, 10).map((item: any) => (
+              <Card key={item.id} data-testid={`card-history-${item.id}`}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="font-medium">{item.scheduleId}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Generated {new Date(item.generatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.deliveryStatus === "sent" && (
+                        <>
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                          <span className="text-sm font-medium text-green-700 dark:text-green-400">Sent</span>
+                        </>
+                      )}
+                      {item.deliveryStatus === "pending" && (
+                        <>
+                          <Clock className="h-5 w-5 text-yellow-500" />
+                          <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Pending</span>
+                        </>
+                      )}
+                      {item.deliveryStatus === "failed" && (
+                        <>
+                          <AlertCircle className="h-5 w-5 text-red-500" />
+                          <span className="text-sm font-medium text-red-700 dark:text-red-400">Failed</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                No report history yet.
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

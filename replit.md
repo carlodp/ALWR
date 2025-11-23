@@ -17,7 +17,7 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 **Key Architectural Decisions & Features:**
 -   **Technology Stack**: Node.js, Express.js, PostgreSQL, Drizzle ORM, TypeScript.
 -   **Authentication & Authorization**: Custom email/password authentication, account locking, session management with PostgreSQL store, secure cookie-based sessions, and role-based access control (Super Admin, Admin, Agent, Reseller, Customer).
--   **Core Modules**: User & Role Management, Document Management (upload, versioning, audit logging), Emergency Access Lookup (HIPAA compliant), Agent & Reseller Management, Payment & Subscription tracking, Reporting & Analytics (real-time WebSocket statistics), ID Card Generation, Email Notification System, and Two-Factor Authentication (TOTP-based).
+-   **Core Modules**: User & Role Management, Document Management (upload, versioning, audit logging), Emergency Access Lookup (HIPAA compliant), Agent & Reseller Management, Payment & Subscription tracking, Reporting & Analytics (real-time WebSocket statistics, automated report scheduling), ID Card Generation, Email Notification System, and Two-Factor Authentication (TOTP-based).
 -   **Security & Compliance**: Rate limiting (role-based, per-user, concurrent operation limits), security headers, Zod-based input validation, error sanitization, file upload security, comprehensive audit logging, session timeout, secure password handling with bcrypt, and tracking of failed login attempts.
 -   **Database Schema**: Comprises tables for Users, Customers, Subscriptions, Documents, Emergency Access Logs, Customer Notes, Audit Logs, Physical Card Orders, Email Templates, Agents, Resellers, failed login attempts, and data export requests. Includes database indices on frequently queried columns and slow query logging with N+1 detection.
 -   **UI/UX Interaction (WordPress Frontend)**: The API supports user creation flow, dynamic field rendering, integrated password generation, and manages all public-facing and customer portal interactions via the external WordPress instance.
@@ -28,6 +28,32 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 -   **Email Queue System**: Asynchronous email processing with automatic retries, delivery status tracking, and pre-built methods for common email scenarios.
 -   **Automated Testing Suite**: Comprehensive suite with Jest for unit and integration tests, including mock data generation, coverage tracking, and zero database dependency for isolated testing.
 -   **Admin Analytics Dashboard**: Real-time WebSocket-based dashboard with live metrics, system health monitoring, and historical trends for subscriptions, revenue, customer growth, and document uploads.
+-   **Automated Report Scheduling**: Enterprise-grade report generation with customizable schedules (daily/weekly/monthly), multiple report types (revenue, subscriptions, customers, documents, comprehensive), multi-recipient email delivery, schedule management UI, and delivery tracking.
+
+## Recent Implementations (November 23, 2025)
+
+### Automated Report Scheduling
+**Features**:
+- Report types: Revenue, Subscriptions, Customers, Documents, Comprehensive
+- Schedule frequencies: Daily, Weekly, Monthly with custom delivery times
+- Multi-recipient email support per schedule
+- Schedule enable/disable toggle
+- Report history tracking with delivery status (pending/sent/failed)
+- API endpoints: GET /api/admin/reports/schedules, POST /api/admin/reports/schedules, PATCH /api/admin/reports/schedules/:id/toggle, GET /api/admin/reports/history
+- Database tables: report_schedules, report_history with full CRUD storage methods
+- Integrated into Reports page (/admin/reports) with UI for creating and managing schedules
+- Dashboard card linking to Reports section
+
+### Real-Time Dashboard Analytics
+**Features**:
+- WebSocket-powered metrics updating every 5 seconds
+- 10+ new dashboard metrics with growth trends
+- Live connection indicator
+- Auto-reconnection on disconnect
+- Primary metrics: Total Customers, Active Subscriptions, Documents Stored, Monthly Revenue
+- Secondary metrics: Expiring Soon, New Today, Active Users
+- Real-time activity feed with status indicators
+- System health monitoring
 
 ## External Dependencies
 -   **Replit Auth**: For initial user authentication.

@@ -2,7 +2,7 @@ import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
   customerTags, physicalCardOrders, emailTemplates, emailNotifications, agents, agentCustomerAssignments,
-  resellers, resellerCustomerReferrals, failedLoginAttempts, dataExports,
+  resellers, resellerCustomerReferrals, failedLoginAttempts, dataExports, reportSchedules, reportHistory,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -15,7 +15,8 @@ import {
   type Agent, type InsertAgent, type AgentCustomerAssignment, type InsertAgentCustomerAssignment,
   type Reseller, type InsertReseller, type ResellerCustomerReferral, type InsertResellerCustomerReferral,
   type FailedLoginAttempt, type InsertFailedLoginAttempt,
-  type DataExport, type InsertDataExport
+  type DataExport, type InsertDataExport, type ReportSchedule, type InsertReportSchedule,
+  type ReportHistory, type InsertReportHistory
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 
@@ -132,6 +133,18 @@ export interface IStorage {
   updateDataExportFile(exportId: string, storageKey: string, fileSize: number): Promise<DataExport | undefined>;
   incrementDataExportDownloadCount(exportId: string): Promise<void>;
   deleteExpiredDataExports(): Promise<number>; // Returns count deleted
+
+  // Report Schedules
+  createReportSchedule(data: InsertReportSchedule & { nextScheduledAt: Date }): Promise<ReportSchedule>;
+  getReportSchedule(scheduleId: string): Promise<ReportSchedule | undefined>;
+  listReportSchedules(userId: string): Promise<ReportSchedule[]>;
+  updateReportSchedule(scheduleId: string, data: Partial<ReportSchedule>): Promise<ReportSchedule | undefined>;
+  deleteReportSchedule(scheduleId: string): Promise<void>;
+
+  // Report History
+  createReportHistory(data: InsertReportHistory & { generatedAt?: Date }): Promise<ReportHistory>;
+  listReportHistory(userId: string): Promise<ReportHistory[]>;
+  getReportHistoryBySchedule(scheduleId: string): Promise<ReportHistory[]>;
 
   // Customer Tags
   addCustomerTag(tag: InsertCustomerTag): Promise<CustomerTag>;
@@ -1377,6 +1390,58 @@ export class DatabaseStorage implements IStorage {
       console.error('Failed to log user session:', error);
       // Don't throw - we don't want failed audit logging to break logout/login
     }
+  }
+
+  // ============================================================================
+  // REPORT SCHEDULING
+  // ============================================================================
+
+  async createReportSchedule(data: InsertReportSchedule & { nextScheduledAt: Date }): Promise<ReportSchedule> {
+    const [created] = await db.insert(reportSchedules).values(data).returning();
+    return created;
+  }
+
+  async getReportSchedule(scheduleId: string): Promise<ReportSchedule | undefined> {
+    return await db.query.reportSchedules.findFirst({
+      where: eq(reportSchedules.id, scheduleId),
+    });
+  }
+
+  async listReportSchedules(userId: string): Promise<ReportSchedule[]> {
+    return await db.query.reportSchedules.findMany({
+      where: eq(reportSchedules.userId, userId),
+    });
+  }
+
+  async updateReportSchedule(scheduleId: string, data: Partial<ReportSchedule>): Promise<ReportSchedule | undefined> {
+    const [updated] = await db.update(reportSchedules)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(reportSchedules.id, scheduleId))
+      .returning();
+    return updated;
+  }
+
+  async deleteReportSchedule(scheduleId: string): Promise<void> {
+    await db.delete(reportSchedules).where(eq(reportSchedules.id, scheduleId));
+  }
+
+  async createReportHistory(data: InsertReportHistory & { generatedAt?: Date }): Promise<ReportHistory> {
+    const [created] = await db.insert(reportHistory).values(data).returning();
+    return created;
+  }
+
+  async listReportHistory(userId: string): Promise<ReportHistory[]> {
+    return await db.query.reportHistory.findMany({
+      orderBy: [desc(reportHistory.generatedAt)],
+      limit: 50,
+    });
+  }
+
+  async getReportHistoryBySchedule(scheduleId: string): Promise<ReportHistory[]> {
+    return await db.query.reportHistory.findMany({
+      where: eq(reportHistory.scheduleId, scheduleId),
+      orderBy: [desc(reportHistory.generatedAt)],
+    });
   }
 }
 

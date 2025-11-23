@@ -11,7 +11,8 @@ import {
   insertCustomerSchema, 
   insertDocumentSchema,
   insertEmergencyAccessLogSchema,
-  insertSubscriptionSchema 
+  insertSubscriptionSchema,
+  insertReportScheduleSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { calculateStats, invalidateStatsCache } from "./statsService";
@@ -49,6 +50,38 @@ function generateIdCardNumber(): string {
   const part2 = Math.random().toString(36).substring(2, 6).toUpperCase();
   const part3 = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}-${part1}-${part2}-${part3}`;
+}
+
+// Helper to calculate next scheduled time for reports
+function calculateNextScheduledTime(
+  frequency: 'daily' | 'weekly' | 'monthly',
+  hour: number,
+  dayOfWeek?: number | null,
+  dayOfMonth?: number | null
+): Date {
+  const now = new Date();
+  const nextScheduled = new Date(now);
+  nextScheduled.setHours(hour, 0, 0, 0);
+
+  if (frequency === 'daily') {
+    if (nextScheduled <= now) {
+      nextScheduled.setDate(nextScheduled.getDate() + 1);
+    }
+  } else if (frequency === 'weekly') {
+    const targetDay = dayOfWeek ?? 0; // Default to Sunday
+    while (nextScheduled.getDay() !== targetDay || nextScheduled <= now) {
+      nextScheduled.setDate(nextScheduled.getDate() + 1);
+    }
+  } else if (frequency === 'monthly') {
+    const targetDay = dayOfMonth ?? 1; // Default to 1st
+    nextScheduled.setDate(targetDay);
+    if (nextScheduled <= now) {
+      nextScheduled.setMonth(nextScheduled.getMonth() + 1);
+      nextScheduled.setDate(targetDay);
+    }
+  }
+
+  return nextScheduled;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1669,6 +1702,77 @@ startxref
     } catch (error) {
       console.error("Error getting reports:", error);
       res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  // Get report schedules (admin)
+  app.get("/api/admin/reports/schedules", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const schedules = await storage.listReportSchedules(req.user.dbUser.id);
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error getting schedules:", error);
+      res.status(500).json({ message: "Failed to fetch schedules" });
+    }
+  });
+
+  // Create report schedule (admin)
+  app.post("/api/admin/reports/schedules", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const validated = insertReportScheduleSchema.parse(req.body);
+      
+      // Calculate next scheduled time
+      const nextScheduledAt = calculateNextScheduledTime(validated.frequency, validated.hour, validated.dayOfWeek, validated.dayOfMonth);
+      
+      const schedule = await storage.createReportSchedule({
+        ...validated,
+        userId: req.user.dbUser.id,
+        nextScheduledAt,
+      });
+
+      res.json(schedule);
+    } catch (error: any) {
+      console.error("Error creating schedule:", error);
+      if (error.issues) {
+        return res.status(400).json({ message: "Invalid input", errors: error.issues });
+      }
+      res.status(500).json({ message: "Failed to create schedule" });
+    }
+  });
+
+  // Toggle report schedule status (admin)
+  app.patch("/api/admin/reports/schedules/:id/toggle", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const schedule = await storage.getReportSchedule(id);
+      
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+
+      if (schedule.userId !== req.user.dbUser.id && req.user.dbUser.role !== 'super_admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const updated = await storage.updateReportSchedule(id, {
+        isActive: !schedule.isActive,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error toggling schedule:", error);
+      res.status(500).json({ message: "Failed to toggle schedule" });
+    }
+  });
+
+  // Get report history (admin)
+  app.get("/api/admin/reports/history", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const history = await storage.listReportHistory(req.user.dbUser.id);
+      res.json(history);
+    } catch (error) {
+      console.error("Error getting history:", error);
+      res.status(500).json({ message: "Failed to fetch history" });
     }
   });
 

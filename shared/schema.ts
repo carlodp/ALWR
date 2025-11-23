@@ -76,6 +76,20 @@ export const twoFactorMethodEnum = pgEnum('alwr_2fa_method', [
   'backup_code'
 ]);
 
+export const reportFrequencyEnum = pgEnum('alwr_report_frequency', [
+  'daily',
+  'weekly',
+  'monthly'
+]);
+
+export const reportTypeEnum = pgEnum('alwr_report_type', [
+  'revenue',
+  'subscriptions',
+  'customers',
+  'documents',
+  'comprehensive'
+]);
+
 // ============================================================================
 // AUTHENTICATION TABLES (Required by Replit Auth)
 // ============================================================================
@@ -417,6 +431,61 @@ export const failedLoginAttempts = pgTable("failed_login_attempts", {
 // ============================================================================
 // DATA EXPORTS (Customer Data Access Right)
 // ============================================================================
+
+// Report Scheduling Table
+export const reportSchedules = pgTable("report_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Schedule Configuration
+  name: varchar("name").notNull(),
+  description: text("description"),
+  reportType: reportTypeEnum("report_type").notNull(),
+  frequency: reportFrequencyEnum("frequency").notNull(),
+  
+  // Email Configuration
+  recipientEmails: text("recipient_emails").array().notNull(), // Array of emails to receive the report
+  includeCharts: boolean("include_charts").default(true).notNull(),
+  
+  // Timing
+  dayOfWeek: integer("day_of_week"), // 0-6 for weekly reports
+  dayOfMonth: integer("day_of_month"), // 1-31 for monthly reports
+  hour: integer("hour").default(9).notNull(), // Hour of day (0-23)
+  
+  // Status
+  isActive: boolean("is_active").default(true).notNull(),
+  lastGeneratedAt: timestamp("last_generated_at"),
+  nextScheduledAt: timestamp("next_scheduled_at"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_report_user_id").on(table.userId),
+  index("idx_report_is_active").on(table.isActive),
+  index("idx_report_next_scheduled").on(table.nextScheduledAt),
+]);
+
+// Report History Table
+export const reportHistory = pgTable("report_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scheduleId: varchar("schedule_id").references(() => reportSchedules.id).notNull(),
+  
+  // Report Details
+  generatedAt: timestamp("generated_at").defaultNow(),
+  sentAt: timestamp("sent_at"),
+  emailsDelivered: text("emails_delivered").array(),
+  deliveryStatus: varchar("delivery_status").default('pending').notNull(), // pending, sent, failed
+  deliveryError: text("delivery_error"),
+  
+  // Report Snapshot
+  dataSnapshot: jsonb("data_snapshot"), // Store the actual report data
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_history_schedule_id").on(table.scheduleId),
+  index("idx_history_generated_at").on(table.generatedAt),
+]);
 
 export const dataExports = pgTable("data_exports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -896,6 +965,20 @@ export const insertDataExportSchema = createInsertSchema(dataExports).omit({
   downloadCount: true,
 });
 
+export const insertReportScheduleSchema = createInsertSchema(reportSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastGeneratedAt: true,
+  nextScheduledAt: true,
+});
+
+export const insertReportHistorySchema = createInsertSchema(reportHistory).omit({
+  id: true,
+  createdAt: true,
+  generatedAt: true,
+});
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -950,6 +1033,12 @@ export type FailedLoginAttempt = typeof failedLoginAttempts.$inferSelect;
 
 export type InsertDataExport = z.infer<typeof insertDataExportSchema>;
 export type DataExport = typeof dataExports.$inferSelect;
+
+export type InsertReportSchedule = z.infer<typeof insertReportScheduleSchema>;
+export type ReportSchedule = typeof reportSchedules.$inferSelect;
+
+export type InsertReportHistory = z.infer<typeof insertReportHistorySchema>;
+export type ReportHistory = typeof reportHistory.$inferSelect;
 
 // Global Search Results
 export interface GlobalSearchResult {
