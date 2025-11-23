@@ -129,6 +129,24 @@ ALWR is built with a modern web stack. The frontend utilizes **React** for dynam
 - ✅ Audit logging for all session events (login, logout)
 - ✅ New audit actions: login, logout, document_bulk_delete, customer_export, two_factor_enable, two_factor_disable
 
+#### ✅ **Feature #10: Real-Time Admin Dashboard Stats** (COMPLETE)
+- ✅ WebSocket-based real-time stats streaming (broadcasts every 5 seconds)
+- ✅ Backend stats calculation service with intelligent caching (30-second TTL)
+- ✅ Frontend React hook (`useRealtimeStats`) for subscribing to live updates
+- ✅ Admin dashboard auto-updates with live revenue, subscription, and document metrics
+- ✅ Automatic cache invalidation on data changes (document upload, bulk delete)
+- ✅ Graceful reconnection handling for WebSocket connections
+- ✅ Smooth real-time chart and metric updates using Recharts
+- ✅ Server components: `statsService.ts`, `websocketStats.ts`
+- ✅ Frontend components: `useRealtimeStats` hook, updated `admin-reports.tsx`
+- ✅ WebSocket endpoint: `/ws/stats` (accessible to authenticated admins)
+- ✅ Real-time metrics include:
+  - Revenue trends by month
+  - Subscription status distribution
+  - Document upload trends (weekly)
+  - Top customers by documents
+  - Total revenue and average revenue per customer
+
 ### UI/UX Decisions:
 - Utilizes **shadcn/ui** for consistent, accessible components.
 - Responsive design for optimal viewing on mobile and desktop devices.

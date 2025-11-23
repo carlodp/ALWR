@@ -1,26 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeStats } from "@/hooks/useRealtimeStats";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp } from "lucide-react";
-
-type ReportsData = {
-  revenueByMonth: { month: string; revenue: number }[];
-  subscriptionStats: { status: string; count: number }[];
-  documentUploadTrend: { week: string; uploads: number }[];
-  topCustomersByDocuments: { name: string; documents: number }[];
-  avgRevenuePerCustomer: number;
-  totalRevenue: number;
-};
+import { TrendingUp, Zap } from "lucide-react";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function AdminReports() {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { data: reports, isLoading } = useRealtimeStats();
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -34,10 +26,6 @@ export default function AdminReports() {
       }, 1000);
     }
   }, [isAdmin, authLoading, toast]);
-
-  const { data: reports, isLoading } = useQuery<ReportsData>({
-    queryKey: ["/api/admin/reports"],
-  });
 
   if (authLoading || !isAdmin) {
     return null;
