@@ -1241,14 +1241,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async logUserSession(userId: string, action: 'login' | 'logout', ipAddress?: string, userAgent?: string): Promise<void> {
-    await this.createAuditLog({
-      userId,
-      action: action as any,
-      resourceType: 'user',
-      resourceId: userId,
-      status: 'success',
-      details: { ipAddress, userAgent },
-    });
+    try {
+      // Fetch user to get their name and role for audit log
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+      });
+
+      if (!user) {
+        console.warn(`User ${userId} not found for session logging`);
+        return;
+      }
+
+      const actorName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown';
+      const actorRole = user.role || 'unknown';
+
+      await this.createAuditLog({
+        userId,
+        actorName,
+        actorRole,
+        action: action as any,
+        resourceType: 'user',
+        resourceId: userId,
+        success: true,
+        details: { ipAddress, userAgent },
+      });
+    } catch (error) {
+      console.error('Failed to log user session:', error);
+      // Don't throw - we don't want failed audit logging to break logout/login
+    }
   }
 }
 
