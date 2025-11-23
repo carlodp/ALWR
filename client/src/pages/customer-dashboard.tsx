@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FileText, CreditCard, User, Upload, AlertCircle, CheckCircle2, Clock, Lock, Shield, Activity, HelpCircle, DollarSign, Eye, EyeOff } from "lucide-react";
 import type { Customer, Subscription, Document } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -388,30 +389,74 @@ export default function CustomerDashboard() {
       {/* Help & Support */}
       <Card data-testid="card-help-support">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HelpCircle className="h-5 w-5" />
-            Help & Support
-          </CardTitle>
-          <CardDescription>Quick answers and support resources</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Button variant="outline" size="sm" asChild data-testid="button-help-documents">
-              <a href="#documents">How to Upload Documents</a>
-            </Button>
-            <Button variant="outline" size="sm" asChild data-testid="button-help-security">
-              <a href="#security">Enable 2FA</a>
-            </Button>
-            <Button variant="outline" size="sm" asChild data-testid="button-help-subscription">
-              <a href="/customer/subscription">Manage Subscription</a>
-            </Button>
-            <Button variant="outline" size="sm" asChild data-testid="button-help-contact">
-              <a href="/emergency-access">Emergency Access</a>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <HelpCircle className="h-5 w-5" />
+                Help & Support
+              </CardTitle>
+              <CardDescription>Quick answers and support resources</CardDescription>
+            </div>
+            <Button asChild variant="default" size="sm" data-testid="button-visit-help-center">
+              <a href="/customer/help">Visit Help Center</a>
             </Button>
           </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Quick Links */}
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Button variant="outline" size="sm" asChild data-testid="button-help-documents">
+              <a href="/customer/help?category=Documents">How to Upload Documents</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild data-testid="button-help-security">
+              <a href="/customer/help?category=Security">Enable 2FA</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild data-testid="button-help-subscription">
+              <a href="/customer/help?category=Billing">Manage Subscription</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild data-testid="button-help-contact">
+              <a href="/customer/help?category=Emergency">Emergency Access</a>
+            </Button>
+          </div>
+
+          {/* Mini FAQ */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Common questions:</p>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="faq-secure" data-testid="accordion-faq-security">
+                <AccordionTrigger className="text-sm hover:no-underline">
+                  Is my data secure?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground">
+                  Yes. All your documents and personal information are encrypted with industry-standard encryption. ALWR is HIPAA-compliant.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-password" data-testid="accordion-faq-password">
+                <AccordionTrigger className="text-sm hover:no-underline">
+                  What if I forget my password?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground">
+                  Click "Forgot Password" on the login page and follow the reset link sent to your email.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-subscribe" data-testid="accordion-faq-subscription">
+                <AccordionTrigger className="text-sm hover:no-underline">
+                  What happens if my subscription expires?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground">
+                  Your documents stay securely stored, but you can't upload new ones. Renew anytime to resume.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+
+          {/* Support Info */}
           <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-sm" data-testid="section-support-info">
             <p className="text-blue-900 dark:text-blue-100">
-              Need assistance? Contact our support team at <a href="mailto:support@alwr.org" className="font-medium hover:underline">support@alwr.org</a>
+              Need more help? Contact our support team at{" "}
+              <a href="mailto:support@alwr.org" className="font-medium hover:underline">
+                support@alwr.org
+              </a>
             </p>
           </div>
         </CardContent>

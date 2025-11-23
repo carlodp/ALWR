@@ -32,20 +32,44 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 
 ## Recent Implementations (November 23, 2025)
 
-### Enhanced Customer Dashboard
-**Key Features Added**:
+### Enhanced Customer Dashboard & Help Center
+**Dashboard Features Added**:
 - Account security status section showing 2FA status and last login time
-- Help & support section with quick access to common tasks
+- Help & support section with mini FAQ accordion (3 common questions)
+- Quick action shortcuts to guides with category filters
+- Visit Help Center button with full access to all resources
 - Color-coded security indicators (green for protected, orange for not protected)
-- Quick action shortcuts to profile, documents, subscription, and ID card
 - Recent documents preview with quick view option
 - Professional card-based layout with clear visual hierarchy
 - Responsive design that works on all screen sizes
-- Loading states and skeleton screens for smooth UX
 - All testable with proper data-testid attributes
 
+**Comprehensive Help Center** (`/customer/help`):
+- **8 Detailed Guides** with step-by-step instructions:
+  - How to Upload Documents (8 steps + 4 tips)
+  - Enable Two-Factor Authentication (8 steps + 4 tips)
+  - Manage Your Subscription (8 steps + 4 tips)
+  - View and Manage Documents (8 steps + 4 tips)
+  - Backup Codes and Account Recovery (7 steps + 4 tips)
+  - Set Up Emergency Access (7 steps + 4 tips)
+  - View and Download Your ID Card (7 steps + 4 tips)
+  - View Payment History and Invoices (7 steps + 4 tips)
+- **8 FAQs** in accordion format covering:
+  - Data security and encryption
+  - When to update documents
+  - Password reset procedures
+  - Multiple emergency contacts
+  - Subscription expiration
+  - Support contact
+  - Data export options
+  - File format support
+- **Full-text search** across guides and FAQs
+- **Category filtering** (Documents, Security, Billing, Emergency, ID Card)
+- **Expandable tips** for each guide with best practices
+- **Responsive design** for mobile and desktop
+
 **Customer Features Overview**:
-- Dashboard: Metrics, quick actions, security status, recent documents, help
+- Dashboard: Metrics, quick actions, security status, recent documents, mini FAQs, help center link
 - Profile: View/edit contact info, emergency contacts, password change, 2FA management
 - Documents: Upload, version control, download, organize by type
 - Subscription: View status, manage billing, upgrade/downgrade
@@ -53,6 +77,7 @@ This Replit instance hosts a custom API backend built with Express.js and Node.j
 - ID Card: View/download digital ID card
 - Physical Card: Order physical ID cards
 - Emergency Access: Set up emergency contact access
+- Help Center: Comprehensive guides, FAQs, searchable documentation
 
 ## Implementation Timeline (November 23, 2025)
 
