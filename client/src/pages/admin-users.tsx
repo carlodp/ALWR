@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Search } from "lucide-react";
+import { Search, Shield } from "lucide-react";
 import { useState } from "react";
 import type { User } from "@shared/schema";
 
@@ -74,13 +74,12 @@ export default function AdminUsers() {
           filteredUsers.map((user) => (
             <Card 
               key={user.id}
-              className="cursor-pointer hover-elevate"
-              onClick={() => setLocation(`/admin/users/${user.id}`)}
+              className="hover-elevate"
               data-testid={`card-user-${user.id}`}
             >
               <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-medium" data-testid={`text-name-${user.id}`}>
                       {user.firstName} {user.lastName}
                     </h3>
@@ -88,10 +87,19 @@ export default function AdminUsers() {
                       {user.email}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Badge variant="outline" data-testid={`badge-role-${user.id}`}>
                       {user.role}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setLocation(`/admin/users/assign-role/${user.id}`)}
+                      data-testid={`button-assign-role-${user.id}`}
+                    >
+                      <Shield className="h-4 w-4 mr-1" />
+                      Assign
+                    </Button>
                   </div>
                 </div>
               </CardContent>

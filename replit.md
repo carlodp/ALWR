@@ -104,19 +104,25 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - `resellers` table: Stores reseller profiles with user reference, status, company info, partner tier, commission, and performance metrics
 - `reseller_customer_referrals` table: Links resellers to customers they referred, tracks performance metrics per customer
 
-**Frontend Architecture - Role Assignment (Session 7):**
-- **Efficient User Role Flow**: Instead of creating separate customer/agent/reseller accounts, users are created as base accounts, then role-specific details are added
-  - Create User: Simple form (email, firstName, lastName)
-  - Assign Agent: Select user → add agencyName, phone, address, license, commission
-  - Assign Reseller: Select user → add companyName, phone, address, taxId, tier, commission, terms
-- **Sidebar Navigation**: New "User Roles" collapsible section with "Account" subsection
-  - Create User link
-  - View Accounts link
+**Frontend Architecture - Unified Role Assignment (Session 7):**
+- **Efficient User Management Workflow**:
+  - Step 1: Create Account (`/admin/users/new`) - Create base user (email, firstName, lastName)
+  - Step 2: Assign Role (`/admin/users/assign-role`) - Select user → Pick role (Customer/Agent/Reseller/Admin) → Fill role-specific fields → Assign
+  - Step 3: Manage Roles - View and edit assigned roles via User Roles page
+- **Single "Assign Role" Page** - Unified interface for all role types:
+  - Customer: phone, address
+  - Agent: agencyName, agencyPhone, agencyAddress, licenseNumber, commissionRate
+  - Reseller: companyName, companyPhone, companyAddress, taxId, partnerTier, commissionRate, paymentTerms
+  - Admin: no additional fields
+  - Conditional field rendering based on selected role
+- **Sidebar Navigation**: "Accounts" collapsible section
+  - View Accounts (with "Assign Role" button on each user)
+  - Create User
+  - Assign Role
 - **Pages Created**:
-  - `admin-users.tsx` - View all accounts with search/filter
+  - `admin-users.tsx` - View all accounts with search/filter and "Assign Role" button on each user
   - `admin-create-user.tsx` - Create new base user account
-  - `admin-create-agent.tsx` - Select existing user and add agent details
-  - `admin-create-reseller.tsx` - Select existing user and add reseller details
+  - `admin-assign-role.tsx` - Unified role assignment page with conditional fields
 
 **Database Schema Updates (Overall):**
 - Authentication fields: passwordHash, lastLoginAt, loginAttempts, lockedUntil

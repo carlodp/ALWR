@@ -26,7 +26,6 @@ import {
   LogOut,
   Shield,
   Users,
-  ClipboardList,
   LayoutDashboard,
   Bell,
   BarChart3,
@@ -465,10 +464,10 @@ export function AppSidebar() {
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild data-testid="nav-audit-logs">
-                            <a href="/admin/audit-logs">
-                              <ClipboardList className="h-4 w-4" />
-                              <span>User Roles</span>
+                          <SidebarMenuSubButton asChild data-testid="nav-assign-role">
+                            <a href="/admin/users/assign-role">
+                              <Shield className="h-4 w-4" />
+                              <span>Assign Role</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

@@ -37,6 +37,7 @@ import AdminResellers from "@/pages/admin-resellers";
 import AdminCreateReseller from "@/pages/admin-create-reseller";
 import AdminUsers from "@/pages/admin-users";
 import AdminCreateUser from "@/pages/admin-create-user";
+import AdminAssignRole from "@/pages/admin-assign-role";
 import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
 import EmergencyAccess from "@/pages/emergency-access";
 import GlobalSearch from "@/pages/global-search";
@@ -85,6 +86,7 @@ function Router() {
           <Route path="/admin/resellers/new" component={AdminCreateReseller} />
           <Route path="/admin/users" component={AdminUsers} />
           <Route path="/admin/users/new" component={AdminCreateUser} />
+          <Route path="/admin/users/assign-role/:userId" component={AdminAssignRole} />
           <Route path="/search" component={GlobalSearch} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
