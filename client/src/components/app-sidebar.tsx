@@ -174,12 +174,6 @@ export function AppSidebar() {
       section: "TOOLS"
     },
     {
-      title: "User Roles",
-      url: "/admin/user-roles",
-      icon: Lock,
-      section: "TOOLS"
-    },
-    {
       title: "Audit Logs",
       url: "/admin/audit-logs",
       icon: ClipboardList,
@@ -437,15 +431,15 @@ export function AppSidebar() {
               </Collapsible>
             </SidebarGroup>
 
-            {/* User Roles Section */}
+            {/* Accounts Section */}
             <SidebarGroup>
               <Collapsible defaultOpen={false} className="group/collapsible">
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton data-testid="nav-user-roles-expand">
+                      <SidebarMenuButton data-testid="nav-accounts-expand">
                         <Lock />
-                        <span>User Roles</span>
+                        <span>Accounts</span>
                         <svg
                           className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
                           width="16"
