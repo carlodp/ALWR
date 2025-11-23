@@ -50,12 +50,14 @@ import { AppSidebar } from "@/components/shared/sidebar";
 import { MobileHeader } from "@/components/shared/header";
 import { ThemeProvider } from "@/components/shared/provider";
 import { BreadcrumbNav } from "@/components/shared/breadcrumb-nav";
+import { IdleWarningDialog } from "@/components/dialogs/idle-warning";
 
 // Hooks
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useAutoExtendSession } from "@/hooks/useAutoExtendSession";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 
 // Shared Pages
 import NotFound from "@/pages/shared/not-found";
@@ -207,6 +209,9 @@ function AppContent() {
   useSessionExpiry();
   useAutoExtendSession();
   
+  // Monitor idle timeout
+  const { showIdleWarning, countdownSeconds, onStayActive } = useIdleTimeout();
+  
   // Enable keyboard shortcuts
   useKeyboardShortcuts();
 
@@ -234,6 +239,11 @@ function AppContent() {
       ) : (
         <Router />
       )}
+      <IdleWarningDialog
+        open={showIdleWarning}
+        countdownSeconds={countdownSeconds}
+        onStayActive={onStayActive}
+      />
       <Toaster />
     </TooltipProvider>
   );
