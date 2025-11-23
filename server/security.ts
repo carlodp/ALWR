@@ -6,40 +6,42 @@
 import rateLimit from 'express-rate-limit';
 import { type Response } from 'express';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 /**
- * Global rate limiter - 100 requests per 15 minutes per IP
+ * Global rate limiter - 100 requests per 15 minutes per IP (1000 in dev)
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: isDev ? 1000 : 100,
   message: 'Too many requests from this IP, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === '/health';
+    // Skip rate limiting for health checks and dev assets
+    return req.path === '/health' || (isDev && req.path.startsWith('/@'));
   },
 });
 
 /**
- * Auth limiter - 5 login attempts per 15 minutes per IP
+ * Auth limiter - 5 login attempts per 15 minutes per IP (50 in dev)
  * Prevents brute force attacks on login endpoints
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: isDev ? 50 : 5,
   message: 'Too many login attempts, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 /**
- * API limiter - 30 requests per minute per IP
+ * API limiter - 30 requests per minute per IP (300 in dev)
  * More restrictive for API endpoints
  */
 export const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  max: isDev ? 300 : 30,
   message: 'Too many API requests, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
