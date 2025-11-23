@@ -1,191 +1,62 @@
-# America Living Will Registry (ALWR) - MVP Development
+# America Living Will Registry (ALWR) - Rebuild 3.0 API
 
-## Overview
-The America Living Will Registry (ALWR) is a secure 24/7 online service designed for storing living wills and advance healthcare directives. Its primary purpose is to provide an accessible and reliable platform for individuals to manage their end-of-life documents, while also offering emergency access for authorized personnel. The project includes comprehensive customer and subscription management, robust document storage, and dedicated portals for both customers and administrators. ALWR aims to simplify the process of securing and accessing critical healthcare directives, offering peace of mind to users and their families.
+### Overview
+The America Living Will Registry (ALWR) is a secure 24/7 online service for storing living wills and advance healthcare directives. This Replit instance provides the **Custom API backend** that powers the entire ALWR system, handling all business logic, document management, subscriptions, and customer operations. A separate WordPress frontend consumes this API via REST endpoints. The project aims to provide a robust, scalable, and compliant platform for managing critical healthcare documents, improving accessibility, and ensuring adherence to legal and medical standards.
 
-## User Preferences
-- Build Tier 1 features incrementally, one feature at a time
-- Focus on backend + frontend in parallel when possible
+### User Preferences
+- Build core API modules incrementally, one feature at a time
+- Focus on robust, secure backend API
 - Use mock data for testing
-- Prefer working features over perfect code
+- Prefer working, secure features over perfect code
+- WordPress handles all UI/UX (separate from this API)
 
-## System Architecture
-ALWR is built with a modern web stack. The frontend utilizes **React** for dynamic user interfaces, **Wouter** for efficient routing, **TailwindCSS** for utility-first styling, and **shadcn/ui** components for a consistent design system. The backend is powered by **Express.js** and **Node.js**, providing a robust API layer. Data persistence is managed with **PostgreSQL** coupled with the **Drizzle ORM**. User authentication is integrated via **Replit Auth (OpenID Connect)**. The entire application is designed for seamless deployment and publishing on Replit.
+### System Architecture - Rebuild 3.0
 
-### TIER 1 - Core Features (Complete):
-- **Emergency Access Lookup**: Public-facing, 3-step verification for document retrieval, including audit logging and HIPAA compliance notices.
-- **Admin Customer Management**: Full CRUD operations for customer profiles, including internal notes.
-- **Admin Subscription Management**: View, filter, search, and modify customer subscriptions, with audit logging.
-- **Customer Payment History**: Users can view payment history and download PDF invoices.
-- **Renewal Reminders**: Admin dashboard for managing and sending subscription renewal notifications.
-- **Admin Reports Dashboard**: Visual analytics for revenue trends, subscription status, document upload trends, and key financial metrics.
-- **User Role Management**: Admins can view and manage user roles (customer, agent, admin) with audit logging.
-- **Customer Segments/Tags**: Many-to-many relationship for categorizing customers.
-- **Physical Card Orders**: System for customers to order physical ID cards with shipping tracking and status management.
-- **Email Templates Management**: CRUD interface for managing automated email templates with HTML content support.
-- **Referral Tracking System**: Tracks customer referrals with unique codes.
-- **API Routes**: Over 35 endpoints covering customer-facing, admin-only, and public functionalities.
+**This Replit (Custom API Backend):**
+- **Express.js** - REST API server
+- **Node.js** - Runtime environment  
+- **PostgreSQL** - Relational database (Replit built-in)
+- **Drizzle ORM** - Type-safe database interaction
+- **TypeScript** - Full type safety
 
-### TIER 2 - Customer Features (In Progress):
-#### ✅ **Feature #1: Customer Profile Editing** (COMPLETE)
-- ✅ Edit personal information (phone, address, city, state, zip)
-- ✅ Update emergency contact details
-- ✅ Add/edit medical notes for personnel
-- ✅ Change password with 8-char minimum validation
-- ✅ Upload/change profile picture
-- ✅ All changes fully audited and logged
+**External Frontend (WordPress):**
+- WordPress installation (separate from this Replit)
+- Serves all public pages, customer portal, admin interface
+- Makes REST API calls to the endpoints provided by this backend
+- Complete separation of UI from business logic
 
-#### ✅ **Feature #2: Document Versioning** (COMPLETE)
-- ✅ Upload new versions of existing documents
-- ✅ Automatic version numbering (v1, v2, v3...)
-- ✅ Add change notes to document versions
-- ✅ View complete version history with timestamps
-- ✅ Restore any previous version with one click
-- ✅ All version operations audited and logged
+The backend, hosted in this Replit, is an **Express.js** and **Node.js** application. It provides over 35 REST API endpoints covering customer-facing, admin-only, and public functionalities. Data persistence is managed by a **PostgreSQL** database, accessed via the **Drizzle ORM**. User authentication is integrated using **Replit Auth (OpenID Connect)**.
 
-#### ✅ **Feature #3: ID Card Generator** (COMPLETE)
-- ✅ Digital ID card display with customer info
-- ✅ Download as PNG image
-- ✅ Download as PDF document
-- ✅ Print functionality
-- ✅ Emergency access information
-- ✅ Physical card delivery tracking
-- ✅ Instructions for emergency personnel
+Core features include:
+- **Emergency Access Lookup**: Public-facing, 3-step verification with HIPAA compliance and audit logging.
+- **Admin & Customer Management**: Full CRUD operations for customer profiles, subscriptions, and user roles.
+- **Document Management**: Upload, versioning, retrieval, and audit logging of medical documents.
+- **Payment & Subscription**: Tracking payment history, renewal reminders, and subscription modifications.
+- **Reporting & Analytics**: Admin dashboards with visual analytics for revenue, subscriptions, and document trends.
+- **ID Card Generation**: Digital and physical ID card ordering, display, and printing for customers and admins.
+- **Email Notification System**: Core infrastructure for various automated email notifications.
+- **Two-Factor Authentication (2FA)**: TOTP-based 2FA with QR code generation and backup codes.
+- **Bulk Admin Operations**: Features like bulk document deletion and customer export to CSV.
+- **Session Management**: Secure logout, session logging with IP/User-Agent tracking.
+- **Real-Time Admin Dashboard Stats**: WebSocket-based streaming of live revenue, subscription, and document metrics with intelligent caching.
+- **Global Search & Audit Filters**: Unified search across customers, documents, and audit logs, with comprehensive filtering capabilities for audit trails.
 
-**Admin Print Module Enhancement:**
-- ✅ Admins can preview, download, and print customer ID cards
-- ✅ Preview modal with ID card display
-- ✅ Download PNG/PDF for batch printing
-- ✅ Direct print functionality for each card
-- ✅ Integrated with "Ready to Print" customer list
-- ✅ Batch operations support
-- ✅ **Search modal** - Click "Print Cards" button to open modal
-- ✅ **Search by name or card ID** - Real-time filtering as you type
-- ✅ **"No customers found"** message when search yields no results
-- ✅ **Quick actions** - Print or Preview directly from search results
+Security infrastructure includes rate limiting, security headers, Zod-based input validation, error sanitization, file upload security (size/type limits), secure cookie-based session management with PostgreSQL session store, and comprehensive audit logging.
 
-#### ✅ **Feature #4: Audit Filters** (COMPLETE)
-- ✅ Backend API enhanced with query parameters for action, status, date range, resource type
-- ✅ Storage layer updated with `listAuditLogsFiltered` method supporting multiple filter types
-- ✅ Server-side filtering for improved performance and security
-- ✅ Resource type filter UI with options: Document, Customer, Subscription, User, Emergency Access
-- ✅ Combined filtering for action + status + date range + resource type
-- ✅ CSV export respects all active filters
-- ✅ Reset filters button to clear all filters at once
-- ✅ Search functionality integrated with all filters
+The database schema includes tables for Users, Customers, Subscriptions, Documents, Emergency Access Logs, Customer Notes, Audit Logs, Physical Card Orders, and Email Templates.
 
-#### ✅ **Feature #5: Global Search** (COMPLETE)
-- ✅ Unified search interface accessible from `/search` route for all authenticated users
-- ✅ Searches across customers (by phone, ID card number), documents (by title, file name), and audit logs (by action, actor, resource)
-- ✅ Results ranked by recency with type badges (Customer, Document, Audit Log)
-- ✅ Real-time search results as user types
-- ✅ One-click navigation to relevant resource details
-- ✅ Responsive design with mobile support
-- ✅ No results messaging for empty searches
-- ✅ Limit of 50 results per search to optimize performance
-
-#### ✅ **Feature #6: Email Notification System (Core Infrastructure)** (COMPLETE)
-- ✅ Email notification schema with types: renewal_reminder, emergency_access_alert, password_changed, account_created, document_uploaded, payment_received, subscription_expired
-- ✅ emailNotifications table with status tracking (pending, sent, failed, bounced)
-- ✅ Email service abstraction layer (server/emailService.ts) - MockEmailService for development
-- ✅ Storage interface methods: createEmailNotification, listEmailNotifications, listPendingEmailNotifications, updateEmailNotificationStatus
-- ✅ Admin API endpoints for viewing pending notifications and sending notifications
-- ✅ Customer API endpoint to view their own notifications
-- ✅ Database schema with retry counter and failure reason tracking
-- ✅ Ready for SendGrid integration - just replace MockEmailService with SendGridEmailService when ready
-
-### TIER 2 - Additional Features (In Progress):
-
-#### ✅ **Feature #7: Two-Factor Authentication (2FA)** (COMPLETE)
-- ✅ TOTP-based 2FA (Time-based One-Time Password) - NO external service needed!
-- ✅ Users can enable/disable 2FA with authenticator apps (Google Authenticator, Authy, Microsoft Authenticator, etc.)
-- ✅ `twoFactorService.ts` with TOTP generation, verification, and backup code management
-- ✅ QR code generation for easy app enrollment
-- ✅ 10 backup codes per user for account recovery
-- ✅ Storage methods for 2FA secret and backup codes
-- ✅ API endpoints:
-  - `POST /api/auth/2fa/setup` - Generate TOTP secret and QR code
-  - `POST /api/auth/2fa/verify` - Verify code and enable 2FA
-  - `POST /api/auth/2fa/disable` - Disable 2FA
-  - `GET /api/auth/2fa/status` - Get current 2FA status
-- ✅ Audit logging for 2FA enable/disable actions
-- ✅ Built-in clock skew tolerance (±1 time window) for TOTP verification
-
-#### ✅ **Feature #8: Bulk Admin Operations** (COMPLETE)
-- ✅ Bulk delete documents - DELETE API endpoint with audit logging
-- ✅ Customer export to CSV - Download customer list with filters
-- ✅ CSV includes: ID, Name, Email, Phone, City, State, Account Status, ID Card Number, Created Date
-- ✅ All bulk operations fully audited with action logging
-- ✅ Admin-only access with role-based authorization
-- ✅ API endpoints:
-  - `POST /api/admin/documents/bulk-delete` - Delete multiple documents
-  - `GET /api/admin/customers/export` - Export customers as CSV
-
-#### ✅ **Feature #9: Session Management & Logout** (COMPLETE)
-- ✅ Proper logout functionality with session cleanup
-- ✅ Session logging for login/logout audit trail
-- ✅ IP address and User-Agent tracking for security
-- ✅ Logout API endpoint: `POST /api/auth/logout`
-- ✅ Audit logging for all session events (login, logout)
-- ✅ New audit actions: login, logout, document_bulk_delete, customer_export, two_factor_enable, two_factor_disable
-
-#### ✅ **Feature #10: Real-Time Admin Dashboard Stats** (COMPLETE)
-- ✅ WebSocket-based real-time stats streaming (broadcasts every 5 seconds)
-- ✅ Backend stats calculation service with intelligent caching (30-second TTL)
-- ✅ Frontend React hook (`useRealtimeStats`) for subscribing to live updates
-- ✅ Admin dashboard auto-updates with live revenue, subscription, and document metrics
-- ✅ Automatic cache invalidation on data changes (document upload, bulk delete)
-- ✅ Graceful reconnection handling for WebSocket connections
-- ✅ Smooth real-time chart and metric updates using Recharts
-- ✅ Server components: `statsService.ts`, `websocketStats.ts`
-- ✅ Frontend components: `useRealtimeStats` hook, updated `admin-reports.tsx`
-- ✅ WebSocket endpoint: `/ws/stats` (accessible to authenticated admins)
-- ✅ Real-time metrics include:
-  - Revenue trends by month
-  - Subscription status distribution
-  - Document upload trends (weekly)
-  - Top customers by documents
-  - Total revenue and average revenue per customer
-
-### UI/UX Decisions:
-- Utilizes **shadcn/ui** for consistent, accessible components.
-- Responsive design for optimal viewing on mobile and desktop devices.
-- Admin sidebar menu structured to match legacy REGIS system for intuitive navigation (VIEW, LIST, CREATE, REVIEW, RECONCILE, PROCESS, PRINT sections).
-
-### Database Schema Highlights:
-- **Users**: Replit auth integration for user authentication and role management.
-- **Customers**: Stores detailed customer profiles, including contact information, referral data, and tags.
-- **Subscriptions**: Manages subscription details, status, and renewal information.
-- **Documents**: Stores medical documents, with plans for versioning.
-- **Emergency Access Logs**: Records all emergency document access attempts for auditing.
-- **Customer Notes**: Stores internal administrative notes related to customers.
-- **Audit Logs**: Comprehensive logging of all system activities and changes.
-- **PhysicalCardOrders**: Tracks physical ID card orders and their shipping status.
-- **EmailTemplates**: Stores various email templates for automated communications.
-
-## Security Infrastructure (Implemented)
-- **Rate Limiting**: express-rate-limit middleware protecting against brute force attacks
-  - Global limiter: 100 requests per 15 minutes per IP
-  - Auth limiter: 5 attempts per 15 minutes (password changes, 2FA setup, emergency access)
-  - API limiter: 30 requests per minute per IP
-- **Security Headers**: All responses include X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
-- **Input Validation**: Zod schemas with email, password strength (8+ chars), ID format validation
-- **Error Sanitization**: Sensitive data removed from error responses in production
-- **File Upload Security**: 10MB limit, whitelist validation (PDF, DOC, DOCX only)
-- **Session Security**: 
-  - Secure cookies with httpOnly flag and 1-week expiration
-  - PostgreSQL session store with automatic cleanup
-  - Session logging for audit trail (IP address, User-Agent)
-- **Logging Infrastructure**: Centralized logger.ts utility with structured logging
-- **WebSocket Security**: Stats WebSocket at `/ws/stats` with authentication checks
-
-## External Dependencies
-- **Replit Auth**: Used for user authentication (OpenID Connect).
-- **PostgreSQL**: Relational database for all application data.
-- **Drizzle ORM**: Object-Relational Mapper for interacting with PostgreSQL.
-- **React**: Frontend JavaScript library.
-- **TailwindCSS**: CSS framework for styling.
-- **Wouter**: Small routing library for React.
-- **shadcn/ui**: Reusable UI components.
-- **Express.js**: Backend web application framework for Node.js.
+### Backend Dependencies (This API)
+- **Replit Auth**: For user authentication (OpenID Connect).
+- **PostgreSQL**: Primary relational database (Replit built-in).
+- **Drizzle ORM**: For type-safe database interaction.
+- **Express.js**: REST API web application framework.
 - **express-rate-limit**: Rate limiting middleware for security.
+- **Stripe**: Payment processing and subscription billing.
+- **speakeasy**: TOTP-based two-factor authentication.
+- **ws (WebSocket)**: Real-time stats streaming.
+- **TypeScript**: Type safety and development tooling.
+
+### Frontend Dependencies (WordPress)
+- **WordPress**: CMS for public website, customer portal, admin interface.
+- Connects to this API via REST endpoints.
+- Completely separate from this backend Replit.
