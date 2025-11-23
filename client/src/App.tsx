@@ -4,53 +4,64 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { MobileHeader } from "@/components/mobile-header";
+// Shared Components
+import { AppSidebar } from "@/components/shared/sidebar";
+import { MobileHeader } from "@/components/shared/header";
+import { ThemeProvider } from "@/components/shared/provider";
+import { BreadcrumbNav } from "@/components/shared/breadcrumb-nav";
+
+// Hooks
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useAutoExtendSession } from "@/hooks/useAutoExtendSession";
-import { ThemeProvider } from "@/components/theme-provider";
-import { BreadcrumbNav } from "@/components/breadcrumb-nav";
-import NotFound from "@/pages/not-found";
-import CustomerDashboard from "@/pages/customer-dashboard";
-import CustomerDocuments from "@/pages/customer-documents";
-import CustomerProfile from "@/pages/customer-profile";
-import CustomerSubscription from "@/pages/customer-subscription";
-import CustomerPayments from "@/pages/customer-payments";
-import CustomerIdCard from "@/pages/customer-id-card";
-import AdminDashboard from "@/pages/admin-dashboard-enhanced";
-import AdminCustomers from "@/pages/admin-customers";
-import AdminCustomerDetail from "@/pages/admin-customer-detail";
-import AdminCreateCustomer from "@/pages/admin-create-customer";
-import AdminSubscriptions from "@/pages/admin-subscriptions";
-import AdminRenewalReminders from "@/pages/admin-renewal-reminders";
-import AdminReports from "@/pages/admin-reports";
-import AdminAuditLogs from "@/pages/admin-audit-logs";
-import AdminEmailTemplates from "@/pages/admin-email-templates";
-import AdminPhysicalCardOrders from "@/pages/admin-physical-card-orders";
-import AdminSystemRateLimits from "@/pages/admin-system-rate-limits";
-import AdminSystemDatabase from "@/pages/admin-system-database";
-import AdminSystemAnalytics from "@/pages/admin-system-analytics";
-import AdminReview from "@/pages/admin-review";
-import AdminReviewExpired from "@/pages/admin-review-expired";
-import AdminReconcile from "@/pages/admin-reconcile";
-import AdminProcess from "@/pages/admin-process";
-import AdminPrint from "@/pages/admin-print";
-import AdminAgents from "@/pages/admin-agents";
-import AdminResellers from "@/pages/admin-resellers";
-import AdminUsers from "@/pages/admin-users";
-import AdminCreateUser from "@/pages/admin-create-user";
-import AdminUserRoles from "@/pages/admin-user-roles";
-import CustomerPhysicalCardOrder from "@/pages/customer-physical-card-order";
-import CustomerHelpCenter from "@/pages/customer-help-center";
-import CustomerActivity from "@/pages/customer-activity";
-import EmergencyAccess from "@/pages/emergency-access";
-import GlobalSearch from "@/pages/global-search";
-import Login from "@/pages/login";
-import Signup from "@/pages/signup";
-import ForgotPassword from "@/pages/forgot-password";
-import ProfileSetup from "@/pages/profile-setup";
+
+// Shared Pages
+import NotFound from "@/pages/shared/not-found";
+import EmergencyAccess from "@/pages/shared/emergency-access";
+import GlobalSearch from "@/pages/shared/global-search";
+
+// Auth Pages
+import Login from "@/pages/auth/login";
+import Signup from "@/pages/auth/signup";
+import ForgotPassword from "@/pages/auth/forgot-password";
+import ProfileSetup from "@/pages/auth/profile-setup";
+
+// Customer Pages
+import CustomerDashboard from "@/pages/customer/dashboard";
+import CustomerDocuments from "@/pages/customer/documents";
+import CustomerProfile from "@/pages/customer/profile";
+import CustomerSubscription from "@/pages/customer/subscription";
+import CustomerPayments from "@/pages/customer/payments";
+import CustomerIdCard from "@/pages/customer/id-card";
+import CustomerPhysicalCardOrder from "@/pages/customer/physical-card-order";
+import CustomerHelpCenter from "@/pages/customer/help-center";
+import CustomerActivity from "@/pages/customer/activity";
+
+// Admin Pages
+import AdminDashboard from "@/pages/admin/dashboard-enhanced";
+import AdminCustomers from "@/pages/admin/customers";
+import AdminCustomerDetail from "@/pages/admin/customer-detail";
+import AdminCreateCustomer from "@/pages/admin/create-customer";
+import AdminSubscriptions from "@/pages/admin/subscriptions";
+import AdminRenewalReminders from "@/pages/admin/renewal-reminders";
+import AdminReports from "@/pages/admin/reports";
+import AdminAuditLogs from "@/pages/admin/audit-logs";
+import AdminEmailTemplates from "@/pages/admin/email-templates";
+import AdminPhysicalCardOrders from "@/pages/admin/physical-card-orders";
+import AdminSystemRateLimits from "@/pages/admin/system-rate-limits";
+import AdminSystemDatabase from "@/pages/admin/system-database";
+import AdminSystemAnalytics from "@/pages/admin/system-analytics";
+import AdminReview from "@/pages/admin/review";
+import AdminReviewExpired from "@/pages/admin/review-expired";
+import AdminReconcile from "@/pages/admin/reconcile";
+import AdminProcess from "@/pages/admin/process";
+import AdminPrint from "@/pages/admin/print";
+import AdminAgents from "@/pages/admin/agents";
+import AdminResellers from "@/pages/admin/resellers";
+import AdminUsers from "@/pages/admin/users";
+import AdminCreateUser from "@/pages/admin/create-user";
+import AdminUserRoles from "@/pages/admin/user-roles";
 
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();

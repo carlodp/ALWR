@@ -1,5 +1,52 @@
 # America Living Will Registry (ALWR) - API
 
+## Project File Structure
+
+### Frontend Organization (`client/src/`)
+
+**Pages** - Organized by feature area:
+- `pages/auth/` - Authentication pages (login, signup, forgot-password, profile-setup)
+- `pages/customer/` - Customer portal pages (dashboard, documents, profile, subscription, payments, id-card, physical-card-order, help-center, activity)
+- `pages/admin/` - Admin control panel pages (customers, subscriptions, reports, users, system settings, etc.)
+- `pages/shared/` - Shared pages used across app (404, emergency-access, global-search)
+
+**Components** - Organized by type:
+- `components/ui/` - Base shadcn/ui components (buttons, inputs, dialogs, etc.)
+- `components/shared/` - Layout components (sidebar, header, theme provider, breadcrumb)
+- `components/cards/` - Card-based components (metric cards, status badges, empty states)
+- `components/forms/` - Form utilities and components
+- `components/dialogs/` - Modal dialog components
+- `components/layouts/` - Layout wrapper components
+- `components/inputs/` - Custom input variants
+
+**Other:**
+- `hooks/` - Custom React hooks (useAuth, useSessionExpiry, useAutoExtendSession, useKeyboardShortcuts)
+- `lib/` - Utility functions and helpers (queryClient, authUtils, etc.)
+
+### Backend Organization (`server/`)
+- Core files in root: `app.ts`, `routes.ts`, `db.ts`, `storage.ts`, `index-dev.ts`, `index-prod.ts`
+- Service files: `authService.ts`, `emailService.ts`, `twoFactorService.ts`, `usersService.ts`, `statsService.ts`
+- Middleware: `rate-limiter.ts`, `security.ts`
+- Utilities: `logger.ts`, `cache.ts`, `db-optimizer.ts`, etc.
+- Configuration: `stripeClient.ts`, `replitAuth.ts`
+- WebSockets: `websocketStats.ts`
+
+### Shared Code (`shared/`)
+- `schema.ts` - Database schema (Drizzle ORM) and Zod validation schemas
+- Contains TypeScript types and interfaces used across frontend and backend
+
+### Documentation
+- **README Files Created:**
+  - `client/src/pages/README.md` - Pages folder guide
+  - `client/src/components/README.md` - Components folder guide
+  - `server/README.md` - Server architecture overview
+  - `shared/README.md` - Shared code documentation
+
+- **File-Level Comments** - JSDoc comments added to key page files explaining:
+  - Component purpose and features
+  - Main functionality and workflows
+  - Important business logic
+
 ## Overview
 The America Living Will Registry (ALWR) API is the custom backend for a 24/7 online service managing living wills and advance healthcare directives. It handles business logic, document management, subscriptions, and customer operations. The project aims to provide a robust, scalable, HIPAA-compliant platform for critical healthcare documents, ensuring accessibility and adherence to legal and medical standards, and powering the entire ALWR system.
 
