@@ -60,98 +60,137 @@ async function seedMockData() {
     const createdUserIds: string[] = [];
 
     for (const mockCustomer of mockCustomers) {
-      // Create user
-      const [user] = await db
-        .insert(users)
-        .values({
-          email: mockCustomer.email,
-          firstName: mockCustomer.firstName,
-          lastName: mockCustomer.lastName,
-          role: "customer",
-        })
-        .onConflictDoNothing()
-        .returning();
+      // Create user or get existing user
+      let user = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, mockCustomer.email),
+      });
 
       if (!user) {
-        console.log(`⏭️  User ${mockCustomer.email} already exists, skipping...`);
-        continue;
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            email: mockCustomer.email,
+            firstName: mockCustomer.firstName,
+            lastName: mockCustomer.lastName,
+            role: "customer",
+          })
+          .returning();
+        
+        user = newUser;
+        console.log(`✅ Created user: ${mockCustomer.email}`);
+      } else {
+        console.log(`✅ Using existing user: ${mockCustomer.email}`);
       }
 
       createdUserIds.push(user.id);
-      console.log(`✅ Created user: ${mockCustomer.email}`);
 
-      // Create customer profile
-      const [customer] = await db
-        .insert(customers)
-        .values({
-          userId: user.id,
-          phone: mockCustomer.phone,
-          address: mockCustomer.address,
-          city: mockCustomer.city,
-          state: mockCustomer.state,
-          zipCode: mockCustomer.zipCode,
-          emergencyContactName: mockCustomer.emergencyContactName,
-          emergencyContactPhone: mockCustomer.emergencyContactPhone,
-          emergencyContactRelationship: mockCustomer.emergencyContactRelationship,
-          idCardNumber: `ALWR-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        })
-        .returning();
+      // Check if customer profile already exists
+      const existingCustomer = await db.query.customers.findFirst({
+        where: (customers, { eq }) => eq(customers.userId, user.id),
+      });
 
-      console.log(`✅ Created customer profile for ${mockCustomer.firstName}`);
-
-      // Create subscription
-      const now = new Date();
-      const endDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
-
-      await db
-        .insert(subscriptions)
-        .values({
-          customerId: customer.id,
-          status: Math.random() > 0.2 ? "active" : "inactive",
-          startDate: now,
-          endDate: endDate,
-          renewalDate: endDate,
-          amount: 2995, // $29.95 in cents
-          currency: "usd",
-        })
-        .returning();
-
-      console.log(`✅ Created subscription for ${mockCustomer.firstName}`);
-
-      // Create sample documents
-      const documentTypes = ["living_will", "healthcare_directive", "power_of_attorney"];
-      for (let i = 0; i < 2; i++) {
-        await db.insert(documents).values({
-          customerId: customer.id,
-          fileName: `${mockCustomer.firstName}_${documentTypes[i]}.pdf`,
-          fileType: documentTypes[i] as any,
-          fileSize: Math.floor(Math.random() * 500000) + 100000, // 100KB - 600KB
-          mimeType: "application/pdf",
-          storageKey: `documents/${customer.id}/${documentTypes[i]}_${Date.now()}.pdf`,
-          description: `${documentTypes[i].replace(/_/g, " ")} for ${mockCustomer.firstName}`,
-          uploadedBy: user.id,
-        });
+      let customer = existingCustomer;
+      
+      if (!existingCustomer) {
+        const [newCustomer] = await db
+          .insert(customers)
+          .values({
+            userId: user.id,
+            phone: mockCustomer.phone,
+            address: mockCustomer.address,
+            city: mockCustomer.city,
+            state: mockCustomer.state,
+            zipCode: mockCustomer.zipCode,
+            emergencyContactName: mockCustomer.emergencyContactName,
+            emergencyContactPhone: mockCustomer.emergencyContactPhone,
+            emergencyContactRelationship: mockCustomer.emergencyContactRelationship,
+            idCardNumber: `ALWR-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          })
+          .returning();
+        
+        customer = newCustomer;
+        console.log(`✅ Created customer profile for ${mockCustomer.firstName}`);
+      } else {
+        console.log(`✅ Using existing customer profile for ${mockCustomer.firstName}`);
       }
 
-      console.log(`✅ Created 2 documents for ${mockCustomer.firstName}`);
+      // Check if subscription already exists
+      const existingSubscription = await db.query.subscriptions.findFirst({
+        where: (subscriptions, { eq }) => eq(subscriptions.customerId, customer.id),
+      });
 
-      // Create customer notes
-      const sampleNotes = [
-        "Called customer on 11/15 - confirmed all documents are current",
-        "Upgraded to annual plan - will save $5/month",
-        "Customer requested emergency contact update - processed successfully",
-        "Renewal reminder sent - customer acknowledged receipt",
-      ];
+      if (!existingSubscription) {
+        const now = new Date();
+        const endDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
 
-      for (let i = 0; i < Math.min(2, sampleNotes.length); i++) {
-        await db.insert(customerNotes).values({
-          customerId: customer.id,
-          userId: user.id,
-          noteText: sampleNotes[i],
-        });
+        await db
+          .insert(subscriptions)
+          .values({
+            customerId: customer.id,
+            status: Math.random() > 0.2 ? "active" : "inactive",
+            startDate: now,
+            endDate: endDate,
+            renewalDate: endDate,
+            amount: 2995, // $29.95 in cents
+            currency: "usd",
+          })
+          .returning();
+
+        console.log(`✅ Created subscription for ${mockCustomer.firstName}`);
+      } else {
+        console.log(`✅ Using existing subscription for ${mockCustomer.firstName}`);
       }
 
-      console.log(`✅ Created notes for ${mockCustomer.firstName}`);
+      // Check if documents already exist
+      const existingDocuments = await db.query.documents.findMany({
+        where: (documents, { eq }) => eq(documents.customerId, customer.id),
+      });
+
+      if (existingDocuments.length === 0) {
+        const documentTypes = ["living_will", "healthcare_directive", "power_of_attorney"];
+        for (let i = 0; i < 2; i++) {
+          await db.insert(documents).values({
+            customerId: customer.id,
+            fileName: `${mockCustomer.firstName}_${documentTypes[i]}.pdf`,
+            fileType: documentTypes[i] as any,
+            fileSize: Math.floor(Math.random() * 500000) + 100000, // 100KB - 600KB
+            mimeType: "application/pdf",
+            storageKey: `documents/${customer.id}/${documentTypes[i]}_${Date.now()}.pdf`,
+            description: `${documentTypes[i].replace(/_/g, " ")} for ${mockCustomer.firstName}`,
+            uploadedBy: user.id,
+          });
+        }
+
+        console.log(`✅ Created 2 documents for ${mockCustomer.firstName}`);
+      } else {
+        console.log(`✅ Using existing documents for ${mockCustomer.firstName}`);
+      }
+
+      // Check if notes already exist
+      const existingNotes = await db.query.customerNotes.findMany({
+        where: (customerNotes, { eq }) => eq(customerNotes.customerId, customer.id),
+      });
+
+      if (existingNotes.length === 0) {
+        const sampleNotes = [
+          "Called customer on 11/15 - confirmed all documents are current",
+          "Upgraded to annual plan - will save $5/month",
+          "Customer requested emergency contact update - processed successfully",
+          "Renewal reminder sent - customer acknowledged receipt",
+        ];
+
+        for (let i = 0; i < Math.min(2, sampleNotes.length); i++) {
+          await db.insert(customerNotes).values({
+            customerId: customer.id,
+            userId: user.id,
+            noteText: sampleNotes[i],
+          });
+        }
+
+        console.log(`✅ Created notes for ${mockCustomer.firstName}`);
+      } else {
+        console.log(`✅ Using existing notes for ${mockCustomer.firstName}`);
+      }
     }
 
     // Create mock agents
