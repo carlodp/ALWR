@@ -1195,24 +1195,36 @@ export class DatabaseStorage implements IStorage {
     totalDocuments: number;
     expiringSubscriptions: number;
   }> {
-    const [customerCount] = await db.select({ count: sql<number>`count(*)` }).from(customers);
-    const [activeSubCount] = await db.select({ count: sql<number>`count(*)` }).from(subscriptions).where(eq(subscriptions.status, 'active'));
-    const [documentCount] = await db.select({ count: sql<number>`count(*)` }).from(documents);
-    
+    // Get all customers
+    const allCustomers = await db.query.customers.findMany();
+    const totalCustomers = allCustomers.length;
+
+    // Get active subscriptions
+    const activeSubscriptions = await db.query.subscriptions.findMany({
+      where: eq(subscriptions.status, 'active'),
+    });
+    const activeSubscriptionsCount = activeSubscriptions.length;
+
+    // Get all documents
+    const allDocuments = await db.query.documents.findMany();
+    const totalDocuments = allDocuments.length;
+
+    // Get expiring subscriptions (within 30 days)
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
-    const [expiringCount] = await db.select({ count: sql<number>`count(*)` }).from(subscriptions).where(
-      and(
+    const expiringSubscriptions = await db.query.subscriptions.findMany({
+      where: and(
         eq(subscriptions.status, 'active'),
         lte(subscriptions.endDate, expiryDate)
-      )
-    );
+      ),
+    });
+    const expiringSubscriptionsCount = expiringSubscriptions.length;
 
     return {
-      totalCustomers: customerCount.count,
-      activeSubscriptions: activeSubCount.count,
-      totalDocuments: documentCount.count,
-      expiringSubscriptions: expiringCount.count,
+      totalCustomers,
+      activeSubscriptions: activeSubscriptionsCount,
+      totalDocuments,
+      expiringSubscriptions: expiringSubscriptionsCount,
     };
   }
 
