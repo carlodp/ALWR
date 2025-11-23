@@ -8,7 +8,8 @@ The America Living Will Registry (ALWR) is a secure 24/7 online service for stor
 - Focus on robust, secure backend API
 - Use mock data for testing
 - Prefer working, secure features over perfect code
-- WordPress handles all UI/UX (separate from this API)
+- WordPress handles all UI/UX + CMS content (separate from this API)
+- **NO Strapi CMS** - WordPress provides all content management
 
 ### System Architecture - Rebuild 3.0
 
