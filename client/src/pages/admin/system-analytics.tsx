@@ -9,32 +9,49 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
 type AnalyticsDashboard = {
-  subscriptionMetrics: {
+  subscriptions: {
     total: number;
     active: number;
-    expiring: number;
-    churnRate: number;
+    expired: number;
+    cancelled: number;
+    pending: number;
+    trial: number;
   };
-  revenueMetrics: {
+  revenue: {
     mtd: number;
     ytd: number;
-    monthly: number;
+    lastMonth: number;
+    lastQuarter: number;
+    averagePerCustomer: number;
   };
-  customerMetrics: {
+  customers: {
     total: number;
+    active: number;
+    churnedLastMonth: number;
+    churnRate: number;
+    averageLifetimeDays: number;
     newThisMonth: number;
-    growth: number;
   };
-  documentMetrics: {
+  documents: {
     total: number;
-    thisMonth: number;
-    avgPerCustomer: number;
+    uploadedThisMonth: number;
+    uploadedThisWeek: number;
+    averagePerCustomer: number;
+    byType: {
+      living_will: number;
+      healthcare_directive: number;
+      power_of_attorney: number;
+      dnr: number;
+      other: number;
+    };
   };
-  systemHealth: {
-    status: string;
+  health: {
     uptime: number;
-    databaseStatus: string;
+    averageResponseTime: number;
+    errorRate: number;
+    activeUsers: number;
   };
+  generatedAt: string;
 };
 
 export default function AdminSystemAnalytics() {
@@ -88,7 +105,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-active-subs">
-                    {analytics?.subscriptionMetrics.active || 0}
+                    {analytics?.subscriptions.active || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Active subscriptions
@@ -109,7 +126,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-total-subs">
-                    {analytics?.subscriptionMetrics.total || 0}
+                    {analytics?.subscriptions.total || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     All time
@@ -130,7 +147,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-expiring-subs">
-                    {analytics?.subscriptionMetrics.expiring || 0}
+                    {analytics?.subscriptions.expired || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Next 30 days
@@ -151,7 +168,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-churn-rate">
-                    {(analytics?.subscriptionMetrics.churnRate || 0).toFixed(1)}%
+                    {(analytics?.customers.churnRate || 0).toFixed(1)}%
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Monthly churn
@@ -178,7 +195,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-mtd-revenue">
-                    ${(analytics?.revenueMetrics.mtd || 0).toLocaleString()}
+                    ${(analytics?.revenue.mtd || 0).toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Month to date
@@ -199,7 +216,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-ytd-revenue">
-                    ${(analytics?.revenueMetrics.ytd || 0).toLocaleString()}
+                    ${(analytics?.revenue.ytd || 0).toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Year to date
@@ -220,7 +237,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-monthly-revenue">
-                    ${(analytics?.revenueMetrics.monthly || 0).toLocaleString()}
+                    ${(analytics?.revenue.lastMonth || 0).toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Average per month
@@ -247,7 +264,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-total-customers">
-                    {analytics?.customerMetrics.total || 0}
+                    {analytics?.customers.total || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     All time
@@ -268,7 +285,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-new-customers">
-                    {analytics?.customerMetrics.newThisMonth || 0}
+                    {analytics?.customers.newThisMonth || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     This month
@@ -289,7 +306,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-growth-rate">
-                    {(analytics?.customerMetrics.growth || 0).toFixed(1)}%
+                    {(analytics?.customers.active || 0).toFixed(1)}%
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Month over month
@@ -316,7 +333,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-total-documents">
-                    {analytics?.documentMetrics.total || 0}
+                    {analytics?.documents.total || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Stored securely
@@ -337,7 +354,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-documents-this-month">
-                    {analytics?.documentMetrics.thisMonth || 0}
+                    {analytics?.documents.uploadedThisMonth || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     New uploads
@@ -358,7 +375,7 @@ export default function AdminSystemAnalytics() {
               ) : (
                 <>
                   <div className="text-2xl font-bold" data-testid="text-docs-per-customer">
-                    {(analytics?.documentMetrics.avgPerCustomer || 0).toFixed(1)}
+                    {(analytics?.documents.averagePerCustomer || 0).toFixed(1)}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Average
@@ -391,25 +408,25 @@ export default function AdminSystemAnalytics() {
               <div className="flex items-center justify-between p-3 rounded-lg border">
                 <p className="font-medium">Overall Status</p>
                 <Badge
-                  variant={analytics?.systemHealth.status === "operational" ? "default" : "destructive"}
+                  variant={(analytics?.health?.errorRate ?? 0) < 1 ? "default" : "destructive"}
                   data-testid="badge-system-status"
                 >
-                  {analytics?.systemHealth.status || "unknown"}
+                  {(analytics?.health?.errorRate ?? 0) < 1 ? "operational" : "degraded"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border">
                 <p className="font-medium">Uptime</p>
                 <p className="font-semibold" data-testid="text-uptime">
-                  {(analytics?.systemHealth.uptime || 0).toFixed(2)}%
+                  {(analytics?.health.uptime || 0).toFixed(2)}%
                 </p>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border">
                 <p className="font-medium">Database Status</p>
                 <Badge
-                  variant={analytics?.systemHealth.databaseStatus === "healthy" ? "default" : "secondary"}
+                  variant={(analytics?.health?.errorRate ?? 0) < 0.5 ? "default" : "secondary"}
                   data-testid="badge-db-status"
                 >
-                  {analytics?.systemHealth.databaseStatus || "unknown"}
+                  {(analytics?.health?.errorRate ?? 0) < 0.5 ? "healthy" : "slow"}
                 </Badge>
               </div>
             </div>
