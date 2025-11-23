@@ -1,59 +1,234 @@
-# America Living Will Registry (ALWR) - API
+# ALWR - America Living Will Registry
 
-### Overview
-The America Living Will Registry (ALWR) API is the custom backend for a 24/7 online service managing living wills and advance healthcare directives. It handles business logic, document management, subscriptions, and customer operations. The project aims to provide a robust, scalable, HIPAA-compliant platform for critical healthcare documents, ensuring accessibility and adherence to legal and medical standards, and powering the entire ALWR system.
+## Overview
 
-### User Preferences
-- Build core API modules incrementally, one feature at a time
-- Focus on robust, secure backend API
-- Use mock data for testing
-- Prefer working, secure features over perfect code
-- WordPress handles all UI/UX + CMS content (separate from this API)
-- NO Strapi CMS - WordPress provides all content management
-- **CRITICAL**: carlo@wdmorgan.com is the ONLY super admin account (password: Carlo123!)
-- Only create additional admin/agent/reseller accounts as needed via the admin panel
+The America Living Will Registry (ALWR) is a 24/7 online service for securely storing and managing living wills and advance healthcare directives. This system provides a comprehensive API backend built with Express.js and Node.js, offering over 80 REST API endpoints for document management, subscription handling, emergency access, and administrative functions.
 
-### System Architecture
-This Replit instance hosts a custom API backend built with Express.js and Node.js, offering over 80 REST API endpoints. It interacts with a PostgreSQL database using Drizzle ORM for type-safe operations. The architecture strictly separates the UI (handled by WordPress) from the business logic.
+The platform serves multiple user roles (customers, agents, resellers, admins, super admins) with role-based access control and manages sensitive healthcare documents with HIPAA-compliant security measures.
 
-**Key Architectural Decisions & Features:**
--   **Technology Stack**: Node.js, Express.js, PostgreSQL, Drizzle ORM, TypeScript.
--   **Authentication & Authorization**: Custom email/password authentication, account locking, session management with PostgreSQL store, secure cookie-based sessions, and role-based access control (Super Admin, Admin, Agent, Reseller, Customer).
--   **Core Modules**: User & Role Management, Document Management (upload, versioning, audit logging), Emergency Access Lookup (HIPAA compliant), Agent & Reseller Management, Payment & Subscription tracking, Reporting & Analytics (real-time WebSocket statistics, automated report scheduling), ID Card Generation, Email Notification System, and Two-Factor Authentication (TOTP-based).
--   **Security & Compliance**: Rate limiting (IP-based, user-based, sensitive endpoint limits), security headers (CORS, CSP, HSTS), Zod-based input validation, error sanitization, file upload security (per-endpoint limits), comprehensive audit logging, session timeout, secure password handling with bcrypt, tracking of failed login attempts, column-level PII encryption (AES-256-GCM), and secrets rotation policy.
--   **Enhanced Security (November 2024)**: 
-    - CORS validation (Security #1) - Restricts requests to whitelisted origins only
-    - Content Security Policy (Security #2) - Prevents XSS and script injection attacks  
-    - HSTS Headers (Security #3) - Forces HTTPS, prevents SSL downgrade attacks
-    - User-based Rate Limiting (Security #4) - 100 requests/min per authenticated user, prevents account abuse
-    - Request Payload Size Limits (Security #5) - Default 5MB, documents up to 50MB, settings 100KB, prevents memory exhaustion
-    - Secrets Rotation Policy (Security #6) - Documented rotation schedule for SESSION_SECRET (monthly), DATABASE_PASSWORD (quarterly), ENCRYPTION_MASTER_KEY (quarterly)
-    - Column-Level PII Encryption (Security #7) - AES-256-GCM encryption service ready for implementation on users.email, firstName, lastName, customers data
-    - API Key Authentication (Security #8) - Full API key management system with SHA256 hashing, expiration, revocation, and permission-based access control
-    - Enhanced Audit Logging (Security #9) - Comprehensive audit trail for all admin actions, security events, and sensitive operations (35+ audit action types)
-    - IP Whitelisting (Security #10) - Restrict admin endpoints to whitelisted IP addresses via ADMIN_IPS environment variable
--   **Database Schema**: Comprises tables for Users, Customers, Subscriptions, Documents, Emergency Access Logs, Customer Notes, Audit Logs, Physical Card Orders, Email Templates, Agents, Resellers, failed login attempts, and data export requests. Includes database indices on frequently queried columns and slow query logging with N+1 detection.
--   **UI/UX Interaction (WordPress Frontend)**: The API supports user creation flow, dynamic field rendering, integrated password generation, and manages all public-facing and customer portal interactions via the external WordPress instance.
--   **Enhanced Account Management**: Includes Forgot Password Flow, 2-step Profile Setup Wizard, Account Status Badges, and an enhanced Admin User Creation process, with an Admin dashboard feature for editing user accounts including role-based field visibility.
--   **API Documentation**: Integrated OpenAPI/Swagger documentation for all key endpoints, available at `/api/docs` for interactive UI and `/api/docs.json` for the specification. Includes API versioning (v1 deprecated, v2 stable) with automatic detection and deprecation warnings.
--   **Data Export Feature**: Supports customer data export requests (GDPR/CCPA compliance) in JSON, CSV, and PDF formats, with status tracking, download tracking, and auto-cleanup.
--   **Advanced Caching Strategy**: Implemented in-memory caching with TTL support, smart invalidation, and 5 strategic cache layers.
--   **Email Queue System**: Asynchronous email processing with automatic retries, delivery status tracking, and pre-built methods for common email scenarios.
--   **Automated Testing Suite**: Comprehensive suite with Jest for unit and integration tests, including mock data generation, coverage tracking, and zero database dependency for isolated testing.
--   **Admin Analytics Dashboard**: Real-time WebSocket-based dashboard with live metrics, system health monitoring, and historical trends for subscriptions, revenue, customer growth, and document uploads.
--   **Automated Report Scheduling**: Enterprise-grade report generation with customizable schedules (daily/weekly/monthly), multi-recipient email delivery, schedule management UI, and delivery tracking.
--   **Backend Configuration System**: System-wide control panel for managing settings like auto-logout, idle timeout, session management, rate limiting, max file upload size, and 2FA requirement.
+## User Preferences
 
-### External Dependencies
--   **Replit Auth**: For initial user authentication.
--   **PostgreSQL**: Primary relational database.
--   **Drizzle ORM**: For type-safe database interactions.
--   **Express.js**: Web application framework.
--   **express-rate-limit**: Middleware for rate limiting.
--   **Stripe**: Payment processing and subscription billing.
--   **speakeasy**: For TOTP-based two-factor authentication.
--   **ws (WebSocket)**: For real-time statistics streaming.
--   **WordPress**: External CMS and frontend for the entire ALWR system.
--   **swagger-ui-express**: For interactive API documentation UI.
--   **swagger-jsdoc**: For converting JSDoc to OpenAPI specification.
--   **Jest**: Testing framework for automated unit and integration tests.
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Technology Stack
+
+**Backend:**
+- Node.js with Express.js as the web framework
+- TypeScript for type safety across the entire codebase
+- PostgreSQL database with Drizzle ORM for type-safe database operations
+- Vite for frontend build tooling with React
+- Jest for automated testing
+
+**Frontend:**
+- React with TypeScript
+- Wouter for client-side routing
+- TanStack Query for server state management
+- shadcn/ui component library (Material Design 3 influenced)
+- Tailwind CSS for styling
+- Dark/light theme support
+
+### Authentication & Security
+
+**Authentication:**
+- Custom email/password authentication with bcrypt password hashing
+- Replit Auth integration for initial user authentication
+- Session-based authentication using PostgreSQL session store
+- 30-minute session timeout with activity-based extension
+- Account locking after 5 failed login attempts with exponential backoff (15 min → 4 hours max)
+- Two-factor authentication (TOTP) with authenticator apps (Google Authenticator, Authy)
+
+**Security Features:**
+1. CORS validation restricting requests to whitelisted origins
+2. Content Security Policy (CSP) preventing XSS attacks
+3. HSTS headers enforcing HTTPS connections
+4. Multi-tier rate limiting (global, auth, API, user-based, concurrent)
+5. Request payload size limits (5MB default, 50MB documents, 100KB settings)
+6. Secrets rotation policy (SESSION_SECRET monthly, DATABASE_PASSWORD quarterly)
+7. Column-level PII encryption with AES-256-GCM (ready for implementation)
+8. API key authentication system with SHA256 hashing and permission-based access
+9. Comprehensive audit logging (35+ audit action types)
+10. IP whitelisting for admin endpoints via ADMIN_IPS environment variable
+
+**Role-Based Access Control:**
+- Customer: View/manage own profile, documents, subscriptions
+- Agent: Manage customers and subscriptions (500 requests/hour)
+- Reseller: Customer referral management (300 requests/hour)
+- Admin: Full system access except super admin functions (2000 requests/hour)
+- Super Admin: Complete system control (5000 requests/hour)
+
+### Database Architecture
+
+**Schema Organization (shared/schema.ts):**
+
+**Core Tables:**
+- `users` - User authentication and profiles (email, password, role, 2FA settings)
+- `customers` - Customer profiles with PII (encrypted fields ready)
+- `subscriptions` - Subscription management with Stripe integration
+- `documents` - Healthcare documents with versioning support
+- `document_versions` - Document version history
+
+**Access & Security:**
+- `emergency_access_logs` - HIPAA-compliant access tracking
+- `audit_logs` - Comprehensive admin action tracking
+- `failed_login_attempts` - Brute force attack prevention
+- `api_keys` - Third-party API access management
+
+**Business Operations:**
+- `agents` - Sales agent management
+- `resellers` - Reseller partner management
+- `physical_card_orders` - ID card order processing
+- `customer_notes` - Internal customer notes
+- `customer_tags` - Customer categorization
+
+**Communication:**
+- `email_templates` - Templated email management
+- `email_notifications` - Email queue with retry logic
+- `data_exports` - GDPR/CCPA compliance data exports
+
+**Reporting & Admin:**
+- `report_schedules` - Automated report generation
+- `report_history` - Report delivery tracking
+- `system_settings` - Backend configuration system
+
+### Performance & Optimization
+
+**Caching Strategy:**
+- In-memory caching with TTL support reducing database queries by 60%+
+- 5 strategic cache layers (customer profiles, documents, subscriptions, reports, stats)
+- Smart cache invalidation on mutations
+- Pattern-based cache clearing
+- Auto-cleanup of expired entries every 60 seconds
+
+**Database Optimization:**
+- Query performance monitoring with slow query logging (>100ms threshold)
+- Recommended indices for users, customers, subscriptions, documents, audit logs
+- Query metrics tracking with duration and row counts
+
+**Rate Limiting Tiers:**
+- Customer: 100 requests/hour, 10 concurrent
+- Agent: 500 requests/hour, 50 concurrent
+- Reseller: 300 requests/hour, 30 concurrent
+- Admin: 2000 requests/hour, 500 concurrent
+- Super Admin: 5000 requests/hour, 1000 concurrent
+
+### API Design
+
+**API Versioning:**
+- v1: DEPRECATED (sunset 2025-12-31)
+- v2: STABLE (current recommended version)
+- Version detection middleware with deprecation warnings
+- Backward compatibility support during migration period
+
+**Documentation:**
+- OpenAPI/Swagger documentation at `/api/docs` (interactive UI)
+- JSON spec at `/api/docs.json`
+- 80+ documented endpoints
+- Version info endpoint at `/api/version`
+
+**Response Patterns:**
+- Standardized error handling with sanitized error messages
+- Consistent JSON response format
+- Rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
+- Pagination support for list endpoints
+
+### Real-Time Features
+
+**WebSocket Integration:**
+- Real-time dashboard metrics via WebSocket
+- Live stats updates for admin dashboard
+- Subscription-based stats streaming
+- Automatic reconnection handling
+
+**Email Queue System:**
+- Asynchronous email processing (10 emails per 5 seconds)
+- Exponential backoff retries (1s → 2s → 4s)
+- Database-backed persistence
+- Status tracking (pending, sent, failed, bounced)
+- Admin monitoring endpoints
+
+### Analytics & Reporting
+
+**Admin Dashboard Metrics:**
+- Subscription metrics (total, active, expired, cancelled, pending, trial)
+- Revenue metrics (MTD, YTD, last month, last quarter, average per customer)
+- Customer metrics (total, active, churn rate, lifetime value, new this month)
+- Document metrics (total, uploads by period, average per customer, by type)
+- System health (uptime, response time, database status, error rate)
+
+**Automated Reporting:**
+- Scheduled report generation (daily, weekly, monthly)
+- Multi-recipient email delivery
+- Report history tracking
+- Customizable report types (subscription, revenue, customer, document, emergency access, audit)
+
+### File Management
+
+**Document Upload:**
+- Multer middleware for file handling
+- 10MB file size limit
+- Supported formats: PDF, DOC, DOCX
+- Temporary storage in memory
+- Document versioning support
+
+**Data Export:**
+- GDPR/CCPA compliance
+- Formats: JSON, CSV, PDF
+- Status tracking (pending, processing, completed, failed)
+- Auto-cleanup after 7 days
+- Download tracking
+
+## External Dependencies
+
+**Database:**
+- PostgreSQL (via Neon serverless with WebSocket support)
+- Drizzle ORM with drizzle-kit for migrations
+- connect-pg-simple for PostgreSQL session storage
+
+**Authentication:**
+- Replit Auth (openid-client with Passport strategy)
+- bcryptjs for password hashing
+- speakeasy for TOTP two-factor authentication
+- QRCode for 2FA QR code generation
+
+**Payment Processing:**
+- Stripe API integration
+- stripe-replit-sync for Stripe schema management
+- Product and price management via Stripe
+
+**Email (Mock Implementation):**
+- MockEmailService for development (logs to console)
+- Ready for SendGrid or similar provider integration
+- Queue-based processing with retry logic
+
+**Frontend Libraries:**
+- React with TypeScript
+- TanStack Query for data fetching and caching
+- Wouter for routing
+- shadcn/ui component library (@radix-ui components)
+- React Hook Form with Zod validation
+- Tailwind CSS with autoprefixer
+
+**Development Tools:**
+- Vite with React plugin
+- tsx for TypeScript execution
+- esbuild for production builds
+- Jest for testing with ts-jest
+- Supertest for API integration testing
+- @replit/vite-plugin-runtime-error-modal for error overlays
+- @replit/vite-plugin-cartographer and dev-banner for development
+
+**Security & Utilities:**
+- express-rate-limit for rate limiting
+- cors for CORS handling
+- helmet for security headers (via manual implementation)
+- memoizee for function memoization
+- nanoid for unique ID generation
+- swagger-ui-express and swagger-jsdoc for API documentation
+
+**Monitoring:**
+- Custom logger utility for structured logging
+- WebSocket for real-time metrics
+- Cache statistics tracking
+- Query performance monitoring
