@@ -3851,6 +3851,181 @@ startxref
     }
   });
 
+  // ============================================================================
+  // ADMIN ANALYTICS ROUTES
+  // ============================================================================
+
+  /**
+   * GET /api/admin/analytics/dashboard
+   * Get complete dashboard metrics
+   */
+  app.get("/api/admin/analytics/dashboard", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { Analytics } = await import('./analytics');
+      const { cache, cacheKeys, CACHE_TTL } = await import('./cache');
+
+      // Check cache first
+      let dashboard = cache.get(cacheKeys.adminStats());
+      
+      if (!dashboard) {
+        // Get data from storage
+        const customers = await storage.listCustomers();
+        const subscriptions = await storage.getSubscriptionsForAnalytics?.();
+        const documents = await storage.listDocuments?.();
+
+        // Generate dashboard
+        dashboard = Analytics.generateDashboard(
+          customers || [],
+          subscriptions || [],
+          documents || []
+        );
+
+        // Cache result
+        cache.set(cacheKeys.adminStats(), dashboard, CACHE_TTL.ADMIN_STATS);
+      }
+
+      res.json(dashboard);
+    } catch (error) {
+      console.error("Error generating dashboard:", error);
+      res.status(500).json({ message: "Failed to generate dashboard" });
+    }
+  });
+
+  /**
+   * GET /api/admin/analytics/summary
+   * Get dashboard summary cards
+   */
+  app.get("/api/admin/analytics/summary", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { Analytics } = await import('./analytics');
+      const { cache, cacheKeys, CACHE_TTL } = await import('./cache');
+
+      let dashboard = cache.get(cacheKeys.adminStats());
+      
+      if (!dashboard) {
+        const customers = await storage.listCustomers();
+        const subscriptions = await storage.getSubscriptionsForAnalytics?.();
+        const documents = await storage.listDocuments?.();
+
+        dashboard = Analytics.generateDashboard(
+          customers || [],
+          subscriptions || [],
+          documents || []
+        );
+
+        cache.set(cacheKeys.adminStats(), dashboard, CACHE_TTL.ADMIN_STATS);
+      }
+
+      const summary = Analytics.generateSummary(dashboard);
+      res.json(summary);
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      res.status(500).json({ message: "Failed to generate summary" });
+    }
+  });
+
+  /**
+   * GET /api/admin/analytics/growth
+   * Get 12-month growth trends
+   */
+  app.get("/api/admin/analytics/growth", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { Analytics } = await import('./analytics');
+      const { cache, cacheKeys, CACHE_TTL } = await import('./cache');
+
+      // Check cache - growth data is stable
+      let growthData = cache.get(cacheKeys.adminRecentActivity());
+      
+      if (!growthData) {
+        const customers = await storage.listCustomers();
+        const subscriptions = await storage.getSubscriptionsForAnalytics?.();
+        const documents = await storage.listDocuments?.();
+
+        growthData = Analytics.generateGrowthMetrics(
+          customers || [],
+          documents || [],
+          subscriptions || []
+        );
+
+        cache.set(cacheKeys.adminRecentActivity(), growthData, CACHE_TTL.ADMIN_ACTIVITY);
+      }
+
+      res.json(growthData);
+    } catch (error) {
+      console.error("Error generating growth metrics:", error);
+      res.status(500).json({ message: "Failed to generate growth metrics" });
+    }
+  });
+
+  /**
+   * GET /api/admin/analytics/subscriptions
+   * Get subscription breakdown
+   */
+  app.get("/api/admin/analytics/subscriptions", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { Analytics } = await import('./analytics');
+      const subscriptions = await storage.getSubscriptionsForAnalytics?.();
+      
+      const metrics = Analytics.calculateSubscriptionMetrics(subscriptions || []);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error getting subscription metrics:", error);
+      res.status(500).json({ message: "Failed to get subscription metrics" });
+    }
+  });
+
+  /**
+   * GET /api/admin/analytics/revenue
+   * Get revenue metrics
+   */
+  app.get("/api/admin/analytics/revenue", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { Analytics } = await import('./analytics');
+      const subscriptions = await storage.getSubscriptionsForAnalytics?.();
+      
+      const metrics = Analytics.calculateRevenueMetrics(subscriptions || []);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error getting revenue metrics:", error);
+      res.status(500).json({ message: "Failed to get revenue metrics" });
+    }
+  });
+
+  /**
+   * GET /api/admin/analytics/customers
+   * Get customer metrics
+   */
+  app.get("/api/admin/analytics/customers", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { Analytics } = await import('./analytics');
+      const customers = await storage.listCustomers();
+      const subscriptions = await storage.getSubscriptionsForAnalytics?.();
+      
+      const metrics = Analytics.calculateCustomerMetrics(customers || [], subscriptions || []);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error getting customer metrics:", error);
+      res.status(500).json({ message: "Failed to get customer metrics" });
+    }
+  });
+
+  /**
+   * GET /api/admin/analytics/documents
+   * Get document statistics
+   */
+  app.get("/api/admin/analytics/documents", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { Analytics } = await import('./analytics');
+      const documents = await storage.listDocuments?.();
+      
+      const metrics = Analytics.calculateDocumentMetrics(documents || []);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error getting document metrics:", error);
+      res.status(500).json({ message: "Failed to get document metrics" });
+    }
+  });
+
   // Note: Stripe webhook route is registered in app.ts BEFORE express.json()
   // This ensures the webhook receives the raw body as a Buffer
 
