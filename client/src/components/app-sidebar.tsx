@@ -544,7 +544,7 @@ export function AppSidebar() {
             data-testid="button-logout"
             onClick={async () => {
               try {
-                await fetch("/api/logout", { method: "POST" });
+                await fetch("/api/auth/logout", { method: "POST" });
                 window.location.href = "/";
               } catch (error) {
                 console.error("Logout failed:", error);
