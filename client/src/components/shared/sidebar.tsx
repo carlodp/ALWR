@@ -243,7 +243,7 @@ export function AppSidebar() {
     },
   ];
 
-  const menuItems = isAdmin ? adminMenuItems : customerMenuItems;
+  const menuItems = (isAdmin || isSuperAdmin) ? adminMenuItems : customerMenuItems;
 
   return (
     <Sidebar>
@@ -255,7 +255,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {isAdmin ? (
+        {(isAdmin || isSuperAdmin) ? (
           <>
             {/* Dashboard */}
             <SidebarGroup>

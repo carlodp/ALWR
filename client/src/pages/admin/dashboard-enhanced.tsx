@@ -40,16 +40,16 @@ import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
  * Data Source: WebSocket connection via useRealtimeDashboard hook
  */
 export default function AdminDashboardEnhanced() {
-  const { user, isLoading: authLoading, isAdmin } = useAuth();
+  const { user, isLoading: authLoading, isAdmin, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { data: realtimeData, isLoading, isConnected } = useRealtimeDashboard(
     user?.id,
-    !!user && isAdmin
+    !!user && (isAdmin || isSuperAdmin)
   );
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
+    if (!authLoading && !isAdmin && !isSuperAdmin) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to access this page.",
@@ -59,9 +59,9 @@ export default function AdminDashboardEnhanced() {
         window.location.href = "/";
       }, 1000);
     }
-  }, [isAdmin, authLoading, toast]);
+  }, [isAdmin, isSuperAdmin, authLoading, toast]);
 
-  if (authLoading || !isAdmin) {
+  if (authLoading || (!isAdmin && !isSuperAdmin)) {
     return null;
   }
 

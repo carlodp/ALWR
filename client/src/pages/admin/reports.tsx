@@ -39,7 +39,7 @@ const reportScheduleSchema = z.object({
 type ReportScheduleFormData = z.infer<typeof reportScheduleSchema>;
 
 export default function AdminReports() {
-  const { isAdmin, isLoading: authLoading } = useAuth();
+  const { isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const { data: reports, isLoading: statsLoading } = useRealtimeStats();
   const [openDialog, setOpenDialog] = useState(false);
@@ -62,14 +62,14 @@ export default function AdminReports() {
   // Fetch report schedules
   const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ["/api/admin/reports/schedules"],
-    enabled: isAdmin && !authLoading,
+    enabled: (isAdmin || isSuperAdmin) && !authLoading,
     staleTime: 30000,
   });
 
   // Fetch report history
   const { data: history = [], isLoading: historyLoading } = useQuery({
     queryKey: ["/api/admin/reports/history"],
-    enabled: isAdmin && !authLoading,
+    enabled: (isAdmin || isSuperAdmin) && !authLoading,
     staleTime: 30000,
   });
 

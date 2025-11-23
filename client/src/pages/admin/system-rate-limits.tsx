@@ -25,12 +25,12 @@ type RateLimitStats = {
 };
 
 export default function AdminSystemRateLimits() {
-  const { user, isLoading: authLoading, isAdmin } = useAuth();
+  const { user, isLoading: authLoading, isAdmin, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
+    if (!authLoading && !isAdmin && !isSuperAdmin) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to access this page.",
@@ -40,14 +40,14 @@ export default function AdminSystemRateLimits() {
         window.location.href = "/";
       }, 1000);
     }
-  }, [isAdmin, authLoading, toast]);
+  }, [isAdmin, isSuperAdmin, authLoading, toast]);
 
   const { data: stats, isLoading } = useQuery<RateLimitStats>({
     queryKey: ["/api/admin/rate-limits/stats"],
-    enabled: !!user && isAdmin,
+    enabled: !!user && (isAdmin || isSuperAdmin),
   });
 
-  if (authLoading || !isAdmin) {
+  if (authLoading || (!isAdmin && !isSuperAdmin)) {
     return null;
   }
 
