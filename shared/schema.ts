@@ -207,7 +207,7 @@ export const customerTags = pgTable("customer_tags", {
 // PHYSICAL CARD ORDERS
 // ============================================================================
 
-const cardOrderStatusEnum = pgEnum('alwr_card_order_status', [
+export const cardOrderStatusEnum = pgEnum('alwr_card_order_status', [
   'requested',
   'printed',
   'shipped',
