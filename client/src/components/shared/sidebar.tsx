@@ -611,6 +611,27 @@ export function AppSidebar() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {/* Admin Section - Super Admin Only */}
+            {isSuperAdmin && (
+              <SidebarGroup>
+                <SidebarGroupLabel>ADMIN</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {menuItems.filter(item => (item as any).section === "ADMIN").map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
+                          <a href={item.url}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
           </>
         ) : (
           /* Customer Menu */
