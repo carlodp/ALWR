@@ -134,7 +134,23 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - **Resellers module: resellers table, reseller_customer_referrals table with proper indexing**
 - Maintained: emailVerified, emailVerificationToken, passwordResetToken, all 2FA fields
 
-**Session 8 Updates - Password Generator Feature:**
+**Session 8 Updates - Password Generator & Super Admin Role:**
+
+**Super Admin Role:**
+- **Super Admin Account**: carlo@wdmorgan.com with password: `_jA6TJb&eP#__Ahu`
+- **Protection**: Super Admin accounts cannot be modified or demoted through the UI or API
+- **Permanent Role**: Super Admin role can only be set manually via database/code (email-based protection)
+- **Features**:
+  - Full system access with highest privileges
+  - Protected from accidental role changes
+  - Marked with badge in User Roles interface
+  - Backend validation prevents API-based role changes
+- **How to create additional Super Admins**:
+  1. Insert user directly into database with desired email
+  2. Add email to protection list in backend code (`server/routes.ts`)
+  3. Add email check to frontend UI (`client/src/pages/admin-user-roles.tsx`)
+
+**Password Generator Feature:**
 - **New Module**: `client/src/lib/passwordGenerator.ts`
   - `generatePassword(length?: number)` - Generates secure 16-char random passwords
   - `copyToClipboard(text: string)` - Copies password to browser clipboard with feedback

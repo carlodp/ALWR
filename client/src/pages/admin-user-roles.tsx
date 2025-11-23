@@ -69,9 +69,16 @@ export default function AdminUserRoles() {
               <CardContent className="py-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium" data-testid={`text-name-${user.id}`}>
-                      {user.firstName} {user.lastName}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium" data-testid={`text-name-${user.id}`}>
+                        {user.firstName} {user.lastName}
+                      </h3>
+                      {user.email === 'carlo@wdmorgan.com' && (
+                        <Badge variant="default" data-testid={`badge-super-admin-${user.id}`}>
+                          Super Admin
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground" data-testid={`text-email-${user.id}`}>
                       {user.email}
                     </p>

@@ -2610,6 +2610,11 @@ startxref
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Prevent modification of Super Admin accounts (email-based protection)
+      if (user.email === 'carlo@wdmorgan.com') {
+        return res.status(403).json({ message: "Cannot modify Super Admin accounts" });
+      }
+
       // Prevent demoting the last admin
       if (user.role === 'admin' && role !== 'admin') {
         const adminCount = await storage.countUsersWithRole('admin');

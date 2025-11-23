@@ -18,7 +18,7 @@ import { z } from "zod";
 // ENUMS
 // ============================================================================
 
-export const userRoleEnum = pgEnum('alwr_user_role', ['customer', 'admin', 'agent']);
+export const userRoleEnum = pgEnum('alwr_user_role', ['customer', 'admin', 'agent', 'reseller', 'super_admin']);
 export const accountStatusEnum = pgEnum('alwr_account_status', ['active', 'expired']);
 export const subscriptionStatusEnum = pgEnum('alwr_subscription_status', [
   'active',
