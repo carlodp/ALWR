@@ -16,10 +16,10 @@ export function PageTransitionLoader() {
       setIsVisible(true);
       setPrevLocation(location);
       
-      // Hide loader after a short delay (content should be loaded by then)
+      // Hide loader after a delay (gives page content time to render)
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 300);
+      }, 500);
 
       return () => clearTimeout(timer);
     }
@@ -28,7 +28,7 @@ export function PageTransitionLoader() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50 pointer-events-none">
+    <div className="fixed inset-0 bg-background flex items-center justify-center z-50 pointer-events-auto">
       <div className="flex flex-col items-center gap-3">
         <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
         <p className="text-sm text-muted-foreground animate-pulse">Loading page...</p>
