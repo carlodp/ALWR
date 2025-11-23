@@ -50,9 +50,16 @@ import ProfileSetup from "@/pages/profile-setup";
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();
 
-  // Don't render any routes during loading to prevent 404 flash
+  // Show loading indicator while checking authentication
   if (isLoading) {
-    return null;
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
