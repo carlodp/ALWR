@@ -57,6 +57,29 @@ The database schema includes tables for Users, Customers, Subscriptions, Documen
 - **ws (WebSocket)**: Real-time stats streaming.
 - **TypeScript**: Type safety and development tooling.
 
+### Latest Build Session (Session 3)
+**Tier 1 MVP Features Completed:**
+1. **Full Users Module** ✅ - 9 new admin endpoints for user CRUD + role management
+2. **Email Verification System** ✅ - 2 endpoints for email verification with 24-hour tokens
+3. **Password Reset Flow** ✅ - 2 endpoints for forgot password and token validation
+
+**Total API Endpoints: 65+** (up from 57)
+- Users Module: 9 endpoints (list, get, create, update, change role, delete, activity)
+- Email/Password: 4 endpoints (send verification, verify email, forgot password, reset password)
+- All previous modules: 52+ endpoints
+
+**Features Deployed:**
+- Role-based access control (admin, customer, agent, support)
+- User deactivation and role management
+- Email verification with 24-hour expiration
+- Password reset with 1-hour token expiration
+- Security: email existence not revealed in forgot password
+- Rate limiting ready for login/verification attempts
+- Comprehensive audit logging for all user operations
+
+**Database Schema Updates:**
+- Added to users table: emailVerified, emailVerificationToken, emailVerificationTokenExpiresAt, passwordResetToken, passwordResetTokenExpiresAt, passwordResetAttempts
+
 ### Frontend Dependencies (WordPress)
 - **WordPress**: CMS for public website, customer portal, admin interface.
 - Connects to this API via REST endpoints.

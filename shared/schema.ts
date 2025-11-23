@@ -148,7 +148,7 @@ export const customers = pgTable("customers", {
   currentVersion: integer("current_version").default(1),
   
   // Referral Tracking
-  referralCode: varchar("referral_code").unique(),
+  referralCode: varchar("referral_code"), // Optional referral code
   referredByCustomerId: varchar("referred_by_customer_id").references(() => customers.id),
   
   // Stripe Integration

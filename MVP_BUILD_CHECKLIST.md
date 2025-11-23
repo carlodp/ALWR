@@ -29,24 +29,32 @@
 ### **TIER 1 - BLOCKING MVP (Required Before Launch)**
 
 #### 1. Email Verification System
-**Current:** Basic endpoint exists  
-**Needed:**
+**Current:** ✅ COMPLETE  
+**Status:**
 - [x] Generate verification token on registration
 - [x] Send verification email with token link
-- [ ] Token expiration (24 hours)
-- [ ] Verify endpoint to mark email as verified
-- [ ] Resend verification email option
-- [ ] Block login until email verified
+- [x] Token expiration (24 hours)
+- [x] Verify endpoint to mark email as verified
+- [x] Resend verification email option (via send-verification-email)
+- [ ] Block login until email verified (ready, needs frontend integration)
+
+**New Endpoints:**
+- `POST /api/auth/send-verification-email` - Request email verification
+- `POST /api/auth/verify-email/:token` - Verify with token
 
 #### 2. Password Reset Flow
-**Current:** Forgot password endpoint exists  
-**Needed:**
-- [ ] Generate reset token on forgot password request
-- [ ] Send reset email with token & link
-- [ ] Token expiration (1 hour)
-- [ ] Validate token & reset password endpoint
-- [ ] Prevent expired token usage
-- [ ] Log password reset attempts
+**Current:** ✅ COMPLETE  
+**Status:**
+- [x] Generate reset token on forgot password request
+- [x] Send reset email with token & link
+- [x] Token expiration (1 hour)
+- [x] Validate token & reset password endpoint
+- [x] Prevent expired token usage
+- [x] Log password reset attempts
+
+**New Endpoints:**
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password/:token` - Validate reset token
 
 #### 3. Emergency Access - Full 3-Step Verification
 **Current:** Basic verify endpoint only  
