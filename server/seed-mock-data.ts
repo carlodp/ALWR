@@ -2,14 +2,46 @@ import { db } from "./db";
 import { users, customers, subscriptions, documents, customerNotes, agents, resellers } from "@shared/schema";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import bcrypt from "bcryptjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function seedMockData() {
-  console.log("🌱 Seeding mock customer data...");
+  console.log("🌱 Seeding mock admin users...");
 
   try {
+    // Create admin and super_admin users
+    const adminUsers = [
+      { email: "super@admin.com", firstName: "Super", lastName: "Admin", password: "SuperAdmin123!", role: "super_admin" },
+      { email: "admin@alwr.com", firstName: "Admin", lastName: "User", password: "Admin123!", role: "admin" },
+    ];
+
+    for (const adminUser of adminUsers) {
+      const existingUser = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, adminUser.email),
+      });
+
+      if (!existingUser) {
+        const hashedPassword = await bcrypt.hash(adminUser.password, 10);
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            email: adminUser.email,
+            firstName: adminUser.firstName,
+            lastName: adminUser.lastName,
+            password: hashedPassword,
+            role: adminUser.role,
+          })
+          .returning();
+        console.log(`✅ Created ${adminUser.role}: ${adminUser.email} (password: ${adminUser.password})`);
+      } else {
+        console.log(`✅ Admin user already exists: ${adminUser.email}`);
+      }
+    }
+
+    console.log("\n🌱 Seeding mock customer data...");
+
     // Create mock users and customers - expanded to 35+ customers
     const mockCustomers = [
       // Original 5

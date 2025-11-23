@@ -719,14 +719,14 @@ function BackendConfigurationTab() {
     queryKey: ['/api/admin/settings/system'],
     queryFn: async () => {
       const response = await apiRequest('/api/admin/settings/system', 'GET');
-      return response as SystemSettings;
+      return response as unknown as SystemSettings;
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<SystemSettings>) => {
       const response = await apiRequest('/api/admin/settings/system', 'PATCH', updates);
-      return response as SystemSettings;
+      return response as unknown as SystemSettings;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/settings/system'] });
