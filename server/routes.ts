@@ -1582,7 +1582,7 @@ startxref
       }
 
       const user = await storage.getUser(customer.userId);
-      const subscription = await storage.getSubscription(customer.id);
+      const subscriptions = await storage.getSubscriptionsByCustomer(customer.id);
       const documents = await storage.listDocumentsByCustomer(customer.id);
       const notes = await storage.listCustomerNotes(customer.id);
       const emergencyLogs = await storage.listEmergencyAccessLogs(customer.id);
@@ -1590,7 +1590,7 @@ startxref
       res.json({
         ...customer,
         user,
-        subscription,
+        subscriptions,
         documents,
         notes,
         emergencyAccessLogs: emergencyLogs,

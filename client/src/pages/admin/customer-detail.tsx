@@ -16,6 +16,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Customer, User, Document, Subscription } from "@shared/schema";
 
 interface CustomerNote {
@@ -29,7 +38,7 @@ interface CustomerNote {
 interface CustomerDetail extends Omit<Customer, 'notes'> {
   user: User;
   documents: Document[];
-  subscription?: Subscription;
+  subscriptions: Subscription[];
   notes: CustomerNote[];
 }
 
@@ -57,6 +66,9 @@ export default function AdminCustomerDetail() {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [deleteDocConfirm, setDeleteDocConfirm] = useState<string | null>(null);
+  const [deleteSubConfirm, setDeleteSubConfirm] = useState<string | null>(null);
+  const [deleteCustomerConfirm, setDeleteCustomerConfirm] = useState(false);
 
   const noteForm = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
@@ -119,6 +131,10 @@ export default function AdminCustomerDetail() {
     },
   });
 
+  const handleEditSubmit = async (data: EditCustomerData) => {
+    editMutation.mutate(data);
+  };
+
   const deleteDocumentMutation = useMutation({
     mutationFn: async (docId: string) => {
       const res = await apiRequest("DELETE", `/api/customer/documents/${docId}`);
@@ -127,6 +143,7 @@ export default function AdminCustomerDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${id}`] });
+      setDeleteDocConfirm(null);
       toast({ title: "Document deleted successfully" });
     },
     onError: () => {
@@ -135,14 +152,14 @@ export default function AdminCustomerDetail() {
   });
 
   const deleteSubscriptionMutation = useMutation({
-    mutationFn: async () => {
-      if (!customer?.subscription?.id) throw new Error("No subscription to delete");
-      const res = await apiRequest("DELETE", `/api/admin/subscriptions/${customer.subscription.id}`);
+    mutationFn: async (subId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/subscriptions/${subId}`);
       if (!res.ok) throw new Error("Failed to delete subscription");
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${id}`] });
+      setDeleteSubConfirm(null);
       toast({ title: "Subscription deleted successfully" });
     },
     onError: () => {
@@ -157,6 +174,7 @@ export default function AdminCustomerDetail() {
       return res.json();
     },
     onSuccess: () => {
+      setDeleteCustomerConfirm(false);
       toast({ title: "Customer deleted successfully" });
       setLocation("/admin/customers");
     },
@@ -167,10 +185,6 @@ export default function AdminCustomerDetail() {
 
   const onSubmitNote = async (data: NoteFormData) => {
     notesMutation.mutate(data.noteText);
-  };
-
-  const onSubmitEdit = async (data: EditCustomerData) => {
-    editMutation.mutate(data);
   };
 
   if (isLoading) {
@@ -267,7 +281,7 @@ export default function AdminCustomerDetail() {
               </CardHeader>
               <CardContent>
                 <Form {...editForm}>
-                  <form onSubmit={editForm.handleSubmit(onSubmitEdit)} className="space-y-6">
+                  <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-6">
                     {/* Contact Information */}
                     <div className="space-y-4">
                       <h3 className="font-medium">Contact Information</h3>
@@ -524,7 +538,7 @@ export default function AdminCustomerDetail() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => deleteDocumentMutation.mutate(doc.id)}
+                        onClick={() => setDeleteDocConfirm(doc.id)}
                         disabled={deleteDocumentMutation.isPending}
                         data-testid={`button-delete-doc-${doc.id}`}
                       >
@@ -545,62 +559,59 @@ export default function AdminCustomerDetail() {
 
         {/* Subscription Tab */}
         <TabsContent value="subscription" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <div>
-                <CardTitle>Subscription Status</CardTitle>
-              </div>
-              {customer.subscription && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => deleteSubscriptionMutation.mutate()}
-                  disabled={deleteSubscriptionMutation.isPending}
-                  data-testid="button-delete-subscription"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {customer.subscription ? (
-                <>
-                  <div className="flex items-center justify-between">
+          {customer.subscriptions && customer.subscriptions.length > 0 ? (
+            customer.subscriptions.map((sub) => (
+              <Card key={sub.id}>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div>
+                    <CardTitle>{sub.status === 'expired' ? 'Past Subscription' : 'Current Subscription'}</CardTitle>
+                    <CardDescription>{new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
+                      {sub.status}
+                    </Badge>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setDeleteSubConfirm(sub.id)}
+                      disabled={deleteSubscriptionMutation.isPending}
+                      data-testid={`button-delete-subscription-${sub.id}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Amount</p>
+                      <p className="font-medium">${((sub.amount || 0) / 100).toFixed(2)}</p>
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Status</p>
-                      <Badge className="capitalize mt-1">{customer.subscription.status}</Badge>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-muted-foreground">Amount</p>
-                      <p className="text-lg font-bold">
-                        ${((customer.subscription.amount || 0) / 100).toFixed(2)}/{customer.subscription.currency}
-                      </p>
+                      <p className="font-medium capitalize">{sub.status}</p>
                     </div>
                   </div>
-
-                  <div className="grid gap-4 pt-4 border-t">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Start Date</p>
-                      <p className="font-medium">
-                        {new Date(customer.subscription.startDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">End Date</p>
-                      <p className="font-medium">
-                        {new Date(customer.subscription.endDate).toLocaleDateString()}
-                      </p>
-                    </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Subscriptions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-3 items-start">
+                  <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">No subscriptions found</p>
+                    <p className="text-sm text-muted-foreground">This customer has no subscription history</p>
                   </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto opacity-50" />
-                  <p className="text-sm text-muted-foreground mt-2">No active subscription</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Notes Tab */}
@@ -661,6 +672,74 @@ export default function AdminCustomerDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Document Confirmation */}
+      <AlertDialog open={!!deleteDocConfirm} onOpenChange={(open) => !open && setDeleteDocConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this document? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              if (deleteDocConfirm) {
+                deleteDocumentMutation.mutate(deleteDocConfirm);
+              }
+            }}
+            disabled={deleteDocumentMutation.isPending}
+          >
+            {deleteDocumentMutation.isPending ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Subscription Confirmation */}
+      <AlertDialog open={!!deleteSubConfirm} onOpenChange={(open) => !open && setDeleteSubConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Subscription</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this subscription? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              if (deleteSubConfirm) {
+                deleteSubscriptionMutation.mutate(deleteSubConfirm);
+              }
+            }}
+            disabled={deleteSubscriptionMutation.isPending}
+          >
+            {deleteSubscriptionMutation.isPending ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Customer Confirmation */}
+      <AlertDialog open={deleteCustomerConfirm} onOpenChange={setDeleteCustomerConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this customer and all their data? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => deleteCustomerMutation.mutate()}
+            disabled={deleteCustomerMutation.isPending}
+          >
+            {deleteCustomerMutation.isPending ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,12 +5,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Phone, MapPin, FileText, Trash2 } from "lucide-react";
+import { Mail, Phone, MapPin, FileText, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Customer, User, Document, Subscription } from "@shared/schema";
 
 interface CustomerNote {
@@ -24,7 +33,7 @@ interface CustomerNote {
 interface CustomerDetail extends Omit<Customer, 'notes'> {
   user: User;
   documents: Document[];
-  subscription?: Subscription;
+  subscriptions: Subscription[];
   notes: CustomerNote[];
 }
 
@@ -38,25 +47,11 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
   const [, setLocation] = useLocation();
   const { isAdmin } = useAuth();
   const { toast } = useToast();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: customer, isLoading } = useQuery<CustomerDetail>({
     queryKey: [`/api/admin/customers/${customerId}`],
     enabled: !!customerId && open && isAdmin,
-  });
-
-  const deleteDocumentMutation = useMutation({
-    mutationFn: async (docId: string) => {
-      const res = await apiRequest("DELETE", `/api/customer/documents/${docId}`);
-      if (!res.ok) throw new Error("Failed to delete document");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${customerId}`] });
-      toast({ title: "Document deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete document", variant: "destructive" });
-    },
   });
 
   if (!customerId) return null;
@@ -104,9 +99,13 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subscription Status</span>
-                    <Badge variant={customer.subscription?.status === 'active' ? 'default' : 'secondary'}>
-                      {customer.subscription?.status || 'None'}
-                    </Badge>
+                    {customer.subscriptions && customer.subscriptions.length > 0 ? (
+                      <Badge variant={customer.subscriptions[0].status === 'active' ? 'default' : 'secondary'}>
+                        {customer.subscriptions[0].status}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">None</span>
+                    )}
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Documents</span>
@@ -162,49 +161,55 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
             </TabsContent>
 
             <TabsContent value="subscriptions" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Subscription</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {customer.subscription ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Status</span>
-                        <Badge variant={customer.subscription.status === 'active' ? 'default' : 'secondary'}>
-                          {customer.subscription.status}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Amount</span>
-                        <span className="text-sm font-medium">${((customer.subscription.amount || 0) / 100).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Start Date</span>
-                        <span className="text-sm font-medium">{new Date(customer.subscription.startDate).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">End Date</span>
-                        <span className="text-sm font-medium">{new Date(customer.subscription.endDate).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No active subscription</p>
-                  )}
-                </CardContent>
-              </Card>
+              {customer.subscriptions && customer.subscriptions.length > 0 ? (
+                <div className="space-y-3">
+                  {customer.subscriptions.map((sub) => (
+                    <Card key={sub.id}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">Subscription {sub.status === 'expired' ? '(Past)' : ''}</CardTitle>
+                          <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
+                            {sub.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Amount</span>
+                          <span className="text-sm font-medium">${((sub.amount || 0) / 100).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Start Date</span>
+                          <span className="text-sm font-medium">{new Date(sub.startDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">End Date</span>
+                          <span className="text-sm font-medium">{new Date(sub.endDate).toLocaleDateString()}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground">No subscriptions found</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Documents ({customer.documents?.length || 0})</CardTitle>
+                  <CardDescription className="text-xs">Click "View Full Details" to manage documents</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {customer.documents && customer.documents.length > 0 ? (
                     <div className="space-y-2">
                       {customer.documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted justify-between">
+                        <div key={doc.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <div className="flex-1 min-w-0">
@@ -214,17 +219,6 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
                               </p>
                             </div>
                           </div>
-                          {isAdmin && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => deleteDocumentMutation.mutate(doc.id)}
-                              disabled={deleteDocumentMutation.isPending}
-                              data-testid={`button-delete-doc-${doc.id}`}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -248,7 +242,7 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
             }}
             data-testid="button-edit-full-page"
           >
-            Edit Full Page
+            View Full Details
           </Button>
         </div>
       </DialogContent>
