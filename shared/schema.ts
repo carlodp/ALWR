@@ -153,6 +153,11 @@ export const reportTypeEnum = pgEnum('alwr_report_type', [
   'comprehensive'
 ]);
 
+export const agentTypeEnum = pgEnum('alwr_agent_type', [
+  'individual_agent',
+  'organizational_agent'
+]);
+
 // ============================================================================
 // AUTHENTICATION TABLES
 // Handles user accounts, sessions, and authentication credentials
@@ -760,7 +765,32 @@ export const agents = pgTable("agents", {
   // Agent Status
   status: varchar("status").default('active').notNull(), // active, inactive, suspended
   
-  // Organization/Agency Info
+  // PIN Number
+  pinNumber: varchar("pin_number").unique(),
+  
+  // Agent Type
+  agentType: agentTypeEnum("agent_type"),
+  
+  // Professional Information
+  title: varchar("title"),
+  organization: varchar("organization"),
+  
+  // Contact Information - Address
+  address1: text("address_1"),
+  address2: text("address_2"),
+  city: varchar("city"),
+  state: varchar("state"),
+  zipCode: varchar("zip_code"),
+  country: varchar("country"),
+  
+  // Contact Information - Phone
+  phone1: varchar("phone_1"),
+  phone1Ext: varchar("phone_1_ext"),
+  phone2: varchar("phone_2"),
+  phone2Ext: varchar("phone_2_ext"),
+  fax: varchar("fax"),
+  
+  // Legacy/Additional Organization Info
   agencyName: varchar("agency_name"),
   agencyPhone: varchar("agency_phone"),
   agencyAddress: text("agency_address"),
@@ -785,6 +815,10 @@ export const agents = pgTable("agents", {
 }, (table) => [
   index("idx_agent_user_id").on(table.userId),
   index("idx_agent_status").on(table.status),
+  index("idx_agent_pin_number").on(table.pinNumber),
+  index("idx_agent_type").on(table.agentType),
+  index("idx_agent_organization").on(table.organization),
+  index("idx_agent_city_state").on(table.city, table.state),
 ]);
 
 // Agent-Customer Assignments (tracks which customers an agent manages)

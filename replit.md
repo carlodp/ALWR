@@ -87,7 +87,12 @@ Preferred communication style: Simple, everyday language.
 - `api_keys` - Third-party API access management
 
 **Business Operations:**
-- `agents` - Sales agent management
+- `agents` - Sales agent management with comprehensive contact details
+  - PIN Number, professional info (title, organization)
+  - Agent type (Individual or Organizational)
+  - Full address and phone fields with extensions
+  - License tracking and commission rates
+  - Performance metrics (customers, documents, revenue)
 - `resellers` - Reseller partner management
 - `physical_card_orders` - ID card order processing
 - `customer_notes` - Internal customer notes
@@ -155,6 +160,7 @@ Preferred communication style: Simple, everyday language.
 - Version info endpoint at `/api/version`
 - Batch operations docs: `docs/features/BATCH_OPERATIONS_AND_ADVANCED_SEARCH.md`
 - Customer Details schema: `docs/features/CUSTOMER_DETAILS_SCHEMA.md`
+- Agent Details schema: `docs/features/AGENT_DETAILS_SCHEMA.md`
 - WordPress API key integration: `docs/integrations/WORDPRESS_API_KEY_AUTHENTICATION.md`
 
 **Response Patterns:**
