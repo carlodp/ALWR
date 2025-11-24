@@ -7,6 +7,12 @@ The America Living Will Registry (ALWR) is a 24/7 online service for securely st
 The platform serves multiple user roles (customers, agents, resellers, admins, super admins) with role-based access control and manages sensitive healthcare documents with HIPAA-compliant security measures.
 
 ### Latest Enhancements (Phase 3)
+- **Improved User Experience**: Popup modals for customer, agent, and reseller details
+  - Click "View" on customer/agent/reseller rows to open a popup modal
+  - Modal displays key information without leaving the list view
+  - Option to navigate to full detail page for editing from the modal
+  - Tabbed interface for customers (Overview, Contact, Documents)
+  - Smooth, non-disruptive user interactions
 - **Accounting Page**: Complete financial ledger showing payment logs from customer subscriptions
   - Summary cards: Total revenue, active subscriptions, payment records count
   - Searchable payment table with date, customer name, email, status, dates, and amount paid
@@ -35,9 +41,10 @@ Preferred communication style: Simple, everyday language.
 - React with TypeScript
 - Wouter for client-side routing
 - TanStack Query for server state management
-- shadcn/ui component library (Material Design 3 influenced)
+- shadcn/ui component library (Material Design 3 influenced) with Dialog/Modal support
 - Tailwind CSS for styling
 - Dark/light theme support
+- Modal dialogs for non-disruptive detail viewing
 
 ### Authentication & Security
 

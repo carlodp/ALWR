@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Eye, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { ResellerDetailModal } from "@/components/modals/reseller-detail-modal";
 import type { Reseller, User } from "@shared/schema";
 
 type ResellerWithUser = Reseller & {
@@ -19,6 +20,8 @@ export default function AdminResellers() {
   const { isAdmin } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedResellerId, setSelectedResellerId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const { data: resellers, isLoading } = useQuery<ResellerWithUser[]>({
     queryKey: ["/api/resellers"],
@@ -121,7 +124,10 @@ export default function AdminResellers() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setLocation(`/admin/resellers/${reseller.id}`)}
+                          onClick={() => {
+                            setSelectedResellerId(reseller.id);
+                            setModalOpen(true);
+                          }}
                           data-testid={`button-view-reseller-${reseller.id}`}
                         >
                           <Eye className="h-4 w-4" />
@@ -148,6 +154,12 @@ export default function AdminResellers() {
           )}
         </CardContent>
       </Card>
+
+      <ResellerDetailModal 
+        resellerId={selectedResellerId}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 }

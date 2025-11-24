@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Eye, FileText, CreditCard, User as UserIcon, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { CustomerDetailModal } from "@/components/modals/customer-detail-modal";
 import type { Customer, User } from "@shared/schema";
 
 type CustomerWithUser = Customer & {
@@ -56,6 +57,8 @@ export default function AdminCustomers() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [subscriptionFilter, setSubscriptionFilter] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const { data: customers, isLoading } = useQuery<CustomerWithUser[]>({
     queryKey: ["/api/admin/customers"],
@@ -208,7 +211,10 @@ export default function AdminCustomers() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setLocation(`/admin/customers/${customer.id}`)}
+                          onClick={() => {
+                            setSelectedCustomerId(customer.id);
+                            setModalOpen(true);
+                          }}
                           data-testid={`button-view-${customer.id}`}
                         >
                           <Eye className="h-4 w-4" />
@@ -238,6 +244,12 @@ export default function AdminCustomers() {
           </div>
         </CardContent>
       </Card>
+
+      <CustomerDetailModal 
+        customerId={selectedCustomerId}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 }

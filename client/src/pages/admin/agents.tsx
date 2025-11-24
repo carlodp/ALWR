@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Eye, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { AgentDetailModal } from "@/components/modals/agent-detail-modal";
 import type { Agent, User } from "@shared/schema";
 
 type AgentWithUser = Agent & {
@@ -19,6 +20,8 @@ export default function AdminAgents() {
   const { isAdmin } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const { data: agents, isLoading } = useQuery<AgentWithUser[]>({
     queryKey: ["/api/agents"],
@@ -125,7 +128,10 @@ export default function AdminAgents() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setLocation(`/admin/agents/${agent.id}`)}
+                          onClick={() => {
+                            setSelectedAgentId(agent.id);
+                            setModalOpen(true);
+                          }}
                           data-testid={`button-view-agent-${agent.id}`}
                         >
                           <Eye className="h-4 w-4" />
@@ -152,6 +158,12 @@ export default function AdminAgents() {
           )}
         </CardContent>
       </Card>
+
+      <AgentDetailModal 
+        agentId={selectedAgentId}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 }
