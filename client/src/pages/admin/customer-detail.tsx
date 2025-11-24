@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft, Trash2 } from "lucide-react";
+import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft, Trash2, Upload } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Customer, User, Document, Subscription } from "@shared/schema";
+
+const DOCUMENT_TYPES = [
+  { value: "living_will", label: "Living Will" },
+  { value: "healthcare_surrogate", label: "Healthcare Surrogate" },
+  { value: "living_will_update", label: "Living Will Update" },
+  { value: "healthcare_surrogate_update", label: "Healthcare Surrogate Update" },
+  { value: "combined_advance_directive", label: "Combined Advance Directive" },
+  { value: "hipaa_release_form", label: "HIPAA Release Form" },
+  { value: "do_not_resuscitate", label: "Do Not Resuscitate" },
+  { value: "covid_vaccination_card", label: "COVID Vaccination Card" },
+];
 
 interface CustomerNote {
   id: string;
@@ -69,6 +95,9 @@ export default function AdminCustomerDetail() {
   const [deleteDocConfirm, setDeleteDocConfirm] = useState<string | null>(null);
   const [deleteSubConfirm, setDeleteSubConfirm] = useState<string | null>(null);
   const [deleteCustomerConfirm, setDeleteCustomerConfirm] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedDocType, setSelectedDocType] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const noteForm = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
@@ -180,6 +209,37 @@ export default function AdminCustomerDetail() {
     },
     onError: () => {
       toast({ title: "Failed to delete customer", variant: "destructive" });
+    },
+  });
+
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async () => {
+      if (!uploadedFile || !selectedDocType) {
+        throw new Error("File and document type are required");
+      }
+
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+      formData.append("fileType", selectedDocType);
+
+      const res = await fetch(`/api/admin/customers/${id}/documents/upload`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to upload document");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${id}`] });
+      setUploadDialogOpen(false);
+      setSelectedDocType("");
+      setUploadedFile(null);
+      toast({ title: "Document uploaded successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to upload document", description: error.message, variant: "destructive" });
     },
   });
 
@@ -527,6 +587,61 @@ export default function AdminCustomerDetail() {
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-4">
+          <div className="flex justify-end">
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Upload Document</DialogTitle>
+                  <DialogDescription>Add a new document for this customer</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Document Type</label>
+                    <Select value={selectedDocType} onValueChange={setSelectedDocType}>
+                      <SelectTrigger data-testid="select-document-type">
+                        <SelectValue placeholder="Select document type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DOCUMENT_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Document File</label>
+                    <Input
+                      type="file"
+                      accept=".pdf,.docx,.doc"
+                      onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                      data-testid="input-document-file"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">PDF or DOCX files only</p>
+                  </div>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => uploadDocumentMutation.mutate()}
+                      disabled={!selectedDocType || !uploadedFile || uploadDocumentMutation.isPending}
+                      data-testid="button-upload-document"
+                    >
+                      {uploadDocumentMutation.isPending ? "Uploading..." : "Upload"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle>Documents</CardTitle>

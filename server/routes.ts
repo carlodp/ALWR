@@ -1688,6 +1688,63 @@ startxref
     }
   });
 
+  // Upload document for customer (admin)
+  app.post("/api/admin/customers/:customerId/documents/upload", requireAdmin, upload.single('file'), async (req: any, res: Response) => {
+    try {
+      const { customerId } = req.params;
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Validate customer exists
+      const customer = await storage.getCustomerById(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const uploadSchema = z.object({
+        fileType: z.enum(['living_will', 'healthcare_surrogate', 'living_will_update', 'healthcare_surrogate_update', 'combined_advance_directive', 'hipaa_release_form', 'do_not_resuscitate', 'covid_vaccination_card']),
+      });
+
+      const { fileType } = uploadSchema.parse(req.body);
+
+      // Create document
+      const document = await storage.createDocument({
+        customerId: customerId,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        fileType: fileType,
+        uploadedBy: req.user.dbUser.id,
+        documentVersion: '1',
+      });
+
+      // Create document version
+      await storage.createDocumentVersion({
+        documentId: document.id,
+        versionNumber: 1,
+        uploadedBy: req.user.dbUser.id,
+        changeNotes: 'Initial upload',
+      });
+
+      // Log document upload
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'document_upload',
+        resourceType: 'document',
+        resourceId: document.id,
+        details: { customerId, fileName: req.file.originalname, fileType },
+      });
+
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ message: "Failed to upload document" });
+    }
+  });
+
   // Delete customer (admin/super_admin)
   app.delete("/api/admin/customers/:id", requireAdmin, async (req: any, res: Response) => {
     try {

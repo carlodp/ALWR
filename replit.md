@@ -10,33 +10,58 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Latest Session)
 
-### UI/UX Improvements (Nov 24, 2025)
+### Document Management & UI Improvements (Nov 24, 2025)
 
-1. **Subscription Tab Optimization in Modal**
+1. **Document Upload Feature**
+   - Added "Upload Document" button in Customer Detail > Documents tab
+   - Modal dialog with Document Type dropdown selector (8 comprehensive types)
+   - File upload field with PDF/DOCX support only
+   - New admin endpoint: POST `/api/admin/customers/:customerId/documents/upload`
+   - File validation and audit logging for all uploads
+   - Real-time query invalidation on successful upload
+
+2. **Document Type Enum Enhancement**
+   - Updated schema to include 8 document types:
+     - Living Will
+     - Healthcare Surrogate
+     - Living Will Update
+     - Healthcare Surrogate Update
+     - Combined Advance Directive
+     - HIPAA Release Form
+     - Do Not Resuscitate
+     - COVID Vaccination Card
+
+3. **Breadcrumb Navigation Improvement**
+   - Breadcrumbs now display customer full name instead of ID
+   - Extracts customer name from page h1 element on customer detail pages
+   - Cleaner navigation path for admin users
+   - Updated breadcrumb-nav.tsx with dynamic name detection
+
+4. **Subscription Tab Optimization in Modal**
    - Changed from card-based layout to compact scrollable tiles
    - Implemented max-height container (300px) with vertical scroll for unlimited subscriptions
    - Combined date ranges on single line to save space
    - Reduced font sizes for efficient space usage
    - Better visual distinction between current and past subscriptions
 
-2. **Subscription Data Enhancement**
+5. **Subscription Data Enhancement**
    - Updated backend API to return all subscriptions per customer (not just one)
    - Added `getSubscriptionsByCustomer()` method in storage layer
    - Each customer now seeded with 3 subscriptions: 2 inactive (past), 1 active (current)
    - Realistic subscription history for testing (dates spanning 2 years back)
 
-3. **Contact Tab Redesign (Modal)**
+6. **Contact Tab Redesign (Modal)**
    - Changed from icon-based layout to clean label-value grid layout
    - Removed icon elements for left side space utilization
    - Organized Emergency Contact section with better spacing
    - All fields now display with labels on left, values on right
    - Improved readability and space efficiency
 
-4. **Badge Capitalization**
+7. **Badge Capitalization**
    - Added `capitalize` CSS class to subscription status badges
    - Status now displays as "Active" instead of "active"
 
-5. **Customer Detail Page Loading Fix**
+8. **Customer Detail Page Loading Fix**
    - Increased PageTransitionLoader timeout from 500ms to 1500ms
    - Added error state handling with `isError` flag
    - Added error display component to show API failures
@@ -51,12 +76,13 @@ Preferred communication style: Simple, everyday language.
 
 ### Files Modified
 
+- `shared/schema.ts` - Updated document type enum with 8 comprehensive types
+- `client/src/pages/admin/customer-detail.tsx` - Added document upload dialog with Document Type selector and file input
+- `client/src/components/shared/breadcrumb-nav.tsx` - Added dynamic customer name extraction for breadcrumb display
+- `client/src/contexts/breadcrumb-context.tsx` - Created breadcrumb context for future use
+- `server/routes.ts` - Added POST `/api/admin/customers/:customerId/documents/upload` endpoint
 - `client/src/components/modals/customer-detail-modal.tsx` - Contact tab layout, subscriptions display, badge capitalization
-- `client/src/pages/admin/customer-detail.tsx` - Fixed endless loading bug by removing `isAdmin` check from query enabled condition, added error state handling
-- `client/src/components/shared/page-transition-loader.tsx` - Reduced timeout to 100ms (for prevention of white flash)
-- `client/src/App.tsx` - Removed problematic PageTransitionLoader that was causing endless loading state
 - `server/storage.ts` - New `getSubscriptionsByCustomer()` method
-- `server/routes.ts` - Updated customer endpoint to return subscriptions array
 - `server/seed-mock-data.ts` - Multi-subscription seeding per customer
 
 ### Critical Bug Fixes
