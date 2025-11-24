@@ -66,13 +66,10 @@ export const subscriptionStatusEnum = pgEnum('alwr_subscription_status', [
 ]);
 export const documentTypeEnum = pgEnum('alwr_document_type', [
   'living_will',
-  'healthcare_surrogate',
-  'living_will_update',
-  'healthcare_surrogate_update',
-  'combined_advance_directive',
-  'hipaa_release_form',
-  'do_not_resuscitate',
-  'covid_vaccination_card'
+  'healthcare_directive',
+  'power_of_attorney',
+  'dnr',
+  'other'
 ]);
 export const auditActionEnum = pgEnum('alwr_audit_action', [
   'document_upload',

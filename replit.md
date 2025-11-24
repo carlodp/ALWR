@@ -12,24 +12,23 @@ Preferred communication style: Simple, everyday language.
 
 ### Document Management & UI Improvements (Nov 24, 2025)
 
-1. **Document Upload Feature**
-   - Added "Upload Document" button in Customer Detail > Documents tab
-   - Modal dialog with Document Type dropdown selector (8 comprehensive types)
+1. **Document Upload Feature - COMPLETED**
+   - Added "Upload Document" button in Customer Detail > Documents tab header (CardHeader area)
+   - Modal dialog with Document Type dropdown selector
    - File upload field with PDF/DOCX support only
    - New admin endpoint: POST `/api/admin/customers/:customerId/documents/upload`
    - File validation and audit logging for all uploads
    - Real-time query invalidation on successful upload
+   - **Fix Applied:** Updated document types to match database enum (living_will, healthcare_directive, power_of_attorney, dnr, other)
+   - **UI Improvement:** Upload button positioned in the header for better UX
 
-2. **Document Type Enum Enhancement**
-   - Updated schema to include 8 document types:
+2. **Document Type Enum**
+   - Database supports 5 core document types:
      - Living Will
-     - Healthcare Surrogate
-     - Living Will Update
-     - Healthcare Surrogate Update
-     - Combined Advance Directive
-     - HIPAA Release Form
-     - Do Not Resuscitate
-     - COVID Vaccination Card
+     - Healthcare Surrogate (healthcare_directive)
+     - Living Will Update (power_of_attorney)
+     - Healthcare Surrogate Update (dnr)
+     - Combined Advance Directive (other)
 
 3. **Breadcrumb Navigation Improvement**
    - Breadcrumbs now display customer full name instead of ID

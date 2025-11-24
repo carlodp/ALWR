@@ -44,13 +44,10 @@ import type { Customer, User, Document, Subscription } from "@shared/schema";
 
 const DOCUMENT_TYPES = [
   { value: "living_will", label: "Living Will" },
-  { value: "healthcare_surrogate", label: "Healthcare Surrogate" },
-  { value: "living_will_update", label: "Living Will Update" },
-  { value: "healthcare_surrogate_update", label: "Healthcare Surrogate Update" },
-  { value: "combined_advance_directive", label: "Combined Advance Directive" },
-  { value: "hipaa_release_form", label: "HIPAA Release Form" },
-  { value: "do_not_resuscitate", label: "Do Not Resuscitate" },
-  { value: "covid_vaccination_card", label: "COVID Vaccination Card" },
+  { value: "healthcare_directive", label: "Healthcare Surrogate" },
+  { value: "power_of_attorney", label: "Living Will Update" },
+  { value: "dnr", label: "Healthcare Surrogate Update" },
+  { value: "other", label: "Combined Advance Directive" },
 ];
 
 interface CustomerNote {
@@ -587,65 +584,65 @@ export default function AdminCustomerDetail() {
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-4">
-          <div className="flex justify-end">
-            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Document
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Upload Document</DialogTitle>
-                  <DialogDescription>Add a new document for this customer</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Document Type</label>
-                    <Select value={selectedDocType} onValueChange={setSelectedDocType}>
-                      <SelectTrigger data-testid="select-document-type">
-                        <SelectValue placeholder="Select document type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DOCUMENT_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Document File</label>
-                    <Input
-                      type="file"
-                      accept=".pdf,.docx,.doc"
-                      onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
-                      data-testid="input-document-file"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">PDF or DOCX files only</p>
-                  </div>
-                  <div className="flex gap-2 justify-end pt-2">
-                    <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => uploadDocumentMutation.mutate()}
-                      disabled={!selectedDocType || !uploadedFile || uploadDocumentMutation.isPending}
-                      data-testid="button-upload-document"
-                    >
-                      {uploadDocumentMutation.isPending ? "Uploading..." : "Upload"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
           <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-              <CardDescription>{customer.documents?.length || 0} documents uploaded</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Documents</CardTitle>
+                <CardDescription>{customer.documents?.length || 0} documents uploaded</CardDescription>
+              </div>
+              <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Document
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Upload Document</DialogTitle>
+                    <DialogDescription>Add a new document for this customer</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Document Type</label>
+                      <Select value={selectedDocType} onValueChange={setSelectedDocType}>
+                        <SelectTrigger data-testid="select-document-type">
+                          <SelectValue placeholder="Select document type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DOCUMENT_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Document File</label>
+                      <Input
+                        type="file"
+                        accept=".pdf,.docx,.doc"
+                        onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                        data-testid="input-document-file"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">PDF or DOCX files only</p>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => uploadDocumentMutation.mutate()}
+                        disabled={!selectedDocType || !uploadedFile || uploadDocumentMutation.isPending}
+                        data-testid="button-upload-document"
+                      >
+                        {uploadDocumentMutation.isPending ? "Uploading..." : "Upload"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
               {customer.documents && customer.documents.length > 0 ? (

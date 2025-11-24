@@ -1704,7 +1704,7 @@ startxref
       }
 
       const uploadSchema = z.object({
-        fileType: z.enum(['living_will', 'healthcare_surrogate', 'living_will_update', 'healthcare_surrogate_update', 'combined_advance_directive', 'hipaa_release_form', 'do_not_resuscitate', 'covid_vaccination_card']),
+        fileType: z.enum(['living_will', 'healthcare_directive', 'power_of_attorney', 'dnr', 'other']),
       });
 
       const { fileType } = uploadSchema.parse(req.body);
