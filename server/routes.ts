@@ -1720,6 +1720,9 @@ startxref
         mimeType = 'application/msword';
       }
 
+      // Generate unique storage key (simulating S3 key format)
+      const storageKey = `documents/${customerId}/${randomUUID()}-${req.file.originalname}`;
+
       // Create document
       const document = await storage.createDocument({
         customerId: customerId,
@@ -1727,14 +1730,19 @@ startxref
         fileSize: req.file.size,
         fileType: fileType,
         mimeType: mimeType,
+        storageKey: storageKey,
         uploadedBy: req.user.dbUser.id,
-        documentVersion: '1',
       });
 
       // Create document version
       await storage.createDocumentVersion({
         documentId: document.id,
-        versionNumber: 1,
+        version: 1,
+        fileName: document.fileName,
+        fileSize: document.fileSize,
+        mimeType: document.mimeType,
+        storageKey: document.storageKey,
+        encryptionKey: document.encryptionKey || undefined,
         uploadedBy: req.user.dbUser.id,
         changeNotes: 'Initial upload',
       });

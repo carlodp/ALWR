@@ -86,7 +86,17 @@ Preferred communication style: Simple, everyday language.
 
 ### Critical Bug Fixes
 
-1. **Customer Detail Page Endless Loading - FIXED**
+1. **Document Upload Endpoint Failed - FIXED (Nov 24, 2025, Session 2)**
+   - **Root Cause:** Admin document upload endpoint was missing required database fields
+   - **Issue:** Error "null value in column 'storage_key' violates not-null constraint"
+   - **Solution Applied:**
+     - Added `storageKey` generation to admin endpoint (format: `documents/{customerId}/{uuid}-{filename}`)
+     - Fixed document version creation to include all required fields: `fileName`, `fileSize`, `mimeType`, `storageKey`
+     - Changed field name from `versionNumber` to `version` (correct schema field)
+     - Added proper `encryptionKey` handling for document versions
+   - **Status:** Now fully functional - uploads create both document records and version history correctly
+
+2. **Customer Detail Page Endless Loading - FIXED**
    - **Root Cause:** PageTransitionLoader was showing indefinitely, masking actual page load issues
    - **Solution:** Removed PageTransitionLoader from App component
    - **Secondary Issues Fixed:**
