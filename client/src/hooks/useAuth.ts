@@ -13,7 +13,7 @@ export function useAuth() {
     user: user || undefined,
     isLoading,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
+    isAdmin: user?.role === 'admin' || user?.role === 'super_admin',
     isSuperAdmin: user?.role === 'super_admin',
     isAgent: user?.role === 'agent',
     isCustomer: user?.role === 'customer',
