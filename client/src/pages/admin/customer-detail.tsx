@@ -81,7 +81,7 @@ export default function AdminCustomerDetail() {
 
   const { data: customer, isLoading, isError, error } = useQuery<CustomerDetail>({
     queryKey: [`/api/admin/customers/${id}`],
-    enabled: !!id && isAdmin,
+    enabled: !!id,
   });
 
   // Update edit form when customer data loads
