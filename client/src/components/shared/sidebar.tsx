@@ -258,7 +258,7 @@ export function AppSidebar() {
         {(isAdmin || isSuperAdmin) ? (
           <>
             {/* Dashboard */}
-            <SidebarGroup>
+            <SidebarGroup className="py-2">
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -274,8 +274,8 @@ export function AppSidebar() {
             </SidebarGroup>
 
             {/* Customers with nested sections */}
-            <SidebarGroup>
-              <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup className="py-2">
+              <Collapsible defaultOpen={false} className="group/collapsible">
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -405,7 +405,7 @@ export function AppSidebar() {
             </SidebarGroup>
 
             {/* Agents Section */}
-            <SidebarGroup>
+            <SidebarGroup className="py-2">
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -421,7 +421,7 @@ export function AppSidebar() {
             </SidebarGroup>
 
             {/* Resellers Section */}
-            <SidebarGroup>
+            <SidebarGroup className="py-2">
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -437,7 +437,7 @@ export function AppSidebar() {
             </SidebarGroup>
 
             {/* Accounts Section */}
-            <SidebarGroup>
+            <SidebarGroup className="py-2">
               <Collapsible defaultOpen={false} className="group/collapsible">
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -483,7 +483,7 @@ export function AppSidebar() {
             </SidebarGroup>
 
             {/* System Monitoring Section */}
-            <SidebarGroup>
+            <SidebarGroup className="py-2">
               <Collapsible defaultOpen={false} className="group/collapsible">
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -537,7 +537,7 @@ export function AppSidebar() {
             </SidebarGroup>
 
             {/* Tools Section */}
-            <SidebarGroup>
+            <SidebarGroup className="py-2">
               <SidebarGroupLabel>TOOLS</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -557,7 +557,7 @@ export function AppSidebar() {
 
             {/* Admin Section - Super Admin Only */}
             {isSuperAdmin && (
-              <SidebarGroup>
+              <SidebarGroup className="py-2">
                 <SidebarGroupLabel>ADMIN</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
