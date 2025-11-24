@@ -1709,12 +1709,24 @@ startxref
 
       const { fileType } = uploadSchema.parse(req.body);
 
+      // Determine mime type from file extension
+      const fileName = req.file.originalname.toLowerCase();
+      let mimeType = 'application/octet-stream';
+      if (fileName.endsWith('.pdf')) {
+        mimeType = 'application/pdf';
+      } else if (fileName.endsWith('.docx')) {
+        mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      } else if (fileName.endsWith('.doc')) {
+        mimeType = 'application/msword';
+      }
+
       // Create document
       const document = await storage.createDocument({
         customerId: customerId,
         fileName: req.file.originalname,
         fileSize: req.file.size,
         fileType: fileType,
+        mimeType: mimeType,
         uploadedBy: req.user.dbUser.id,
         documentVersion: '1',
       });
