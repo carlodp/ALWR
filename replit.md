@@ -201,6 +201,29 @@ Preferred communication style: Simple, everyday language.
 - Auto-cleanup after 7 days
 - Download tracking
 
+## API Key Authentication (For WordPress & Integrations)
+
+**API Key Features:**
+- Secure token-based authentication for external systems
+- Fine-grained permissions (read, write, admin)
+- Usage tracking and analytics
+- Automatic expiration support
+- Instant revocation capability
+- Timing-safe comparison (prevents timing attacks)
+- Full audit logging of all key operations
+
+**API Key Endpoints:**
+- `POST /api/admin/apikeys/create` - Generate new API key
+- `GET /api/admin/apikeys` - List user's API keys
+- `DELETE /api/admin/apikeys/:id` - Revoke API key
+- `GET /api/admin/apikeys/permissions/available` - List available permissions
+
+**Middleware:**
+- `requireAPIKey` - Validates API key from Authorization header
+- `requireAPIKeyPermission(permission)` - Checks for specific permission
+
+**Documentation:** `docs/integrations/WORDPRESS_API_KEY_AUTHENTICATION.md`
+
 ## External Dependencies
 
 **Database:**
@@ -213,6 +236,7 @@ Preferred communication style: Simple, everyday language.
 - bcryptjs for password hashing
 - speakeasy for TOTP two-factor authentication
 - QRCode for 2FA QR code generation
+- API key authentication with SHA256 hashing
 
 **Payment Processing:**
 - Stripe API integration

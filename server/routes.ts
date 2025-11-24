@@ -2576,6 +2576,172 @@ startxref
   });
 
   // ============================================================================
+  // API KEY MANAGEMENT (For WordPress Integration)
+  // ============================================================================
+
+  /**
+   * POST /api/admin/apikeys/create
+   * Generate a new API key for external integrations (e.g., WordPress)
+   * Only admins can create API keys
+   */
+  app.post("/api/admin/apikeys/create", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { apiKeyService } = await import("./api-key-service");
+      const { name, description, permissions, expiresIn } = req.body;
+
+      if (!name || !Array.isArray(permissions) || permissions.length === 0) {
+        return res.status(400).json({ message: "name and permissions array are required" });
+      }
+
+      // Generate the API key
+      const rawKey = apiKeyService.generateAPIKey();
+      const keyHash = apiKeyService.hashAPIKey(rawKey);
+
+      // Calculate expiration date if provided
+      let expiresAt = null;
+      if (expiresIn && typeof expiresIn === 'number' && expiresIn > 0) {
+        expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + expiresIn);
+      }
+
+      // Store the hashed key in database
+      const createdKey = await storage.createApiKey({
+        name,
+        description,
+        keyHash,
+        createdBy: req.user?.dbUser?.id,
+        permissions,
+        expiresAt,
+      });
+
+      await auditLog({
+        userId: req.user?.dbUser?.id,
+        actorName: req.user?.dbUser?.firstName || 'Admin',
+        actorRole: req.user?.dbUser?.role,
+        action: 'api_key_created',
+        resourceType: 'api_key',
+        resourceId: createdKey.id,
+        success: true,
+        details: { keyName: name, permissions },
+      });
+
+      // Return the raw key ONLY on creation (never again)
+      res.status(201).json({
+        success: true,
+        message: "API key created. Save the key below - you won't see it again!",
+        apiKey: {
+          id: createdKey.id,
+          key: rawKey, // Raw key, only shown once
+          masked: apiKeyService.maskAPIKey(rawKey),
+          name,
+          description,
+          permissions,
+          expiresAt,
+          createdAt: createdKey.createdAt,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating API key:", error);
+      res.status(500).json({ message: "Failed to create API key" });
+    }
+  });
+
+  /**
+   * GET /api/admin/apikeys
+   * List all API keys for the current user
+   */
+  app.get("/api/admin/apikeys", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { apiKeyService } = await import("./api-key-service");
+      const keys = await storage.listApiKeys(req.user?.dbUser?.id);
+
+      res.json({
+        success: true,
+        total: keys.length,
+        apiKeys: keys.map(key => ({
+          id: key.id,
+          name: key.name,
+          description: key.description,
+          masked: apiKeyService.maskAPIKey(key.keyHash), // Show masked version
+          permissions: key.permissions,
+          createdAt: key.createdAt,
+          lastUsedAt: key.lastUsedAt,
+          usageCount: key.usageCount,
+          isRevoked: key.isRevoked,
+          expiresAt: key.expiresAt,
+          expiresIn: key.expiresAt ? Math.ceil((key.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null,
+        })),
+      });
+    } catch (error) {
+      console.error("Error listing API keys:", error);
+      res.status(500).json({ message: "Failed to fetch API keys" });
+    }
+  });
+
+  /**
+   * DELETE /api/admin/apikeys/:id
+   * Revoke an API key (cannot be undone)
+   */
+  app.delete("/api/admin/apikeys/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const key = await storage.getApiKey(id);
+
+      if (!key) {
+        return res.status(404).json({ message: "API key not found" });
+      }
+
+      // Verify ownership
+      if (key.createdBy !== req.user?.dbUser?.id) {
+        return res.status(403).json({ message: "You can only revoke your own API keys" });
+      }
+
+      const revoked = await storage.revokeApiKey(id, req.user?.dbUser?.id);
+
+      await auditLog({
+        userId: req.user?.dbUser?.id,
+        actorName: req.user?.dbUser?.firstName || 'Admin',
+        actorRole: req.user?.dbUser?.role,
+        action: 'api_key_revoked',
+        resourceType: 'api_key',
+        resourceId: id,
+        success: true,
+        details: { keyName: key.name },
+      });
+
+      res.json({
+        success: true,
+        message: "API key revoked successfully",
+        revokedKey: {
+          id: revoked?.id,
+          name: revoked?.name,
+          revokedAt: revoked?.revokedAt,
+        },
+      });
+    } catch (error) {
+      console.error("Error revoking API key:", error);
+      res.status(500).json({ message: "Failed to revoke API key" });
+    }
+  });
+
+  /**
+   * GET /api/admin/apikeys/permissions/available
+   * List all available permissions for API keys
+   */
+  app.get("/api/admin/apikeys/permissions/available", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { STANDARD_PERMISSIONS } = await import("./api-key-service");
+      res.json({
+        success: true,
+        permissions: STANDARD_PERMISSIONS,
+      });
+    } catch (error) {
+      console.error("Error fetching permissions:", error);
+      res.status(500).json({ message: "Failed to fetch permissions" });
+    }
+  });
+
+  // ============================================================================
   // BULK OPERATIONS (Admin Only)
   // ============================================================================
 
