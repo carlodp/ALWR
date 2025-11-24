@@ -37,11 +37,21 @@ Preferred communication style: Simple, everyday language.
      ```
    - **Status:** Document types now save with correct values selected in form
 
-3. **View File Endpoint - IN PROGRESS (MVP Version)**
-   - **Current State:** Returns placeholder PDF with metadata (name, type, date, size)
-   - **Note:** Real document preview requires file storage integration (currently using in-memory storage)
-   - **MVP Limitations:** Shows metadata only, actual document content not persisted in memory storage
-   - **Next Phase:** When real storage (S3/cloud) is integrated, endpoint will serve actual documents
+3. **View File Endpoint - NOW WORKING! ✓**
+   - **Implementation:** 
+     - Created in-memory file buffer store (Map) to persist uploaded file content during session
+     - Implemented DOCX to HTML converter for document previews
+     - Smart file type handling: PDF served directly, DOCX converted to HTML, DOC served for download
+   - **How it works:**
+     - Upload endpoint stores file buffer in `fileBufferStore` Map using storageKey
+     - View endpoint retrieves buffer and converts/serves based on file type
+     - DOCX files extracted from ZIP format and text content converted to styled HTML
+   - **Current Features:**
+     - **PDF files:** Displays in browser PDF viewer
+     - **DOCX files:** Converts to HTML and shows extracted text content in browser
+     - **DOC files:** Serves as attachment for download
+   - **Limitations:** Session-based (files lost on server restart); use for MVP testing
+   - **Production Path:** Replace fileBufferStore with S3/cloud storage integration
 
 ### Document Management & UI Improvements (Nov 24, 2025 Session 1-3)
 

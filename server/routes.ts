@@ -45,6 +45,78 @@ const upload = multer({
   },
 });
 
+// In-memory file buffer store (maps storageKey -> file buffer)
+const fileBufferStore = new Map<string, Buffer>();
+
+// Helper to extract text from DOCX (ZIP file containing XML)
+async function extractDocxText(buffer: Buffer): Promise<string> {
+  try {
+    // DOCX is a ZIP file. Look for document.xml in the ZIP
+    // For MVP, we'll do a simple approach: find text between XML tags
+    const text = buffer.toString('utf8', 0, Math.min(buffer.length, 100000));
+    
+    // Extract text content between common DOCX tags
+    let extracted = '';
+    const textMatches = text.match(/<w:t[^>]*>(.*?)<\/w:t>/g) || [];
+    
+    for (const match of textMatches) {
+      const content = match.replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, '');
+      extracted += content + ' ';
+    }
+    
+    // If we found text, return it; otherwise return a message
+    return extracted.trim() || 'Document content could not be extracted. Please download to view.';
+  } catch (error) {
+    console.error('Error extracting DOCX text:', error);
+    return 'Document content could not be extracted. Please download to view.';
+  }
+}
+
+// Helper to convert DOCX to HTML
+async function docxToHtml(buffer: Buffer, fileName: string): Promise<string> {
+  const text = await extractDocxText(buffer);
+  const htmlContent = text
+    .split('\n')
+    .filter(line => line.trim())
+    .map(line => `<p>${escapeHtml(line)}</p>`)
+    .join('\n');
+  
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(fileName)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; }
+    p { margin: 10px 0; }
+    .doc-header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+    .doc-title { font-size: 18px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="doc-header">
+    <div class="doc-title">${escapeHtml(fileName)}</div>
+  </div>
+  <div class="doc-content">
+    ${htmlContent}
+  </div>
+</body>
+</html>`;
+}
+
+// Helper to escape HTML
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
 // Helper to generate ID card number
 function generateIdCardNumber(): string {
   const prefix = 'ALWR';
@@ -1115,52 +1187,47 @@ startxref
         userAgent: req.headers['user-agent'] || undefined,
       });
 
-      // Serve placeholder PDF for MVP (in production, fetch from S3/cloud storage)
-      const placeholderPDF = Buffer.from(
-        `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>
-endobj
-4 0 obj
-<< /Length 200 >>
-stream
-BT
-/F1 12 Tf
-50 700 Td
-(${document.fileName}) Tj
-0 -20 Td
-(Type: ${document.fileType.replace(/_/g, ' ')}) Tj
-0 -20 Td
-(Uploaded: ${new Date(document.createdAt!).toLocaleDateString()}) Tj
-0 -20 Td
-(Size: ${(document.fileSize / 1024).toFixed(1)} KB) Tj
-ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000317 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R >>
-startxref
-517
-%%EOF
-`
-      );
+      // Try to retrieve the file buffer from memory store
+      const fileBuffer = fileBufferStore.get(document.storageKey);
 
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
-      res.send(placeholderPDF);
+      if (!fileBuffer) {
+        // If file not in memory, return an error or redirect to download
+        return res.status(404).json({ 
+          message: "File content not available. Please download the document." 
+        });
+      }
+
+      // Handle different file types
+      const fileName = document.fileName.toLowerCase();
+      
+      if (fileName.endsWith('.pdf')) {
+        // Serve PDF directly
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
+        res.send(fileBuffer);
+      } else if (fileName.endsWith('.docx')) {
+        // Convert DOCX to HTML and serve
+        try {
+          const htmlContent = await docxToHtml(fileBuffer, document.fileName);
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.send(htmlContent);
+        } catch (error) {
+          console.error('Error converting DOCX:', error);
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+          res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+          res.send(fileBuffer);
+        }
+      } else if (fileName.endsWith('.doc')) {
+        // Serve DOC file directly (browser may not preview, but user can download)
+        res.setHeader('Content-Type', 'application/msword');
+        res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+        res.send(fileBuffer);
+      } else {
+        // Unknown type, serve as attachment
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+        res.send(fileBuffer);
+      }
     } catch (error) {
       console.error("Error viewing document:", error);
       res.status(500).json({ message: "Failed to view document" });
@@ -1828,6 +1895,9 @@ startxref
         uploadedBy: req.user.dbUser.id,
         changeNotes: 'Initial upload',
       });
+
+      // Store file buffer in memory for later retrieval
+      fileBufferStore.set(document.storageKey, req.file.buffer);
 
       // Log document upload
       await storage.createAuditLog({
