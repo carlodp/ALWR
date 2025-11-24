@@ -167,31 +167,57 @@ async function seedMockData() {
         console.log(`✅ Updated customer profile for ${mockCustomer.firstName} with new fields`);
       }
 
-      // Check if subscription already exists
-      const existingSubscription = await db.query.subscriptions.findFirst({
+      // Check if subscriptions already exist
+      const existingSubscriptions = await db.query.subscriptions.findMany({
         where: (subscriptions, { eq }) => eq(subscriptions.customerId, customer.id),
       });
 
-      if (!existingSubscription) {
+      if (existingSubscriptions.length === 0) {
+        // Create past subscriptions (inactive = past/expired)
         const now = new Date();
-        const endDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+        
+        // Past subscription 1 (ended 2 years ago)
+        const past1Start = new Date(now.getTime() - 3 * 365 * 24 * 60 * 60 * 1000);
+        const past1End = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
+        await db.insert(subscriptions).values({
+          customerId: customer.id,
+          status: "inactive",
+          startDate: past1Start,
+          endDate: past1End,
+          renewalDate: past1End,
+          amount: 2995,
+          currency: "usd",
+        });
 
-        await db
-          .insert(subscriptions)
-          .values({
-            customerId: customer.id,
-            status: Math.random() > 0.2 ? "active" : "inactive",
-            startDate: now,
-            endDate: endDate,
-            renewalDate: endDate,
-            amount: 2995, // $29.95 in cents
-            currency: "usd",
-          })
-          .returning();
+        // Past subscription 2 (ended 1 year ago)
+        const past2Start = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
+        const past2End = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        await db.insert(subscriptions).values({
+          customerId: customer.id,
+          status: "inactive",
+          startDate: past2Start,
+          endDate: past2End,
+          renewalDate: past2End,
+          amount: 2995,
+          currency: "usd",
+        });
 
-        console.log(`✅ Created subscription for ${mockCustomer.firstName}`);
+        // Current active subscription
+        const activeStart = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000); // Started 6 months ago
+        const activeEnd = new Date(now.getTime() + 185 * 24 * 60 * 60 * 1000); // Expires in ~6 months
+        await db.insert(subscriptions).values({
+          customerId: customer.id,
+          status: "active",
+          startDate: activeStart,
+          endDate: activeEnd,
+          renewalDate: activeEnd,
+          amount: 2995,
+          currency: "usd",
+        });
+
+        console.log(`✅ Created 3 subscriptions (2 past, 1 active) for ${mockCustomer.firstName}`);
       } else {
-        console.log(`✅ Using existing subscription for ${mockCustomer.firstName}`);
+        console.log(`✅ Using existing subscriptions for ${mockCustomer.firstName}`);
       }
 
       // Check if documents already exist

@@ -160,42 +160,34 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
               </Card>
             </TabsContent>
 
-            <TabsContent value="subscriptions" className="space-y-4">
+            <TabsContent value="subscriptions" className="space-y-0">
               {customer.subscriptions && customer.subscriptions.length > 0 ? (
-                <div className="space-y-3">
-                  {customer.subscriptions.map((sub) => (
-                    <Card key={sub.id}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">Subscription {sub.status === 'expired' ? '(Past)' : ''}</CardTitle>
-                          <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
-                            {sub.status}
-                          </Badge>
+                <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+                  {customer.subscriptions.map((sub, idx) => (
+                    <div key={sub.id} className="p-3 rounded-lg border bg-muted/30 text-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">{sub.status === 'active' ? 'Current' : 'Past'} Subscription</span>
+                        <Badge variant={sub.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">
+                          {sub.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Amount:</span>
+                          <span className="font-medium">${((sub.amount || 0) / 100).toFixed(2)}</span>
                         </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Amount</span>
-                          <span className="text-sm font-medium">${((sub.amount || 0) / 100).toFixed(2)}</span>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Period:</span>
+                          <span className="font-medium">{new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Start Date</span>
-                          <span className="text-sm font-medium">{new Date(sub.startDate).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">End Date</span>
-                          <span className="text-sm font-medium">{new Date(sub.endDate).toLocaleDateString()}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-muted-foreground">No subscriptions found</p>
-                  </CardContent>
-                </Card>
+                <div className="text-center py-6">
+                  <p className="text-sm text-muted-foreground">No subscriptions found</p>
+                </div>
               )}
             </TabsContent>
 
