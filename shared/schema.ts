@@ -158,6 +158,12 @@ export const agentTypeEnum = pgEnum('alwr_agent_type', [
   'organizational_agent'
 ]);
 
+export const contactGroupEnum = pgEnum('alwr_contact_group', [
+  'event_registrants',
+  'info_seekers',
+  'pennies_peace_of_mind'
+]);
+
 // ============================================================================
 // AUTHENTICATION TABLES
 // Handles user accounts, sessions, and authentication credentials
@@ -965,8 +971,39 @@ export const resellers = pgTable("resellers", {
   // Reseller Status
   status: varchar("status").default('active').notNull(), // active, inactive, suspended
   
-  // Company Info
-  companyName: varchar("company_name").notNull(),
+  // Contact Group Classification
+  contactGroup: contactGroupEnum("contact_group"),
+  
+  // Personal Contact Information
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  title: varchar("title"),
+  
+  // Organization/Company Info
+  organization: varchar("organization"),
+  
+  // Address Information
+  address1: text("address_1"),
+  address2: text("address_2"),
+  city: varchar("city"),
+  state: varchar("state"),
+  zipCode: varchar("zip_code"),
+  country: varchar("country"),
+  
+  // Contact Information
+  phone: varchar("phone"),
+  mobilePhone: varchar("mobile_phone"),
+  fax: varchar("fax"),
+  
+  // Web & Industry
+  webSiteUrl: varchar("web_site_url"),
+  industry: varchar("industry"),
+  
+  // Extended Values (JSON array for flexibility - can add unlimited key-value pairs)
+  extendedValues: jsonb("extended_values"), // Array of { key: string, value: string }
+  
+  // Legacy/Additional Company Info
+  companyName: varchar("company_name"),
   companyPhone: varchar("company_phone"),
   companyAddress: text("company_address"),
   taxId: varchar("tax_id"), // For 1099 reporting
@@ -993,6 +1030,9 @@ export const resellers = pgTable("resellers", {
   index("idx_reseller_user_id").on(table.userId),
   index("idx_reseller_status").on(table.status),
   index("idx_reseller_tier").on(table.partnerTier),
+  index("idx_reseller_contact_group").on(table.contactGroup),
+  index("idx_reseller_organization").on(table.organization),
+  index("idx_reseller_city_state").on(table.city, table.state),
 ]);
 
 // Reseller-Customer Relationships (tracks which customers were referred by reseller)

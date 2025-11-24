@@ -93,7 +93,11 @@ Preferred communication style: Simple, everyday language.
   - Full address and phone fields with extensions
   - License tracking and commission rates
   - Performance metrics (customers, documents, revenue)
-- `resellers` - Reseller partner management
+- `resellers` - Reseller partner management with contact group classification
+  - Contact groups (Event Registrants, Info Seekers, Pennies Peace of Mind)
+  - Full contact information (address, phone, email, web)
+  - Flexible extended values (JSON array for unlimited custom fields)
+  - Performance metrics and commission tracking
 - `physical_card_orders` - ID card order processing
 - `customer_notes` - Internal customer notes
 - `customer_tags` - Customer categorization
@@ -161,6 +165,7 @@ Preferred communication style: Simple, everyday language.
 - Batch operations docs: `docs/features/BATCH_OPERATIONS_AND_ADVANCED_SEARCH.md`
 - Customer Details schema: `docs/features/CUSTOMER_DETAILS_SCHEMA.md`
 - Agent Details schema: `docs/features/AGENT_DETAILS_SCHEMA.md`
+- Reseller Details schema: `docs/features/RESELLER_DETAILS_SCHEMA.md`
 - WordPress API key integration: `docs/integrations/WORDPRESS_API_KEY_AUTHENTICATION.md`
 
 **Response Patterns:**
