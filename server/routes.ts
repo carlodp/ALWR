@@ -1056,9 +1056,13 @@ startxref
         return res.status(404).json({ message: "Document not found" });
       }
 
-      const customer = await storage.getCustomer(req.user.dbUser.id);
-      if (!customer || document.customerId !== customer.id) {
-        return res.status(403).json({ message: "Access denied" });
+      // Allow admins to delete any document, or users to delete their own
+      const isAdmin = req.user.dbUser.role === 'admin' || req.user.dbUser.role === 'super_admin';
+      if (!isAdmin) {
+        const customer = await storage.getCustomer(req.user.dbUser.id);
+        if (!customer || document.customerId !== customer.id) {
+          return res.status(403).json({ message: "Access denied" });
+        }
       }
 
       await storage.deleteDocument(document.id);
