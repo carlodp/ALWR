@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft } from "lucide-react";
+import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft, Trash2 } from "lucide-react";
 import type { Customer, User, Document, Subscription } from "@shared/schema";
 
 interface CustomerNote {
@@ -116,6 +116,52 @@ export default function AdminCustomerDetail() {
     },
     onError: () => {
       toast({ title: "Failed to update customer", variant: "destructive" });
+    },
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      const res = await apiRequest("DELETE", `/api/customer/documents/${docId}`);
+      if (!res.ok) throw new Error("Failed to delete document");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${id}`] });
+      toast({ title: "Document deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete document", variant: "destructive" });
+    },
+  });
+
+  const deleteSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      if (!customer?.subscription?.id) throw new Error("No subscription to delete");
+      const res = await apiRequest("DELETE", `/api/admin/subscriptions/${customer.subscription.id}`);
+      if (!res.ok) throw new Error("Failed to delete subscription");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/customers/${id}`] });
+      toast({ title: "Subscription deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete subscription", variant: "destructive" });
+    },
+  });
+
+  const deleteCustomerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/admin/customers/${id}`);
+      if (!res.ok) throw new Error("Failed to delete customer");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Customer deleted successfully" });
+      setLocation("/admin/customers");
+    },
+    onError: () => {
+      toast({ title: "Failed to delete customer", variant: "destructive" });
     },
   });
 
@@ -460,19 +506,30 @@ export default function AdminCustomerDetail() {
                   {customer.documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border hover-elevate"
+                      className="flex items-center gap-3 p-3 rounded-lg border hover-elevate justify-between"
                       data-testid={`document-${doc.id}`}
                     >
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{doc.fileName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(doc.fileSize / 1024).toFixed(1)} KB • Uploaded {new Date(doc.createdAt!).toLocaleDateString()}
-                        </p>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{doc.fileName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(doc.fileSize / 1024).toFixed(1)} KB • Uploaded {new Date(doc.createdAt!).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="capitalize">
+                          {doc.fileType.replace(/_/g, " ")}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="capitalize">
-                        {doc.fileType.replace(/_/g, " ")}
-                      </Badge>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => deleteDocumentMutation.mutate(doc.id)}
+                        disabled={deleteDocumentMutation.isPending}
+                        data-testid={`button-delete-doc-${doc.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -489,8 +546,21 @@ export default function AdminCustomerDetail() {
         {/* Subscription Tab */}
         <TabsContent value="subscription" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Subscription Status</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle>Subscription Status</CardTitle>
+              </div>
+              {customer.subscription && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => deleteSubscriptionMutation.mutate()}
+                  disabled={deleteSubscriptionMutation.isPending}
+                  data-testid="button-delete-subscription"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               {customer.subscription ? (

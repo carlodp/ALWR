@@ -1684,6 +1684,67 @@ startxref
     }
   });
 
+  // Delete customer (admin/super_admin)
+  app.delete("/api/admin/customers/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomerById(id);
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Delete related data
+      await storage.deleteCustomer(id);
+
+      // Log the deletion
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'customer_delete',
+        resourceType: 'customer',
+        resourceId: id,
+        details: { customerId: id },
+      });
+
+      res.json({ message: "Customer deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      res.status(500).json({ message: "Failed to delete customer" });
+    }
+  });
+
+  // Delete subscription (admin/super_admin)
+  app.delete("/api/admin/subscriptions/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const subscription = await storage.getSubscription(id);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      await storage.deleteSubscription(id);
+
+      // Log the deletion
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'subscription_delete',
+        resourceType: 'subscription',
+        resourceId: id,
+        details: { subscriptionId: id },
+      });
+
+      res.json({ message: "Subscription deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting subscription:", error);
+      res.status(500).json({ message: "Failed to delete subscription" });
+    }
+  });
+
   // Add customer note (admin)
   app.post("/api/admin/customers/:id/notes", requireAdmin, async (req: any, res: Response) => {
     try {

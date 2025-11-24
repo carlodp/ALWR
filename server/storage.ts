@@ -228,6 +228,7 @@ export interface IStorage {
   getCustomerByStripeId(stripeCustomerId: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(customerId: string, data: Partial<Customer>): Promise<Customer | undefined>;
+  deleteCustomer(customerId: string): Promise<void>;
   listCustomers(limit?: number, offset?: number): Promise<Customer[]>;
   searchCustomers(query: string): Promise<Customer[]>;
 
@@ -240,6 +241,7 @@ export interface IStorage {
   getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | undefined>;
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   updateSubscription(subscriptionId: string, data: Partial<Subscription>): Promise<Subscription | undefined>;
+  deleteSubscription(subscriptionId: string): Promise<void>;
   listExpiringSubscriptions(daysUntilExpiry: number): Promise<Subscription[]>;
 
   // Document Operations
@@ -897,6 +899,27 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDocument(documentId: string): Promise<void> {
     await db.delete(documents).where(eq(documents.id, documentId));
+  }
+
+  async deleteCustomer(customerId: string): Promise<void> {
+    const customer = await this.getCustomerById(customerId);
+    if (!customer) return;
+    
+    // Delete all related data
+    await db.delete(documents).where(eq(documents.customerId, customerId));
+    await db.delete(subscriptions).where(eq(subscriptions.customerId, customerId));
+    await db.delete(customerNotes).where(eq(customerNotes.customerId, customerId));
+    await db.delete(emergencyAccessLogs).where(eq(emergencyAccessLogs.customerId, customerId));
+    await db.delete(customers).where(eq(customers.id, customerId));
+    
+    // Delete user account
+    if (customer.userId) {
+      await db.delete(users).where(eq(users.id, customer.userId));
+    }
+  }
+
+  async deleteSubscription(subscriptionId: string): Promise<void> {
+    await db.delete(subscriptions).where(eq(subscriptions.id, subscriptionId));
   }
 
   async incrementDocumentAccess(documentId: string): Promise<void> {
