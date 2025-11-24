@@ -100,7 +100,7 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subscription Status</span>
                     {customer.subscriptions && customer.subscriptions.length > 0 ? (
-                      <Badge variant={customer.subscriptions[0].status === 'active' ? 'default' : 'secondary'}>
+                      <Badge variant={customer.subscriptions[0].status === 'active' ? 'default' : 'secondary'} className="capitalize">
                         {customer.subscriptions[0].status}
                       </Badge>
                     ) : (
@@ -124,34 +124,47 @@ export function CustomerDetailModal({ customerId, open, onOpenChange }: Customer
                 <CardHeader>
                   <CardTitle className="text-base">Contact Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {customer.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{customer.phone}</span>
-                    </div>
-                  )}
-                  {customer.address && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="text-sm">
-                        <div>{customer.address}</div>
-                        {customer.city && (
-                          <div>{customer.city}, {customer.state} {customer.zipCode}</div>
-                        )}
-                      </div>
+                <CardContent className="space-y-4">
+                  {(customer.phone || customer.address || customer.city) && (
+                    <div className="grid gap-3 text-sm">
+                      {customer.phone && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Phone</span>
+                          <span className="font-medium">{customer.phone}</span>
+                        </div>
+                      )}
+                      {customer.address && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Address</span>
+                          <div className="text-right">
+                            <div>{customer.address}</div>
+                            {customer.city && (
+                              <div className="text-xs">{customer.city}, {customer.state} {customer.zipCode}</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   {customer.emergencyContactName && (
                     <div className="border-t pt-3">
-                      <p className="text-sm font-medium mb-2">Emergency Contact</p>
-                      <div className="text-sm space-y-1">
-                        <div><span className="text-muted-foreground">Name:</span> {customer.emergencyContactName}</div>
+                      <p className="text-sm font-medium mb-3">Emergency Contact</p>
+                      <div className="grid gap-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Name</span>
+                          <span className="font-medium">{customer.emergencyContactName}</span>
+                        </div>
                         {customer.emergencyContactPhone && (
-                          <div><span className="text-muted-foreground">Phone:</span> {customer.emergencyContactPhone}</div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Phone</span>
+                            <span className="font-medium">{customer.emergencyContactPhone}</span>
+                          </div>
                         )}
                         {customer.emergencyContactRelationship && (
-                          <div><span className="text-muted-foreground">Relationship:</span> {customer.emergencyContactRelationship}</div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Relationship</span>
+                            <span className="font-medium">{customer.emergencyContactRelationship}</span>
+                          </div>
                         )}
                       </div>
                     </div>

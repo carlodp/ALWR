@@ -19,7 +19,7 @@ export function PageTransitionLoader() {
       // Hide loader after a delay (gives page content time to render)
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 500);
+      }, 1500);
 
       return () => clearTimeout(timer);
     }

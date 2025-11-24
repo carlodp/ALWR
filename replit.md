@@ -8,6 +8,56 @@ The America Living Will Registry (ALWR) is a 24/7 online service for securely st
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (Latest Session)
+
+### UI/UX Improvements (Nov 24, 2025)
+
+1. **Subscription Tab Optimization in Modal**
+   - Changed from card-based layout to compact scrollable tiles
+   - Implemented max-height container (300px) with vertical scroll for unlimited subscriptions
+   - Combined date ranges on single line to save space
+   - Reduced font sizes for efficient space usage
+   - Better visual distinction between current and past subscriptions
+
+2. **Subscription Data Enhancement**
+   - Updated backend API to return all subscriptions per customer (not just one)
+   - Added `getSubscriptionsByCustomer()` method in storage layer
+   - Each customer now seeded with 3 subscriptions: 2 inactive (past), 1 active (current)
+   - Realistic subscription history for testing (dates spanning 2 years back)
+
+3. **Contact Tab Redesign (Modal)**
+   - Changed from icon-based layout to clean label-value grid layout
+   - Removed icon elements for left side space utilization
+   - Organized Emergency Contact section with better spacing
+   - All fields now display with labels on left, values on right
+   - Improved readability and space efficiency
+
+4. **Badge Capitalization**
+   - Added `capitalize` CSS class to subscription status badges
+   - Status now displays as "Active" instead of "active"
+
+5. **Customer Detail Page Loading Fix**
+   - Increased PageTransitionLoader timeout from 500ms to 1500ms
+   - Added error state handling with `isError` flag
+   - Added error display component to show API failures
+   - Prevents "Loading page..." message from disappearing before page loads
+
+### Backend Improvements
+
+1. **Subscription Management**
+   - New storage method: `getSubscriptionsByCustomer(customerId)` returns all subscriptions
+   - Updated `/api/admin/customers/:id` endpoint to return `subscriptions` array instead of single object
+   - Database has subscription status enum: 'active', 'inactive', 'cancelled', 'pending', 'trial'
+
+### Files Modified
+
+- `client/src/components/modals/customer-detail-modal.tsx` - Contact tab layout, subscriptions display, badge capitalization
+- `client/src/pages/admin/customer-detail.tsx` - Error handling, loading timeout
+- `client/src/components/shared/page-transition-loader.tsx` - Increased timeout
+- `server/storage.ts` - New `getSubscriptionsByCustomer()` method
+- `server/routes.ts` - Updated customer endpoint to return subscriptions array
+- `server/seed-mock-data.ts` - Multi-subscription seeding per customer
+
 ## System Architecture
 
 ### Technology Stack

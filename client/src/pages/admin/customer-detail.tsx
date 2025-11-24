@@ -79,7 +79,7 @@ export default function AdminCustomerDetail() {
     resolver: zodResolver(editCustomerSchema),
   });
 
-  const { data: customer, isLoading } = useQuery<CustomerDetail>({
+  const { data: customer, isLoading, isError, error } = useQuery<CustomerDetail>({
     queryKey: [`/api/admin/customers/${id}`],
     enabled: !!id && isAdmin,
   });
@@ -195,6 +195,24 @@ export default function AdminCustomerDetail() {
           <CardContent className="space-y-4 pt-6">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto max-w-4xl py-8 px-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex gap-3 items-start">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+              <div>
+                <p className="font-medium">Failed to load customer</p>
+                <p className="text-sm text-muted-foreground">{error?.message || "An error occurred while loading the customer"}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
