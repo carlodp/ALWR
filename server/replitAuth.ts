@@ -7,7 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
-import type { User } from "@shared/schema";
+import type { User, SystemSettings } from "@shared/schema";
 
 // Extend Express Request to include user
 declare global {
@@ -28,16 +28,55 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
+// Cache system settings for performance (5 minute TTL)
+const getSystemSettingsCached = memoize(
+  async (): Promise<SystemSettings> => {
+    const settings = await storage.getSystemSettings?.();
+    
+    if (!settings) {
+      // Return defaults if no settings found
+      return {
+        id: "default",
+        idleTimeoutEnabled: false,
+        idleWarningMinutes: 25,
+        idleCountdownMinutes: 5,
+        sessionTimeoutMinutes: 1440, // Default to 24 hours
+        maxConcurrentSessions: 5,
+        rateLimitEnabled: true,
+        requestsPerMinute: 60,
+        failedLoginLockoutThreshold: 5,
+        maxUploadSizeMB: 10,
+        twoFactorAuthRequired: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+    
+    return settings;
+  },
+  { 
+    maxAge: 5 * 60 * 1000, // Cache for 5 minutes
+    primitive: true,
+  }
+);
+
+export async function getSessionConfig() {
+  const settings = await getSystemSettingsCached();
+  const sessionTimeoutMinutes = settings.sessionTimeoutMinutes || 1440; // Default to 24 hours
+  return {
+    sessionTtl: sessionTimeoutMinutes * 60 * 1000, // Convert to milliseconds
+  };
+}
+
 export function getSession() {
-  // Use SESSION_TIMEOUT_MINUTES env var if provided, otherwise default to 24 hours
-  // This allows disabling idle timeout by setting a very long timeout
-  const sessionTimeoutMinutes = parseInt(process.env.SESSION_TIMEOUT_MINUTES || "1440", 10);
-  const sessionTtl = sessionTimeoutMinutes * 60 * 1000; // Convert to milliseconds
+  // Default to 24 hours if we can't fetch settings yet
+  // This will be updated when settings are fetched from database
+  const defaultSessionTtl = 24 * 60 * 60 * 1000; // 24 hours
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: defaultSessionTtl,
     tableName: "sessions",
   });
   return session({
@@ -48,7 +87,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
-      maxAge: sessionTtl, // Cookie expires after configured timeout
+      maxAge: defaultSessionTtl, // Cookie expires after configured timeout
     },
   });
 }
