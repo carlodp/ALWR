@@ -3,7 +3,7 @@ import {
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
   customerTags, physicalCardOrders, emailTemplates, emailNotifications, agents, agentCustomerAssignments,
   resellers, resellerCustomerReferrals, failedLoginAttempts, dataExports, reportSchedules, reportHistory, systemSettings,
-  apiKeys,
+  apiKeys, savedSearches,
   type User, type UpsertUser, type Customer, type InsertCustomer,
   type Subscription, type InsertSubscription, type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -18,7 +18,7 @@ import {
   type FailedLoginAttempt, type InsertFailedLoginAttempt,
   type DataExport, type InsertDataExport, type ReportSchedule, type InsertReportSchedule,
   type ReportHistory, type InsertReportHistory, type SystemSettings, type InsertSystemSettings,
-  type ApiKey, type InsertApiKey
+  type ApiKey, type InsertApiKey, type SavedSearch, type InsertSavedSearch
 } from "@shared/schema";
 import { eq, and, sql, desc, lte, gte } from "drizzle-orm";
 import { encryptField, decryptField } from "./encryption";
@@ -1752,6 +1752,115 @@ export class DatabaseStorage implements IStorage {
       ),
       orderBy: [desc(apiKeys.createdAt)],
     });
+  }
+
+  // ============================================================================
+  // ADVANCED SEARCH - SAVED SEARCHES
+  // ============================================================================
+
+  async createSavedSearch(data: InsertSavedSearch): Promise<SavedSearch> {
+    const [created] = await db.insert(savedSearches).values(data).returning();
+    return created;
+  }
+
+  async getSavedSearch(searchId: string): Promise<SavedSearch | undefined> {
+    return await db.query.savedSearches.findFirst({
+      where: eq(savedSearches.id, searchId),
+    });
+  }
+
+  async listSavedSearches(userId: string): Promise<SavedSearch[]> {
+    return await db.query.savedSearches.findMany({
+      where: eq(savedSearches.userId, userId),
+      orderBy: [desc(savedSearches.createdAt)],
+    });
+  }
+
+  async updateSavedSearch(searchId: string, data: Partial<InsertSavedSearch>): Promise<SavedSearch | undefined> {
+    const [updated] = await db.update(savedSearches)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(savedSearches.id, searchId))
+      .returning();
+    return updated;
+  }
+
+  async deleteSavedSearch(searchId: string): Promise<void> {
+    await db.delete(savedSearches).where(eq(savedSearches.id, searchId));
+  }
+
+  // ============================================================================
+  // BATCH OPERATIONS
+  // ============================================================================
+
+  async bulkCreateCustomers(customersData: InsertCustomer[]): Promise<Customer[]> {
+    if (customersData.length === 0) return [];
+    const created = await db.insert(customers).values(customersData).returning();
+    return created;
+  }
+
+  async bulkUpdateSubscriptionStatus(subscriptionIds: string[], newStatus: string): Promise<number> {
+    const result = await db
+      .update(subscriptions)
+      .set({ status: newStatus as any, updatedAt: new Date() })
+      .where((subs) =>
+        sql`${subs.id} = ANY(${sql.raw(`ARRAY[${subscriptionIds.map((id) => `'${id}'`).join(', ')}]`)})`
+      );
+    return subscriptionIds.length;
+  }
+
+  async bulkDeleteDocuments(documentIds: string[]): Promise<number> {
+    if (documentIds.length === 0) return 0;
+    await db.delete(documentVersions)
+      .where((dv) =>
+        sql`${dv.documentId} = ANY(${sql.raw(`ARRAY[${documentIds.map((id) => `'${id}'`).join(', ')}]`)})`
+      );
+    await db.delete(documents)
+      .where((doc) =>
+        sql`${doc.id} = ANY(${sql.raw(`ARRAY[${documentIds.map((id) => `'${id}'`).join(', ')}]`)})`
+      );
+    return documentIds.length;
+  }
+
+  async bulkAddCustomerTags(customerIds: string[], tags: string[]): Promise<number> {
+    if (customerIds.length === 0 || tags.length === 0) return 0;
+    
+    const tagInserts: InsertCustomerTag[] = [];
+    for (const customerId of customerIds) {
+      for (const tag of tags) {
+        tagInserts.push({
+          customerId,
+          tag,
+        } as InsertCustomerTag);
+      }
+    }
+    
+    if (tagInserts.length > 0) {
+      await db.insert(customerTags).values(tagInserts).onConflictDoNothing();
+    }
+    return tagInserts.length;
+  }
+
+  async bulkRemoveCustomerTags(customerIds: string[], tags: string[]): Promise<number> {
+    if (customerIds.length === 0 || tags.length === 0) return 0;
+    
+    let deleted = 0;
+    for (const customerId of customerIds) {
+      const result = await db.delete(customerTags)
+        .where(
+          and(
+            eq(customerTags.customerId, customerId),
+            sql`${customerTags.tag} = ANY(${sql.raw(`ARRAY[${tags.map((t) => `'${t}'`).join(', ')}]`)})`
+          )
+        );
+      deleted++;
+    }
+    return deleted;
+  }
+
+  async bulkSendEmails(emailData: InsertEmailNotification[]): Promise<EmailNotification[]> {
+    if (emailData.length === 0) return [];
+    const created = await db.insert(emailNotifications).values(emailData).returning();
+    return created;
   }
 }
 

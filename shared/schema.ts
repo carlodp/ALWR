@@ -987,6 +987,39 @@ export const resellerCustomerReferralsRelations = relations(resellerCustomerRefe
   }),
 }));
 
+// ============================================================================
+// SAVED SEARCHES (Advanced Search Feature)
+// ============================================================================
+
+export const savedSearches = pgTable("saved_searches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Owner
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Search configuration
+  name: varchar("name").notNull(), // User-friendly name
+  description: text("description"),
+  
+  // Filter criteria (JSON object)
+  // Example: { "status": "active", "role": "customer", "createdAfter": "2025-01-01" }
+  filters: jsonb("filters").notNull(),
+  
+  // Search keywords for full-text search
+  keywords: text("keywords"),
+  
+  // Sorting preferences
+  sortBy: varchar("sort_by").default('createdAt'), // Field to sort by
+  sortOrder: varchar("sort_order").default('desc'), // 'asc' or 'desc'
+  
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_saved_search_user_id").on(table.userId),
+  index("idx_saved_search_created_at").on(table.createdAt),
+]);
+
 // System Settings for Backend Configuration
 export const systemSettings = pgTable("system_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1113,6 +1146,12 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   revokedAt: true,
 });
 
+export const insertSavedSearchSchema = createInsertSchema(savedSearches).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertResellerSchema = createInsertSchema(resellers).omit({
   id: true,
   createdAt: true,
@@ -1122,6 +1161,13 @@ export const insertResellerSchema = createInsertSchema(resellers).omit({
   totalRevenueGenerated: true,
   totalCommissionEarned: true,
 });
+
+// ============================================================================
+// TYPE EXPORTS
+// ============================================================================
+
+export type SavedSearch = typeof savedSearches.$inferSelect;
+export type InsertSavedSearch = z.infer<typeof insertSavedSearchSchema>;
 
 export const insertResellerCustomerReferralSchema = createInsertSchema(resellerCustomerReferrals).omit({
   id: true,

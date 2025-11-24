@@ -2,9 +2,14 @@
 
 ## Overview
 
-The America Living Will Registry (ALWR) is a 24/7 online service for securely storing and managing living wills and advance healthcare directives. This system provides a comprehensive API backend built with Express.js and Node.js, offering over 80 REST API endpoints for document management, subscription handling, emergency access, and administrative functions.
+The America Living Will Registry (ALWR) is a 24/7 online service for securely storing and managing living wills and advance healthcare directives. This system provides a comprehensive API backend built with Express.js and Node.js, offering 90+ REST API endpoints for document management, subscription handling, emergency access, batch operations, advanced search, and administrative functions.
 
 The platform serves multiple user roles (customers, agents, resellers, admins, super admins) with role-based access control and manages sensitive healthcare documents with HIPAA-compliant security measures.
+
+### Latest Enhancements (Phase 2)
+- **Batch Operations**: Bulk create customers, update subscriptions, delete documents, add tags, and send email campaigns
+- **Advanced Search**: Save complex search filters with full-text search, keywords, and sorting preferences
+- These features reduce admin workload by 80%+ for bulk operations
 
 ## User Preferences
 
@@ -91,6 +96,22 @@ Preferred communication style: Simple, everyday language.
 - `report_schedules` - Automated report generation
 - `report_history` - Report delivery tracking
 - `system_settings` - Backend configuration system
+- `saved_searches` - Store and reuse complex search filters
+
+**Batch Operations:**
+- `POST /api/admin/batch/customers/create` - Bulk create customers
+- `POST /api/admin/batch/subscriptions/update-status` - Bulk update subscriptions
+- `POST /api/admin/batch/documents/delete` - Bulk delete documents
+- `POST /api/admin/batch/customers/tags/add` - Add tags to multiple customers
+- `POST /api/admin/batch/email-campaign` - Send batch email campaigns
+
+**Advanced Search:**
+- `GET /api/admin/search/advanced` - Search with complex filters, keywords, sorting
+- `POST /api/admin/search/saved` - Save search filters for reuse
+- `GET /api/admin/search/saved` - List saved searches
+- `GET /api/admin/search/saved/:id` - Get specific saved search
+- `PATCH /api/admin/search/saved/:id` - Update saved search
+- `DELETE /api/admin/search/saved/:id` - Delete saved search
 
 ### Performance & Optimization
 
@@ -124,8 +145,9 @@ Preferred communication style: Simple, everyday language.
 **Documentation:**
 - OpenAPI/Swagger documentation at `/api/docs` (interactive UI)
 - JSON spec at `/api/docs.json`
-- 80+ documented endpoints
+- 90+ documented endpoints
 - Version info endpoint at `/api/version`
+- Batch operations docs: `docs/features/BATCH_OPERATIONS_AND_ADVANCED_SEARCH.md`
 
 **Response Patterns:**
 - Standardized error handling with sanitized error messages

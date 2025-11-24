@@ -1312,6 +1312,201 @@ startxref
   });
 
   // ============================================================================
+  // BATCH OPERATIONS
+  // ============================================================================
+
+  /**
+   * POST /api/admin/batch/customers/create
+   * Bulk create customers from array
+   */
+  app.post("/api/admin/batch/customers/create", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { customers: customersList } = req.body;
+      if (!Array.isArray(customersList) || customersList.length === 0) {
+        return res.status(400).json({ message: "customers array is required and must not be empty" });
+      }
+
+      // Validate each customer
+      const validated = customersList.map(c => insertCustomerSchema.parse(c));
+      const created = await storage.bulkCreateCustomers(validated);
+
+      await auditLog({
+        userId: req.user?.dbUser?.id || 'system',
+        actorName: req.user?.dbUser?.firstName || 'Admin',
+        actorRole: req.user?.dbUser?.role || 'admin',
+        action: 'admin_bulk_action',
+        resourceType: 'customer',
+        resourceId: 'batch',
+        success: true,
+        details: { action: 'bulk_create_customers', count: created.length },
+      });
+
+      res.status(201).json({
+        success: true,
+        created: created.length,
+        customers: created,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid customer data", errors: error.errors });
+      }
+      console.error("Error bulk creating customers:", error);
+      res.status(500).json({ message: "Bulk create failed" });
+    }
+  });
+
+  /**
+   * POST /api/admin/batch/subscriptions/update-status
+   * Bulk update subscription status
+   */
+  app.post("/api/admin/batch/subscriptions/update-status", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { subscriptionIds, status } = req.body;
+      if (!Array.isArray(subscriptionIds) || !status) {
+        return res.status(400).json({ message: "subscriptionIds array and status are required" });
+      }
+
+      const updated = await storage.bulkUpdateSubscriptionStatus(subscriptionIds, status);
+
+      await auditLog({
+        userId: req.user?.dbUser?.id || 'system',
+        actorName: req.user?.dbUser?.firstName || 'Admin',
+        actorRole: req.user?.dbUser?.role || 'admin',
+        action: 'admin_bulk_action',
+        resourceType: 'subscription',
+        resourceId: 'batch',
+        success: true,
+        details: { action: 'bulk_update_status', count: subscriptionIds.length, newStatus: status },
+      });
+
+      res.json({
+        success: true,
+        updated,
+        message: `${updated} subscriptions updated to ${status}`,
+      });
+    } catch (error) {
+      console.error("Error bulk updating subscriptions:", error);
+      res.status(500).json({ message: "Bulk update failed" });
+    }
+  });
+
+  /**
+   * POST /api/admin/batch/documents/delete
+   * Bulk delete documents
+   */
+  app.post("/api/admin/batch/documents/delete", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { documentIds } = req.body;
+      if (!Array.isArray(documentIds) || documentIds.length === 0) {
+        return res.status(400).json({ message: "documentIds array is required" });
+      }
+
+      const deleted = await storage.bulkDeleteDocuments(documentIds);
+
+      await auditLog({
+        userId: req.user?.dbUser?.id || 'system',
+        actorName: req.user?.dbUser?.firstName || 'Admin',
+        actorRole: req.user?.dbUser?.role || 'admin',
+        action: 'document_bulk_delete',
+        resourceType: 'document',
+        resourceId: 'batch',
+        success: true,
+        details: { count: deleted },
+      });
+
+      res.json({
+        success: true,
+        deleted,
+        message: `${deleted} documents deleted`,
+      });
+    } catch (error) {
+      console.error("Error bulk deleting documents:", error);
+      res.status(500).json({ message: "Bulk delete failed" });
+    }
+  });
+
+  /**
+   * POST /api/admin/batch/customers/tags/add
+   * Bulk add tags to customers
+   */
+  app.post("/api/admin/batch/customers/tags/add", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { customerIds, tags } = req.body;
+      if (!Array.isArray(customerIds) || !Array.isArray(tags)) {
+        return res.status(400).json({ message: "customerIds and tags arrays are required" });
+      }
+
+      const added = await storage.bulkAddCustomerTags(customerIds, tags);
+
+      await auditLog({
+        userId: req.user?.dbUser?.id || 'system',
+        actorName: req.user?.dbUser?.firstName || 'Admin',
+        actorRole: req.user?.dbUser?.role || 'admin',
+        action: 'admin_bulk_action',
+        resourceType: 'customer',
+        resourceId: 'batch',
+        success: true,
+        details: { action: 'bulk_add_tags', customerCount: customerIds.length, tags },
+      });
+
+      res.json({
+        success: true,
+        added,
+        message: `Added ${tags.length} tag(s) to ${customerIds.length} customer(s)`,
+      });
+    } catch (error) {
+      console.error("Error bulk adding tags:", error);
+      res.status(500).json({ message: "Bulk add tags failed" });
+    }
+  });
+
+  /**
+   * POST /api/admin/batch/email-campaign
+   * Send batch email campaign to customer segment
+   */
+  app.post("/api/admin/batch/email-campaign", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { customerIds, templateId, subject, body } = req.body;
+      if (!Array.isArray(customerIds) || !subject || !body) {
+        return res.status(400).json({ message: "customerIds, subject, and body are required" });
+      }
+
+      const emailsToSend: InsertEmailNotification[] = customerIds.map(customerId => ({
+        userId: customerId,
+        templateId: templateId || null,
+        subject,
+        body,
+        notificationType: 'renewal_reminder',
+        resourceType: 'campaign',
+        resourceId: 'bulk',
+        status: 'pending',
+      } as InsertEmailNotification));
+
+      const sent = await storage.bulkSendEmails(emailsToSend);
+
+      await auditLog({
+        userId: req.user?.dbUser?.id || 'system',
+        actorName: req.user?.dbUser?.firstName || 'Admin',
+        actorRole: req.user?.dbUser?.role || 'admin',
+        action: 'admin_bulk_action',
+        resourceType: 'email',
+        resourceId: 'campaign',
+        success: true,
+        details: { action: 'bulk_email_campaign', count: sent.length },
+      });
+
+      res.json({
+        success: true,
+        queued: sent.length,
+        message: `${sent.length} emails queued for delivery`,
+      });
+    } catch (error) {
+      console.error("Error bulk sending emails:", error);
+      res.status(500).json({ message: "Bulk email campaign failed" });
+    }
+  });
+
+  // ============================================================================
   // ADMIN ROUTES (with IP Whitelisting - SECURITY #10)
   // ============================================================================
 
@@ -2072,7 +2267,7 @@ startxref
   });
 
   // ============================================================================
-  // GLOBAL SEARCH
+  // GLOBAL SEARCH & ADVANCED SEARCH
   // ============================================================================
 
   app.get("/api/global-search", async (req: any, res: Response) => {
@@ -2087,6 +2282,196 @@ startxref
     } catch (error) {
       console.error("Error performing global search:", error);
       res.status(500).json({ message: "Search failed" });
+    }
+  });
+
+  /**
+   * GET /api/admin/search/advanced
+   * Advanced search with complex filters
+   * Query params: filters (JSON), keywords, sortBy, sortOrder, limit, offset
+   */
+  app.get("/api/admin/search/advanced", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { filters: filterStr, keywords, sortBy = 'createdAt', sortOrder = 'desc', limit = '50', offset = '0' } = req.query;
+      
+      let filters: any = {};
+      if (filterStr) {
+        try {
+          filters = typeof filterStr === 'string' ? JSON.parse(filterStr) : filterStr;
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid filters JSON" });
+        }
+      }
+
+      const limNum = Math.min(parseInt(limit) || 50, 500);
+      const offNum = parseInt(offset) || 0;
+
+      // Search customers based on filters and keywords
+      const customers = await storage.listCustomers(limNum, offNum);
+      
+      let results = customers.filter(c => {
+        // Apply filters
+        if (filters.status && c.status !== filters.status) return false;
+        if (filters.createdAfter && new Date(c.createdAt) < new Date(filters.createdAfter)) return false;
+        if (filters.createdBefore && new Date(c.createdAt) > new Date(filters.createdBefore)) return false;
+        if (keywords) {
+          const keywordsLower = keywords.toLowerCase();
+          const fullName = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase();
+          return fullName.includes(keywordsLower) || c.email?.toLowerCase().includes(keywordsLower);
+        }
+        return true;
+      });
+
+      // Sort results
+      if (sortBy && sortBy in results[0] || {}) {
+        results.sort((a: any, b: any) => {
+          const aVal = a[sortBy];
+          const bVal = b[sortBy];
+          if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
+          return aVal < bVal ? 1 : -1;
+        });
+      }
+
+      res.json({
+        success: true,
+        total: results.length,
+        limit: limNum,
+        offset: offNum,
+        results,
+      });
+    } catch (error) {
+      console.error("Error performing advanced search:", error);
+      res.status(500).json({ message: "Advanced search failed" });
+    }
+  });
+
+  /**
+   * POST /api/admin/search/saved
+   * Save a search filter for future use
+   */
+  app.post("/api/admin/search/saved", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { name, description, filters, keywords, sortBy = 'createdAt', sortOrder = 'desc' } = req.body;
+      if (!name || !filters) {
+        return res.status(400).json({ message: "name and filters are required" });
+      }
+
+      const saved = await storage.createSavedSearch({
+        userId: req.user?.dbUser?.id,
+        name,
+        description,
+        filters,
+        keywords,
+        sortBy,
+        sortOrder,
+      });
+
+      res.status(201).json({
+        success: true,
+        saved,
+        message: "Search saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving search:", error);
+      res.status(500).json({ message: "Failed to save search" });
+    }
+  });
+
+  /**
+   * GET /api/admin/search/saved
+   * List saved searches for current user
+   */
+  app.get("/api/admin/search/saved", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const searches = await storage.listSavedSearches(req.user?.dbUser?.id);
+      res.json({
+        success: true,
+        total: searches.length,
+        searches,
+      });
+    } catch (error) {
+      console.error("Error listing saved searches:", error);
+      res.status(500).json({ message: "Failed to fetch saved searches" });
+    }
+  });
+
+  /**
+   * GET /api/admin/search/saved/:id
+   * Get a specific saved search
+   */
+  app.get("/api/admin/search/saved/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const search = await storage.getSavedSearch(req.params.id);
+      if (!search) {
+        return res.status(404).json({ message: "Saved search not found" });
+      }
+      
+      // Verify ownership
+      if (search.userId !== req.user?.dbUser?.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      res.json({
+        success: true,
+        search,
+      });
+    } catch (error) {
+      console.error("Error fetching saved search:", error);
+      res.status(500).json({ message: "Failed to fetch saved search" });
+    }
+  });
+
+  /**
+   * PATCH /api/admin/search/saved/:id
+   * Update a saved search
+   */
+  app.patch("/api/admin/search/saved/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const search = await storage.getSavedSearch(req.params.id);
+      if (!search) {
+        return res.status(404).json({ message: "Saved search not found" });
+      }
+      
+      // Verify ownership
+      if (search.userId !== req.user?.dbUser?.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const updated = await storage.updateSavedSearch(req.params.id, req.body);
+      res.json({
+        success: true,
+        updated,
+      });
+    } catch (error) {
+      console.error("Error updating saved search:", error);
+      res.status(500).json({ message: "Failed to update saved search" });
+    }
+  });
+
+  /**
+   * DELETE /api/admin/search/saved/:id
+   * Delete a saved search
+   */
+  app.delete("/api/admin/search/saved/:id", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const search = await storage.getSavedSearch(req.params.id);
+      if (!search) {
+        return res.status(404).json({ message: "Saved search not found" });
+      }
+      
+      // Verify ownership
+      if (search.userId !== req.user?.dbUser?.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      await storage.deleteSavedSearch(req.params.id);
+      res.json({
+        success: true,
+        message: "Saved search deleted",
+      });
+    } catch (error) {
+      console.error("Error deleting saved search:", error);
+      res.status(500).json({ message: "Failed to delete saved search" });
     }
   });
 
