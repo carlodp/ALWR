@@ -1088,6 +1088,85 @@ startxref
     }
   });
 
+  // View document (admin)
+  app.get("/api/admin/documents/:id/view", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const document = await storage.getDocument(id);
+
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Increment access count
+      await storage.incrementDocumentAccess(id);
+
+      // Log document access
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'document_view',
+        resourceType: 'document',
+        resourceId: document.id,
+        details: { fileName: document.fileName },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      // Serve placeholder PDF for MVP (in production, fetch from S3/cloud storage)
+      const placeholderPDF = Buffer.from(
+        `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>
+endobj
+4 0 obj
+<< /Length 200 >>
+stream
+BT
+/F1 12 Tf
+50 700 Td
+(${document.fileName}) Tj
+0 -20 Td
+(Type: ${document.fileType.replace(/_/g, ' ')}) Tj
+0 -20 Td
+(Uploaded: ${new Date(document.createdAt!).toLocaleDateString()}) Tj
+0 -20 Td
+(Size: ${(document.fileSize / 1024).toFixed(1)} KB) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000317 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+517
+%%EOF
+`
+      );
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
+      res.send(placeholderPDF);
+    } catch (error) {
+      console.error("Error viewing document:", error);
+      res.status(500).json({ message: "Failed to view document" });
+    }
+  });
+
   // ============================================================================
   // DOCUMENT DOWNLOAD ROUTE
   // ============================================================================
@@ -1704,7 +1783,7 @@ startxref
       }
 
       const uploadSchema = z.object({
-        fileType: z.enum(['living_will', 'healthcare_directive', 'power_of_attorney', 'dnr', 'other']),
+        fileType: z.enum(['living_will', 'healthcare_directive', 'power_of_attorney', 'dnr', 'other']).default('other'),
       });
 
       const { fileType } = uploadSchema.parse(req.body);

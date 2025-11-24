@@ -86,7 +86,25 @@ Preferred communication style: Simple, everyday language.
 
 ### Critical Bug Fixes
 
-1. **Document Upload Endpoint Failed - FIXED (Nov 24, 2025, Session 2)**
+1. **Document Type Enum Not Saving Correctly - FIXED (Nov 24, 2025, Session 3)**
+   - **Root Cause:** Admin upload endpoint schema validation didn't have `.default('other')`, causing missing fileType to default silently
+   - **Issue:** User selected "Healthcare Surrogate Update" (dnr) but document saved as "Other"
+   - **Solution Applied:**
+     - Added `.default('other')` to fileType schema in admin endpoint to match working customer endpoint
+     - Ensures FormData fields are properly parsed and validated
+   - **Status:** Document types now save correctly
+
+2. **Document View Feature - ADDED (Nov 24, 2025, Session 3)**
+   - **Added eye icon view button** next to delete button in documents list
+   - **New endpoint:** GET `/api/admin/documents/:id/view` - returns PDF with document metadata
+   - **Features:**
+     - Opens document in new tab via `window.open(url, '_blank')`
+     - Logs document access to audit logs
+     - Includes admin authorization check
+     - Tracks access count for documents
+   - **MVP Implementation:** Returns generated PDF with document metadata (name, type, upload date, size)
+
+3. **Document Upload Endpoint Failed - FIXED (Nov 24, 2025, Session 2)**
    - **Root Cause:** Admin document upload endpoint was missing required database fields
    - **Issue:** Error "null value in column 'storage_key' violates not-null constraint"
    - **Solution Applied:**
@@ -96,7 +114,7 @@ Preferred communication style: Simple, everyday language.
      - Added proper `encryptionKey` handling for document versions
    - **Status:** Now fully functional - uploads create both document records and version history correctly
 
-2. **Customer Detail Page Endless Loading - FIXED**
+4. **Customer Detail Page Endless Loading - FIXED**
    - **Root Cause:** PageTransitionLoader was showing indefinitely, masking actual page load issues
    - **Solution:** Removed PageTransitionLoader from App component
    - **Secondary Issues Fixed:**

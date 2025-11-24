@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft, Trash2, Upload } from "lucide-react";
+import { FileText, Mail, Phone, MapPin, AlertCircle, Save, Edit2, X, ArrowLeft, Trash2, Upload, Eye } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -665,15 +665,29 @@ export default function AdminCustomerDetail() {
                           {doc.fileType.replace(/_/g, " ")}
                         </Badge>
                       </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setDeleteDocConfirm(doc.id)}
-                        disabled={deleteDocumentMutation.isPending}
-                        data-testid={`button-delete-doc-${doc.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex gap-2 items-center">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            const url = `/api/admin/documents/${doc.id}/view`;
+                            window.open(url, '_blank');
+                          }}
+                          data-testid={`button-view-doc-${doc.id}`}
+                          title="View document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setDeleteDocConfirm(doc.id)}
+                          disabled={deleteDocumentMutation.isPending}
+                          data-testid={`button-delete-doc-${doc.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
