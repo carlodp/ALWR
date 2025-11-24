@@ -2024,10 +2024,10 @@ startxref
   // ADMIN SUBSCRIPTION ROUTES
   // ============================================================================
 
-  // List all subscriptions (admin)
+  // List latest subscriptions per customer (admin)
   app.get("/api/admin/subscriptions", requireAdmin, async (req: any, res: Response) => {
     try {
-      const subscriptions = await storage.listAllSubscriptions(100, 0);
+      const subscriptions = await storage.getLatestSubscriptionsPerCustomer();
       res.json(subscriptions);
     } catch (error) {
       console.error("Error listing subscriptions:", error);

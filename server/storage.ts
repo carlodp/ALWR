@@ -244,6 +244,7 @@ export interface IStorage {
   updateSubscription(subscriptionId: string, data: Partial<Subscription>): Promise<Subscription | undefined>;
   deleteSubscription(subscriptionId: string): Promise<void>;
   listExpiringSubscriptions(daysUntilExpiry: number): Promise<Subscription[]>;
+  getLatestSubscriptionsPerCustomer(): Promise<any[]>; // Returns latest subscription per customer
 
   // Document Operations
   createDocument(document: InsertDocument): Promise<Document>;
@@ -866,6 +867,30 @@ export class DatabaseStorage implements IStorage {
       },
     });
     return result;
+  }
+
+  async getLatestSubscriptionsPerCustomer(): Promise<any[]> {
+    // Get all subscriptions, then filter to keep only the latest per customer
+    const allSubs = await db.query.subscriptions.findMany({
+      orderBy: desc(subscriptions.createdAt),
+      with: {
+        customer: {
+          with: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    // Group by customer ID and keep only the latest (first in the sorted list)
+    const latestByCustomer = new Map<string, any>();
+    for (const sub of allSubs) {
+      if (!latestByCustomer.has(sub.customerId)) {
+        latestByCustomer.set(sub.customerId, sub);
+      }
+    }
+
+    return Array.from(latestByCustomer.values());
   }
 
   async getSubscriptionById(subscriptionId: string): Promise<any> {
