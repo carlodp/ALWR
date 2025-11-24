@@ -1,11 +1,24 @@
 // User management service for role-based access control and user administration
 import type { User } from "@shared/schema";
 
-export type UserRole = 'customer' | 'admin' | 'agent' | 'support';
+export type UserRole = 'customer' | 'admin' | 'agent' | 'reseller' | 'super_admin';
 export type UserAccountStatus = 'active' | 'suspended' | 'locked' | 'inactive';
 
 // Role-based permissions
 export const rolePermissions: Record<UserRole, string[]> = {
+  super_admin: [
+    'manage_users',
+    'manage_customers',
+    'manage_subscriptions',
+    'manage_documents',
+    'view_reports',
+    'view_audit_logs',
+    'manage_agents',
+    'manage_resellers',
+    'view_emergency_access_logs',
+    'manage_email_templates',
+    'manage_system_settings',
+  ],
   admin: [
     'manage_users',
     'manage_customers',
@@ -24,18 +37,16 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'manage_customer_subscriptions',
     'view_reports',
   ],
+  reseller: [
+    'view_customers',
+    'view_reports',
+  ],
   customer: [
     'view_own_profile',
     'edit_own_profile',
     'view_own_documents',
     'upload_documents',
     'view_own_subscription',
-  ],
-  support: [
-    'view_customers',
-    'view_audit_logs',
-    'view_emergency_access_logs',
-    'view_reports',
   ],
 };
 
@@ -51,9 +62,9 @@ export function hasRole(user: User, roles: UserRole[]): boolean {
   return roles.includes((user.role || 'customer') as UserRole);
 }
 
-// Check if user is admin
+// Check if user is admin or super_admin
 export function isAdmin(user: User): boolean {
-  return user.role === 'admin';
+  return user.role === 'admin' || user.role === 'super_admin';
 }
 
 // Generate a user display name
