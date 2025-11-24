@@ -296,11 +296,6 @@ export function AppSidebar() {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {/* VIEW */}
-                        <SidebarMenuSubItem>
-                          <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block">VIEW</span>
-                        </SidebarMenuSubItem>
-                        
                         {/* LIST */}
                         <SidebarMenuSubItem>
                           <span className="text-xs font-semibold text-muted-foreground uppercase ml-2 mb-2 block">LIST</span>
@@ -411,94 +406,34 @@ export function AppSidebar() {
 
             {/* Agents Section */}
             <SidebarGroup>
-              <Collapsible defaultOpen={false} className="group/collapsible">
+              <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton data-testid="nav-agents-expand">
+                    <SidebarMenuButton asChild data-testid="nav-agents">
+                      <a href="/admin/agents">
                         <UserCheck />
                         <span>Agents</span>
-                        <svg
-                          className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path d="M12 6L8 10L4 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild data-testid="nav-agents">
-                            <a href="/admin/agents">
-                              <UserCheck className="h-4 w-4" />
-                              <span>View Agents</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild data-testid="nav-agents-new">
-                            <a href="/admin/agents/new">
-                              <UserCheck className="h-4 w-4" />
-                              <span>Assign Agent</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
+                      </a>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
-              </Collapsible>
+              </SidebarGroupContent>
             </SidebarGroup>
 
             {/* Resellers Section */}
             <SidebarGroup>
-              <Collapsible defaultOpen={false} className="group/collapsible">
+              <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton data-testid="nav-resellers-expand">
+                    <SidebarMenuButton asChild data-testid="nav-resellers">
+                      <a href="/admin/resellers">
                         <Briefcase />
                         <span>Resellers</span>
-                        <svg
-                          className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path d="M12 6L8 10L4 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild data-testid="nav-resellers">
-                            <a href="/admin/resellers">
-                              <Briefcase className="h-4 w-4" />
-                              <span>View Resellers</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild data-testid="nav-resellers-new">
-                            <a href="/admin/resellers/new">
-                              <Briefcase className="h-4 w-4" />
-                              <span>Assign Reseller</span>
-                            </a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
+                      </a>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
-              </Collapsible>
+              </SidebarGroupContent>
             </SidebarGroup>
 
             {/* Accounts Section */}
