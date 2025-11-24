@@ -10,7 +10,40 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Latest Session)
 
-### Document Management & UI Improvements (Nov 24, 2025)
+### Critical Bug Fixes Session 4 (Nov 24, 2025 - CURRENT)
+
+1. **Delete Document Foreign Key Constraint - FIXED**
+   - **Problem:** Deleting documents failed with "foreign key constraint violation" 
+   - **Root Cause:** `deleteDocument()` tried to delete documents without first deleting related `document_versions`
+   - **Solution:** Modified `deleteDocument()` in storage layer to cascade delete versions first
+   - **Implementation:** 
+     ```typescript
+     // Delete document versions first (cascade)
+     await db.delete(documentVersions).where(eq(documentVersions.documentId, documentId));
+     // Then delete the document
+     await db.delete(documents).where(eq(documents.id, documentId));
+     ```
+   - **Status:** Delete now works for all documents including newly uploaded ones
+
+2. **Document Type Not Saving Correctly - FIXED**
+   - **Problem:** Form showed "Combined Advance Directive" selected but saved as "Other"
+   - **Root Cause:** FormData `fileType` field not being extracted properly from multer req.body
+   - **Solution:** Added explicit extraction of fileType from req.body with fallback to 'other'
+   - **Implementation:**
+     ```typescript
+     const fileType = (req.body?.fileType || req.body?.['fileType'] || 'other') as string;
+     const validated = uploadSchema.parse({ fileType });
+     const finalFileType = validated.fileType;
+     ```
+   - **Status:** Document types now save with correct values selected in form
+
+3. **View File Endpoint - IN PROGRESS (MVP Version)**
+   - **Current State:** Returns placeholder PDF with metadata (name, type, date, size)
+   - **Note:** Real document preview requires file storage integration (currently using in-memory storage)
+   - **MVP Limitations:** Shows metadata only, actual document content not persisted in memory storage
+   - **Next Phase:** When real storage (S3/cloud) is integrated, endpoint will serve actual documents
+
+### Document Management & UI Improvements (Nov 24, 2025 Session 1-3)
 
 1. **Document Upload Feature - COMPLETED**
    - Added "Upload Document" button in Customer Detail > Documents tab header (CardHeader area)

@@ -1786,7 +1786,10 @@ startxref
         fileType: z.enum(['living_will', 'healthcare_directive', 'power_of_attorney', 'dnr', 'other']).default('other'),
       });
 
-      const { fileType } = uploadSchema.parse(req.body);
+      // Extract fileType from form data - req.body from multer contains fields as object
+      const fileType = (req.body?.fileType || req.body?.['fileType'] || 'other') as string;
+      const validated = uploadSchema.parse({ fileType });
+      const finalFileType = validated.fileType;
 
       // Determine mime type from file extension
       const fileName = req.file.originalname.toLowerCase();
@@ -1807,7 +1810,7 @@ startxref
         customerId: customerId,
         fileName: req.file.originalname,
         fileSize: req.file.size,
-        fileType: fileType,
+        fileType: finalFileType,
         mimeType: mimeType,
         storageKey: storageKey,
         uploadedBy: req.user.dbUser.id,
@@ -1834,7 +1837,7 @@ startxref
         action: 'document_upload',
         resourceType: 'document',
         resourceId: document.id,
-        details: { customerId, fileName: req.file.originalname, fileType },
+        details: { customerId, fileName: req.file.originalname, fileType: finalFileType },
       });
 
       res.status(201).json(document);

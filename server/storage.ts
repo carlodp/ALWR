@@ -907,6 +907,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDocument(documentId: string): Promise<void> {
+    // Delete document versions first (cascade)
+    await db.delete(documentVersions).where(eq(documentVersions.documentId, documentId));
+    // Then delete the document
     await db.delete(documents).where(eq(documents.id, documentId));
   }
 
