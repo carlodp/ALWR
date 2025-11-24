@@ -16,10 +16,10 @@ export function PageTransitionLoader() {
       setIsVisible(true);
       setPrevLocation(location);
       
-      // Hide loader after a delay (gives page content time to render)
+      // Hide loader after a very short delay (just enough to prevent layout shift)
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 1500);
+      }, 100);
 
       return () => clearTimeout(timer);
     }

@@ -51,7 +51,6 @@ import { MobileHeader } from "@/components/shared/header";
 import { ThemeProvider } from "@/components/shared/provider";
 import { BreadcrumbNav } from "@/components/shared/breadcrumb-nav";
 import { IdleWarningDialog } from "@/components/dialogs/idle-warning";
-import { PageTransitionLoader } from "@/components/shared/page-transition-loader";
 
 // Hooks
 import { useAuth } from "@/hooks/useAuth";
@@ -236,7 +235,6 @@ function AppContent() {
 
   return (
     <TooltipProvider>
-      <PageTransitionLoader />
       {isAuthenticated && !isLoading ? (
         <SidebarProvider style={sidebarStyle as React.CSSProperties}>
           <div className="flex h-screen w-full flex-col md:flex-row">

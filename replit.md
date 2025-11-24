@@ -52,11 +52,22 @@ Preferred communication style: Simple, everyday language.
 ### Files Modified
 
 - `client/src/components/modals/customer-detail-modal.tsx` - Contact tab layout, subscriptions display, badge capitalization
-- `client/src/pages/admin/customer-detail.tsx` - Error handling, loading timeout
-- `client/src/components/shared/page-transition-loader.tsx` - Increased timeout
+- `client/src/pages/admin/customer-detail.tsx` - Fixed endless loading bug by removing `isAdmin` check from query enabled condition, added error state handling
+- `client/src/components/shared/page-transition-loader.tsx` - Reduced timeout to 100ms (for prevention of white flash)
+- `client/src/App.tsx` - Removed problematic PageTransitionLoader that was causing endless loading state
 - `server/storage.ts` - New `getSubscriptionsByCustomer()` method
 - `server/routes.ts` - Updated customer endpoint to return subscriptions array
 - `server/seed-mock-data.ts` - Multi-subscription seeding per customer
+
+### Critical Bug Fixes
+
+1. **Customer Detail Page Endless Loading - FIXED**
+   - **Root Cause:** PageTransitionLoader was showing indefinitely, masking actual page load issues
+   - **Solution:** Removed PageTransitionLoader from App component
+   - **Secondary Issues Fixed:**
+     - Fixed race condition in customer detail query where `enabled: !!id && isAdmin` prevented query from running (removed `isAdmin` check)
+     - Backend now handles authorization via 401 responses
+     - Added proper error state handling to show error messages instead of infinite loading
 
 ## System Architecture
 
