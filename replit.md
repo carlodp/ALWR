@@ -69,7 +69,13 @@ Preferred communication style: Simple, everyday language.
 
 **Core Tables:**
 - `users` - User authentication and profiles (email, password, role, 2FA settings)
-- `customers` - Customer profiles with PII (encrypted fields ready)
+- `customers` - Customer profiles with comprehensive contact info (PII encrypted ready)
+  - Personal details (name, DOB, PRN number)
+  - Professional info (title, organization)
+  - Address fields (address1, address2, city, state, zip, country)
+  - Phone fields (phone1, phone1Ext, phone2, phone2Ext, fax)
+  - Emergency contact information
+  - Referral tracking
 - `subscriptions` - Subscription management with Stripe integration
 - `documents` - Healthcare documents with versioning support
 - `document_versions` - Document version history
@@ -148,6 +154,8 @@ Preferred communication style: Simple, everyday language.
 - 90+ documented endpoints
 - Version info endpoint at `/api/version`
 - Batch operations docs: `docs/features/BATCH_OPERATIONS_AND_ADVANCED_SEARCH.md`
+- Customer Details schema: `docs/features/CUSTOMER_DETAILS_SCHEMA.md`
+- WordPress API key integration: `docs/integrations/WORDPRESS_API_KEY_AUTHENTICATION.md`
 
 **Response Patterns:**
 - Standardized error handling with sanitized error messages

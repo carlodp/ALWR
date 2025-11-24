@@ -248,12 +248,27 @@ export const customers = pgTable("customers", {
   // Account Status (separate from subscription status)
   accountStatus: accountStatusEnum("account_status").default('active').notNull(),
   
-  // Contact Information
-  phone: varchar("phone"),
-  address: text("address"),
+  // PRN (Personal Reference Number)
+  prnNumber: varchar("prn_number").unique(),
+  
+  // Professional Information
+  title: varchar("title"), // Job title (e.g., "Dr.", "Mr.", "Ms.")
+  organization: varchar("organization"), // Company/organization name
+  
+  // Contact Information - Address
+  address1: text("address_1"), // Primary address
+  address2: text("address_2"), // Apartment, suite, etc.
   city: varchar("city"),
-  state: varchar("state"),
-  zipCode: varchar("zip_code"),
+  state: varchar("state"), // State/Province
+  zipCode: varchar("zip_code"), // Postal code
+  country: varchar("country"), // Country
+  
+  // Contact Information - Phone
+  phone1: varchar("phone_1"), // Primary phone
+  phone1Ext: varchar("phone_1_ext"), // Extension for phone 1
+  phone2: varchar("phone_2"), // Secondary phone
+  phone2Ext: varchar("phone_2_ext"), // Extension for phone 2
+  fax: varchar("fax"), // Fax number
   
   // Emergency Contact
   emergencyContactName: varchar("emergency_contact_name"),
@@ -280,6 +295,9 @@ export const customers = pgTable("customers", {
   index("idx_customer_user_id").on(table.userId),
   index("idx_customer_stripe_id").on(table.stripeCustomerId),
   index("idx_customer_referral_code").on(table.referralCode),
+  index("idx_customer_prn_number").on(table.prnNumber),
+  index("idx_customer_organization").on(table.organization),
+  index("idx_customer_city_state").on(table.city, table.state),
 ]);
 
 // ============================================================================
