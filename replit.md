@@ -6,7 +6,12 @@ The America Living Will Registry (ALWR) is a 24/7 online service for securely st
 
 The platform serves multiple user roles (customers, agents, resellers, admins, super admins) with role-based access control and manages sensitive healthcare documents with HIPAA-compliant security measures.
 
-### Latest Enhancements (Phase 2)
+### Latest Enhancements (Phase 3)
+- **Accounting Page**: Complete financial ledger showing payment logs from customer subscriptions
+  - Summary cards: Total revenue, active subscriptions, payment records count
+  - Searchable payment table with date, customer name, email, status, dates, and amount paid
+  - Integrated into admin dashboard with quick-access tile
+  - Sidebar menu item for easy navigation
 - **Batch Operations**: Bulk create customers, update subscriptions, delete documents, add tags, and send email campaigns
 - **Advanced Search**: Save complex search filters with full-text search, keywords, and sorting preferences
 - These features reduce admin workload by 80%+ for bulk operations
@@ -127,6 +132,11 @@ Preferred communication style: Simple, everyday language.
 - `GET /api/admin/search/saved/:id` - Get specific saved search
 - `PATCH /api/admin/search/saved/:id` - Update saved search
 - `DELETE /api/admin/search/saved/:id` - Delete saved search
+
+**Accounting & Payment Ledger:**
+- `GET /api/admin/accounting` - Fetch complete payment ledger from all subscriptions
+- Frontend: `GET /admin/accounting` - Accounting page route showing financial ledger
+- Features: Payment summary cards, searchable transaction table, real-time totals
 
 ### Performance & Optimization
 

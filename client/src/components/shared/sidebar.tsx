@@ -167,6 +167,12 @@ export function AppSidebar() {
       icon: CreditCard,
       section: "LIST"
     },
+    {
+      title: "Accounting",
+      url: "/admin/accounting",
+      icon: BarChart3,
+      section: "LIST"
+    },
     
     // CREATE
     // (using existing create customer page via dialog)
@@ -312,6 +318,14 @@ export function AppSidebar() {
                             <a href="/admin/subscriptions">
                               <CreditCard className="h-4 w-4" />
                               <span>Subscriptions</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-accounting">
+                            <a href="/admin/accounting">
+                              <BarChart3 className="h-4 w-4" />
+                              <span>Accounting</span>
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

@@ -108,6 +108,7 @@ import AdminResellers from "@/pages/admin/resellers";
 import AdminUsers from "@/pages/admin/users";
 import AdminCreateUser from "@/pages/admin/create-user";
 import AdminUserRoles from "@/pages/admin/user-roles";
+import AdminAccounting from "@/pages/admin/accounting";
 
 function Router() {
   const { isAuthenticated, isLoading, isAdmin, isSuperAdmin } = useAuth();
@@ -163,6 +164,7 @@ function Router() {
           <Route path="/admin/customers/new" component={AdminCreateCustomer} />
           <Route path="/admin/customers/:id" component={AdminCustomerDetail} />
           <Route path="/admin/subscriptions" component={AdminSubscriptions} />
+          <Route path="/admin/accounting" component={AdminAccounting} />
           <Route path="/admin/renewal-reminders" component={AdminRenewalReminders} />
           <Route path="/admin/reports" component={AdminReports} />
           <Route path="/admin/user-roles" component={AdminUserRoles} />

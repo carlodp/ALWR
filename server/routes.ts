@@ -1741,6 +1741,17 @@ startxref
     }
   });
 
+  // Get accounting/payment ledger (admin)
+  app.get("/api/admin/accounting", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const subscriptions = await storage.listAllSubscriptions(1000, 0);
+      res.json(subscriptions);
+    } catch (error) {
+      console.error("Error fetching accounting data:", error);
+      res.status(500).json({ message: "Failed to fetch accounting data" });
+    }
+  });
+
   // Get single subscription (admin)
   app.get("/api/admin/subscriptions/:id", requireAdmin, async (req: any, res: Response) => {
     try {
