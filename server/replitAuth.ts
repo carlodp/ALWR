@@ -29,7 +29,10 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 30 * 60 * 1000; // 30 minutes of inactivity auto-logout
+  // Use SESSION_TIMEOUT_MINUTES env var if provided, otherwise default to 24 hours
+  // This allows disabling idle timeout by setting a very long timeout
+  const sessionTimeoutMinutes = parseInt(process.env.SESSION_TIMEOUT_MINUTES || "1440", 10);
+  const sessionTtl = sessionTimeoutMinutes * 60 * 1000; // Convert to milliseconds
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
@@ -45,7 +48,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
-      maxAge: sessionTtl, // Cookie expires after 30 minutes of inactivity
+      maxAge: sessionTtl, // Cookie expires after configured timeout
     },
   });
 }

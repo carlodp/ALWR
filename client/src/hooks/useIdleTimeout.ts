@@ -33,8 +33,8 @@ export function useIdleTimeout() {
         }
       } catch (error) {
         console.error("Error fetching system settings:", error);
-        // Default to enabled if fetch fails
-        setIdleTimeoutEnabled(true);
+        // Default to DISABLED if fetch fails (respects user's preference)
+        setIdleTimeoutEnabled(false);
       }
     };
 
