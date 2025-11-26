@@ -4256,19 +4256,24 @@ startxref
       }
 
       // User is approved (no status field needed - just being here means approved)
-      // Log the approval
-      await storage.createAuditLog({
-        userId: req.user.dbUser.id,
-        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
-        actorRole: req.user.dbUser.role,
-        action: 'user_approve',
-        resourceType: 'user',
-        resourceId: userId,
-        details: { action: 'registration_approved' },
-        success: true,
-        ipAddress: req.ip || undefined,
-        userAgent: req.headers['user-agent'] || undefined,
-      });
+      // Log the approval using valid audit action
+      try {
+        await storage.createAuditLog({
+          userId: req.user.dbUser.id,
+          actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+          actorRole: req.user.dbUser.role,
+          action: 'user_update',
+          resourceType: 'user',
+          resourceId: userId,
+          details: { action: 'registration_approved' },
+          success: true,
+          ipAddress: req.ip || undefined,
+          userAgent: req.headers['user-agent'] || undefined,
+        });
+      } catch (logError) {
+        // Log error but don't fail the request
+        console.error("Error logging audit:", logError);
+      }
 
       res.json({ message: "Registration approved" });
     } catch (error) {
@@ -4291,19 +4296,24 @@ startxref
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Delete user by setting a marker (soft delete via audit log)
-      await storage.createAuditLog({
-        userId: req.user.dbUser.id,
-        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
-        actorRole: req.user.dbUser.role,
-        action: 'user_reject',
-        resourceType: 'user',
-        resourceId: userId,
-        details: { action: 'registration_rejected' },
-        success: true,
-        ipAddress: req.ip || undefined,
-        userAgent: req.headers['user-agent'] || undefined,
-      });
+      // Log the rejection using valid audit action
+      try {
+        await storage.createAuditLog({
+          userId: req.user.dbUser.id,
+          actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+          actorRole: req.user.dbUser.role,
+          action: 'user_delete',
+          resourceType: 'user',
+          resourceId: userId,
+          details: { action: 'registration_rejected' },
+          success: true,
+          ipAddress: req.ip || undefined,
+          userAgent: req.headers['user-agent'] || undefined,
+        });
+      } catch (logError) {
+        // Log error but don't fail the request
+        console.error("Error logging audit:", logError);
+      }
 
       // Delete the user from storage
       await storage.deleteUser?.(userId);
