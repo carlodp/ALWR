@@ -4223,7 +4223,7 @@ startxref
    */
   app.get("/api/admin/pending-registrations", requireAdmin, async (req: any, res: Response) => {
     try {
-      const users = await storage.getAllUsers?.();
+      const users = await storage.listAllUsers(1000, 0);
       if (!users) {
         return res.json([]);
       }
