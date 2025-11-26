@@ -4146,7 +4146,7 @@ startxref
       // Hash password
       const passwordHash = await hashPassword(password);
 
-      // Create user
+      // Create user with pending status (needs admin approval)
       const user = await storage.upsertUser({
         email,
         firstName: firstName || '',
@@ -4155,22 +4155,45 @@ startxref
         passwordHash,
       });
 
-      // Log action
+      // Create customer profile with extended info
+      const customerData: any = {
+        userId: user.id,
+        title: req.body.title || null,
+        organization: req.body.organization || null,
+        address1: req.body.address1 || null,
+        address2: req.body.address2 || null,
+        city: req.body.city || null,
+        state: req.body.state || null,
+        zip: req.body.zip || null,
+        dayPhone: req.body.dayPhone || null,
+        eveningPhone: req.body.eveningPhone || null,
+      };
+
+      try {
+        await storage.createCustomer(customerData);
+      } catch (e) {
+        // Customer may already exist, continue
+      }
+
+      // Log action - registration is now pending approval
       await storage.createAuditLog({
         userId: user.id,
         actorName: firstName && lastName ? `${firstName} ${lastName}` : email,
         actorRole: 'customer',
-        action: 'login',
+        action: 'user_create',
         resourceType: 'user',
         resourceId: user.id,
-        details: { action: 'account_created' },
+        details: { 
+          action: 'account_created_pending_approval',
+          status: 'pending_registration'
+        },
         success: true,
         ipAddress: req.ip || undefined,
         userAgent: req.headers['user-agent'] || undefined,
       });
 
       res.status(201).json({
-        message: "Account created successfully",
+        message: "Account created successfully. Pending admin approval.",
         user: {
           id: user.id,
           email: user.email,

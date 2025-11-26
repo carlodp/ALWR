@@ -67,6 +67,7 @@ import GlobalSearch from "@/pages/shared/global-search";
 // Auth Pages
 import Login from "@/pages/auth/login";
 import Signup from "@/pages/auth/signup";
+import Registration from "@/pages/auth/registration";
 import ForgotPassword from "@/pages/auth/forgot-password";
 import ProfileSetup from "@/pages/auth/profile-setup";
 
@@ -108,6 +109,7 @@ import AdminUsers from "@/pages/admin/users";
 import AdminCreateUser from "@/pages/admin/create-user";
 import AdminUserRoles from "@/pages/admin/user-roles";
 import AdminAccounting from "@/pages/admin/accounting";
+import AdminPendingRegistrations from "@/pages/admin/pending-registrations";
 
 function Router() {
   const { isAuthenticated, isLoading, isAdmin, isSuperAdmin } = useAuth();
