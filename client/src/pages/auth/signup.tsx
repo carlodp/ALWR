@@ -54,31 +54,19 @@ export default function Signup() {
   const onSubmit = async (data: SignupForm) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/auth/register", data);
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Account created successfully. Please log in.",
-        });
-        // Redirect to login
-        setLocation("/login");
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Error",
-          description: error.message || "Failed to create account",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      toast({
+        title: "Success",
+        description: "Account created successfully. Pending admin approval.",
+      });
+      // Redirect to login
+      setLocation("/login");
+    } catch (error: any) {
       console.error("Signup error:", error);
       toast({
         title: "Error",
-        description: "An error occurred during signup",
+        description: error.message || "An error occurred during signup",
         variant: "destructive",
       });
     } finally {
