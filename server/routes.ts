@@ -4204,7 +4204,114 @@ startxref
       });
     } catch (error) {
       console.error("Error registering user:", error);
-      res.status(500).json({ message: "Failed to register user" });
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to register user" });
+    }
+  });
+
+  // ============================================================================
+  // PENDING REGISTRATIONS MANAGEMENT (ADMIN ONLY)
+  // ============================================================================
+
+  /**
+   * GET /api/admin/pending-registrations
+   * Get list of pending customer registrations
+   */
+  app.get("/api/admin/pending-registrations", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const users = await storage.getAllUsers?.();
+      if (!users) {
+        return res.json([]);
+      }
+
+      // Filter for customers with role 'customer' (all registrations are pending until approved)
+      const pendingRegistrations = users.filter((u: any) => u.role === 'customer').map((u: any) => {
+        return {
+          userId: u.id,
+          email: u.email,
+          firstName: u.firstName || '',
+          lastName: u.lastName || '',
+          createdAt: u.createdAt,
+        };
+      });
+
+      res.json(pendingRegistrations);
+    } catch (error) {
+      console.error("Error fetching pending registrations:", error);
+      res.status(500).json({ message: "Failed to fetch pending registrations" });
+    }
+  });
+
+  /**
+   * POST /api/admin/pending-registrations/:userId/approve
+   * Approve a pending registration
+   */
+  app.post("/api/admin/pending-registrations/:userId/approve", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      // Get the user
+      const user = await storage.getUserById?.(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // User is approved (no status field needed - just being here means approved)
+      // Log the approval
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'user_approve',
+        resourceType: 'user',
+        resourceId: userId,
+        details: { action: 'registration_approved' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      res.json({ message: "Registration approved" });
+    } catch (error) {
+      console.error("Error approving registration:", error);
+      res.status(500).json({ message: "Failed to approve registration" });
+    }
+  });
+
+  /**
+   * POST /api/admin/pending-registrations/:userId/reject
+   * Reject a pending registration
+   */
+  app.post("/api/admin/pending-registrations/:userId/reject", requireAdmin, async (req: any, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      // Delete the user registration
+      const user = await storage.getUserById?.(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Delete user by setting a marker (soft delete via audit log)
+      await storage.createAuditLog({
+        userId: req.user.dbUser.id,
+        actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
+        actorRole: req.user.dbUser.role,
+        action: 'user_reject',
+        resourceType: 'user',
+        resourceId: userId,
+        details: { action: 'registration_rejected' },
+        success: true,
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] || undefined,
+      });
+
+      // Delete the user from storage
+      await storage.deleteUser?.(userId);
+
+      res.json({ message: "Registration rejected" });
+    } catch (error) {
+      console.error("Error rejecting registration:", error);
+      res.status(500).json({ message: "Failed to reject registration" });
     }
   });
 
