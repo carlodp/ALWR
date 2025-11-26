@@ -134,6 +134,7 @@ function Router() {
           <Route path="/" component={Login} />
           <Route path="/login" component={Login} />
           <Route path="/signup" component={Signup} />
+          <Route path="/registration" component={Registration} />
           <Route path="/forgot-password" component={ForgotPassword} />
           <Route path="/emergency-access" component={EmergencyAccess} />
         </>
@@ -182,6 +183,7 @@ function Router() {
           <Route path="/admin/users" component={AdminUsers} />
           <Route path="/admin/users/new" component={AdminCreateUser} />
           <Route path="/admin/users/:id" component={AdminUserDetail} />
+          <Route path="/admin/pending-registrations" component={AdminPendingRegistrations} />
           <Route path="/admin/settings" component={AdminSettings} />
           <Route path="/admin/user-roles" component={AdminUserRoles} />
           <Route path="/admin/system/rate-limits" component={AdminSystemRateLimits} />

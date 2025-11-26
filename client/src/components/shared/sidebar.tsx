@@ -460,6 +460,14 @@ export function AppSidebar() {
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild data-testid="nav-pending-registrations">
+                            <a href="/admin/pending-registrations">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>Pending Registrations</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild data-testid="nav-users">
                             <a href="/admin/users">
                               <User className="h-4 w-4" />
