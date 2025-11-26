@@ -4175,22 +4175,27 @@ startxref
         // Customer may already exist, continue
       }
 
-      // Log action - registration is now pending approval
-      await storage.createAuditLog({
-        userId: user.id,
-        actorName: firstName && lastName ? `${firstName} ${lastName}` : email,
-        actorRole: 'customer',
-        action: 'user_create',
-        resourceType: 'user',
-        resourceId: user.id,
-        details: { 
-          action: 'account_created_pending_approval',
-          status: 'pending_registration'
-        },
-        success: true,
-        ipAddress: req.ip || undefined,
-        userAgent: req.headers['user-agent'] || undefined,
-      });
+      // Log action - registration is now pending approval (wrapped to prevent enum errors)
+      try {
+        await storage.createAuditLog({
+          userId: user.id,
+          actorName: firstName && lastName ? `${firstName} ${lastName}` : email,
+          actorRole: 'customer',
+          action: 'login',
+          resourceType: 'user',
+          resourceId: user.id,
+          details: { 
+            action: 'account_created_pending_approval',
+            status: 'pending_registration'
+          },
+          success: true,
+          ipAddress: req.ip || undefined,
+          userAgent: req.headers['user-agent'] || undefined,
+        });
+      } catch (auditError) {
+        // Audit logging failure should not block registration
+        console.warn("Audit log creation failed during registration:", auditError);
+      }
 
       res.status(201).json({
         message: "Account created successfully. Pending admin approval.",
