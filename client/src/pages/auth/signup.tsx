@@ -64,9 +64,29 @@ export default function Signup() {
       setLocation("/login");
     } catch (error: any) {
       console.error("Signup error:", error);
+      
+      // Extract error message - could be JSON from API response
+      let errorMessage = "An error occurred during signup";
+      if (error.message) {
+        const msg = error.message;
+        // Try to extract JSON message if it's embedded in error (e.g., "400: {...}")
+        try {
+          const jsonMatch = msg.match(/\{.*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            errorMessage = parsed.message || errorMessage;
+          } else {
+            // Just a plain string error
+            errorMessage = msg;
+          }
+        } catch {
+          errorMessage = msg;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "An error occurred during signup",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

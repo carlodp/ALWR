@@ -84,9 +84,28 @@ export default function Registration() {
 
       setLocation("/login");
     } catch (error: any) {
+      // Extract error message - could be JSON from API response
+      let errorMessage = "Failed to create account";
+      if (error.message) {
+        const msg = error.message;
+        // Try to extract JSON message if it's embedded in error (e.g., "400: {...}")
+        try {
+          const jsonMatch = msg.match(/\{.*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            errorMessage = parsed.message || errorMessage;
+          } else {
+            // Just a plain string error
+            errorMessage = msg;
+          }
+        } catch {
+          errorMessage = msg;
+        }
+      }
+
       toast({
         title: "Registration Failed",
-        description: error.message || "Failed to create account",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

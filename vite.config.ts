@@ -32,11 +32,10 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    middlewareMode: true,
     fs: {
       strict: true,
       deny: ["**/.*"],
     },
-    hmr: process.env.REPL_ID ? false : undefined,
+    hmr: false,
   },
 });
