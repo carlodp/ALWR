@@ -73,7 +73,13 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/auth/login", data);
+      // Use direct fetch instead of apiRequest to handle all status codes
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
 
       if (response.ok) {
         // Invalidate auth query to refetch user data
@@ -97,7 +103,7 @@ export default function Login() {
       console.error("Login error:", error);
       toast({
         title: "Error",
-        description: "An error occurred during login",
+        description: error instanceof Error ? error.message : "An error occurred during login",
         variant: "destructive",
       });
     } finally {
