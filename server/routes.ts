@@ -4255,19 +4255,27 @@ startxref
       const { userId } = req.params;
 
       // Get the user
-      const user = await storage.getUserById?.(userId);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // User is approved (no status field needed - just being here means approved)
+      // Check if customer record exists, if not create one
+      const existingCustomer = await storage.getCustomer(userId);
+      if (!existingCustomer) {
+        await storage.createCustomer({
+          userId,
+          accountStatus: 'active',
+        });
+      }
+
       // Log the approval using valid audit action
       try {
         await storage.createAuditLog({
           userId: req.user.dbUser.id,
           actorName: `${req.user.dbUser.firstName} ${req.user.dbUser.lastName}`,
           actorRole: req.user.dbUser.role,
-          action: 'user_update',
+          action: 'user_activate',
           resourceType: 'user',
           resourceId: userId,
           details: { action: 'registration_approved' },
@@ -4295,8 +4303,8 @@ startxref
     try {
       const { userId } = req.params;
 
-      // Delete the user registration
-      const user = await storage.getUserById?.(userId);
+      // Get the user
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -4321,7 +4329,7 @@ startxref
       }
 
       // Delete the user from storage
-      await storage.deleteUser?.(userId);
+      await storage.deleteUser(userId);
 
       res.json({ message: "Registration rejected" });
     } catch (error) {

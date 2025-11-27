@@ -16,6 +16,7 @@ type CustomerWithUser = Customer & {
   user: User;
   subscriptionStatus: string;
   documentCount: number;
+  accountStatus: 'active' | 'expired';
 };
 
 /**
@@ -153,6 +154,7 @@ export default function AdminCustomers() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>ID Card</TableHead>
+                  <TableHead>Account Status</TableHead>
                   <TableHead>Subscription</TableHead>
                   <TableHead>Documents</TableHead>
                   <TableHead>Joined</TableHead>
@@ -166,6 +168,7 @@ export default function AdminCustomers() {
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -196,6 +199,11 @@ export default function AdminCustomers() {
                         {customer.idCardNumber || '—'}
                       </TableCell>
                       <TableCell>
+                        <Badge variant={customer.accountStatus === 'active' ? 'default' : 'secondary'} className="capitalize">
+                          {customer.accountStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {getStatusBadge(customer.subscriptionStatus || 'none')}
                       </TableCell>
                       <TableCell className="text-center">
@@ -224,7 +232,7 @@ export default function AdminCustomers() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={8} className="text-center py-12">
                       <div className="space-y-2">
                         <p className="font-medium">
                           {searchQuery || subscriptionFilter ? 'No customers found' : 'No customers yet'}
