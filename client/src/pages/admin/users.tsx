@@ -141,7 +141,8 @@ export default function AdminUsers() {
                     <th className="text-left py-3 px-4 font-semibold">Name</th>
                     <th className="text-left py-3 px-4 font-semibold">Email</th>
                     <th className="text-left py-3 px-4 font-semibold">Role</th>
-                    <th className="text-left py-3 px-4 font-semibold">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold">Account Status</th>
+                    <th className="text-left py-3 px-4 font-semibold">Activity</th>
                     <th className="text-left py-3 px-4 font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -155,6 +156,11 @@ export default function AdminUsers() {
                       <td className="py-3 px-4">
                         <Badge variant="outline" data-testid={`badge-role-${user.id}`}>
                           {user.role}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="default" className="capitalize">
+                          Active
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
