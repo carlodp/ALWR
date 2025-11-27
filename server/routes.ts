@@ -4219,7 +4219,7 @@ startxref
 
   /**
    * GET /api/admin/pending-registrations
-   * Get list of pending customer registrations
+   * Get list of pending customer registrations (excluding approved ones)
    */
   app.get("/api/admin/pending-registrations", requireAdmin, async (req: any, res: Response) => {
     try {
@@ -4228,16 +4228,27 @@ startxref
         return res.json([]);
       }
 
-      // Filter for customers with role 'customer' (all registrations are pending until approved)
-      const pendingRegistrations = users.filter((u: any) => u.role === 'customer').map((u: any) => {
-        return {
-          userId: u.id,
-          email: u.email,
-          firstName: u.firstName || '',
-          lastName: u.lastName || '',
-          createdAt: u.createdAt,
-        };
-      });
+      // Get all customers to check which users have been approved
+      const allCustomers = await storage.listAllCustomers();
+
+      // Filter for customers with role 'customer' that don't have a customer record yet (truly pending)
+      const pendingRegistrations = users
+        .filter((u: any) => u.role === 'customer')
+        .filter((u: any) => !allCustomers?.some((c: any) => c.userId === u.id))
+        .map((u: any) => {
+          return {
+            userId: u.id,
+            email: u.email,
+            firstName: u.firstName || '',
+            lastName: u.lastName || '',
+            phone: (u as any).phone || '',
+            title: (u as any).title || '',
+            organization: (u as any).organization || '',
+            city: (u as any).city || '',
+            state: (u as any).state || '',
+            createdAt: u.createdAt,
+          };
+        });
 
       res.json(pendingRegistrations);
     } catch (error) {

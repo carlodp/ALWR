@@ -14,12 +14,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Eye } from "lucide-react";
 
 interface PendingRegistration {
   userId: string;
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   title?: string;
   organization?: string;
   city?: string;
@@ -31,6 +40,8 @@ export default function AdminPendingRegistrations() {
   const { toast } = useToast();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedRegistration, setSelectedRegistration] = useState<PendingRegistration | null>(null);
 
   const { data: registrations, isLoading } = useQuery<PendingRegistration[]>({
     queryKey: ["/api/admin/pending-registrations"],
@@ -70,6 +81,11 @@ export default function AdminPendingRegistrations() {
   const handleReject = (userId: string) => {
     setSelectedUserId(userId);
     setAction("reject");
+  };
+
+  const handleViewDetails = (registration: PendingRegistration) => {
+    setSelectedRegistration(registration);
+    setDetailModalOpen(true);
   };
 
   const confirmAction = () => {
@@ -140,6 +156,14 @@ export default function AdminPendingRegistrations() {
                     <Badge variant="secondary">Pending</Badge>
                     <div className="flex gap-2">
                       <Button
+                        onClick={() => handleViewDetails(reg)}
+                        variant="ghost"
+                        size="sm"
+                        data-testid={`button-view-details-${reg.userId}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
                         onClick={() => handleApprove(reg.userId)}
                         disabled={approveMutation.isPending || rejectMutation.isPending}
                         size="sm"
@@ -164,6 +188,72 @@ export default function AdminPendingRegistrations() {
           ))}
         </div>
       )}
+
+      {/* Registration Details Modal */}
+      <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registration Details</DialogTitle>
+            <DialogDescription>Complete information for review</DialogDescription>
+          </DialogHeader>
+          {selectedRegistration && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase">Name</p>
+                <p className="text-sm font-medium">
+                  {selectedRegistration.firstName} {selectedRegistration.lastName}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase">Email</p>
+                <p className="text-sm">{selectedRegistration.email}</p>
+              </div>
+              {selectedRegistration.phone && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Phone</p>
+                  <p className="text-sm">{selectedRegistration.phone}</p>
+                </div>
+              )}
+              {selectedRegistration.title && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Title</p>
+                  <p className="text-sm">{selectedRegistration.title}</p>
+                </div>
+              )}
+              {selectedRegistration.organization && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Organization</p>
+                  <p className="text-sm">{selectedRegistration.organization}</p>
+                </div>
+              )}
+              {selectedRegistration.city && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">City</p>
+                  <p className="text-sm">{selectedRegistration.city}</p>
+                </div>
+              )}
+              {selectedRegistration.state && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">State</p>
+                  <p className="text-sm">{selectedRegistration.state}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase">Applied</p>
+                <p className="text-sm">
+                  {new Date(selectedRegistration.createdAt).toLocaleDateString()} at{" "}
+                  {new Date(selectedRegistration.createdAt).toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+          )}
+          <div className="flex gap-2 justify-end pt-4">
+            <Button variant="outline" onClick={() => setDetailModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!selectedUserId && !!action}>
         <AlertDialogContent>
