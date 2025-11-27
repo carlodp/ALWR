@@ -4229,7 +4229,7 @@ startxref
       }
 
       // Get all customers to check which users have been approved
-      const allCustomers = await storage.listAllCustomers();
+      const allCustomers = await storage.listCustomers(1000, 0);
 
       // Filter for customers with role 'customer' that don't have a customer record yet (truly pending)
       const pendingRegistrations = users
