@@ -56,7 +56,7 @@ import { z } from "zod";
 // ============================================================================
 
 export const userRoleEnum = pgEnum('alwr_user_role', ['customer', 'admin', 'agent', 'reseller', 'super_admin']);
-export const accountStatusEnum = pgEnum('alwr_account_status', ['active', 'expired']);
+export const accountStatusEnum = pgEnum('alwr_account_status', ['active', 'inactive', 'expired']);
 export const subscriptionStatusEnum = pgEnum('alwr_subscription_status', [
   'active',
   'inactive',
@@ -257,7 +257,7 @@ export const customers = pgTable("customers", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   
   // Account Status (separate from subscription status)
-  accountStatus: accountStatusEnum("account_status").default('active').notNull(),
+  accountStatus: accountStatusEnum("account_status").default('inactive').notNull(),
   
   // PRN (Personal Reference Number)
   prnNumber: varchar("prn_number").unique(),
