@@ -4391,6 +4391,16 @@ startxref
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
+      // Check if customer account is inactive (pending approval)
+      if (user.role === 'customer') {
+        const customerRecord = await storage.getCustomer(user.id);
+        if (customerRecord && customerRecord.accountStatus === 'inactive') {
+          return res.status(403).json({ 
+            message: "Your account is pending approval. Please check back later or contact support@alwr.com for assistance."
+          });
+        }
+      }
+
       // Record successful login
       await storage.recordLoginAttempt(user.id, true);
 
