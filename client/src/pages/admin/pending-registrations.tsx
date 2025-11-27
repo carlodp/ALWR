@@ -83,85 +83,81 @@ export default function AdminPendingRegistrations() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold">Pending Registrations</h1>
         <p className="text-muted-foreground">Review and approve new account registrations</p>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-        </div>
+        <Card>
+          <CardContent className="flex justify-center py-12">
+            <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+          </CardContent>
+        </Card>
       ) : !registrations || registrations.length === 0 ? (
         <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">No pending registrations</p>
+          <CardContent className="py-12">
+            <p className="text-center text-muted-foreground">No pending registrations</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="space-y-3">
           {registrations.map((reg) => (
-            <Card key={reg.userId}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">
-                      {reg.firstName} {reg.lastName}
-                    </CardTitle>
-                    <CardDescription>{reg.email}</CardDescription>
-                  </div>
-                  <Badge variant="outline">Pending</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 mb-4">
-                  {reg.title && (
-                    <div>
-                      <p className="text-sm font-medium">Title</p>
-                      <p className="text-sm text-muted-foreground">{reg.title}</p>
-                    </div>
-                  )}
-                  {reg.organization && (
-                    <div>
-                      <p className="text-sm font-medium">Organization</p>
-                      <p className="text-sm text-muted-foreground">{reg.organization}</p>
-                    </div>
-                  )}
-                  {(reg.city || reg.state) && (
-                    <div>
-                      <p className="text-sm font-medium">Location</p>
-                      <p className="text-sm text-muted-foreground">
-                        {reg.city}
-                        {reg.city && reg.state ? ", " : ""}
-                        {reg.state}
+            <Card key={reg.userId} className="hover-elevate">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                  {/* Name and Email */}
+                  <div className="md:col-span-2">
+                    <div className="flex flex-col gap-1">
+                      <p className="font-semibold text-base">
+                        {reg.firstName} {reg.lastName}
                       </p>
+                      <p className="text-sm text-muted-foreground">{reg.email}</p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">Applied</p>
-                    <p className="text-sm text-muted-foreground">
+                    {(reg.organization || reg.title) && (
+                      <div className="mt-3 space-y-1 text-xs">
+                        {reg.title && (
+                          <p className="text-muted-foreground">{reg.title}</p>
+                        )}
+                        {reg.organization && (
+                          <p className="text-muted-foreground">{reg.organization}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Applied Date */}
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Applied</p>
+                    <p className="text-sm">
                       {new Date(reg.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleApprove(reg.userId)}
-                    disabled={approveMutation.isPending || rejectMutation.isPending}
-                    data-testid={`button-approve-${reg.userId}`}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    onClick={() => handleReject(reg.userId)}
-                    variant="outline"
-                    disabled={approveMutation.isPending || rejectMutation.isPending}
-                    data-testid={`button-reject-${reg.userId}`}
-                  >
-                    Reject
-                  </Button>
+                  {/* Status and Actions */}
+                  <div className="flex flex-col gap-3 items-end">
+                    <Badge variant="secondary">Pending</Badge>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleApprove(reg.userId)}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        size="sm"
+                        data-testid={`button-approve-${reg.userId}`}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        onClick={() => handleReject(reg.userId)}
+                        variant="outline"
+                        size="sm"
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        data-testid={`button-reject-${reg.userId}`}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
