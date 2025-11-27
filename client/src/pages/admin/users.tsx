@@ -47,6 +47,10 @@ export default function AdminUsers() {
     queryKey: ["/api/resellers"],
   });
 
+  const { data: customers } = useQuery({
+    queryKey: ["/api/admin/customers"],
+  });
+
   const filteredUsers = users?.filter((user) =>
     `${user.firstName} ${user.lastName} ${user.email}`
       .toLowerCase()
@@ -69,6 +73,19 @@ export default function AdminUsers() {
 
   const isUserOnline = (userId: string) => {
     return currentUser?.id === userId;
+  };
+
+  const getAccountStatus = (user: User) => {
+    // Non-customer roles (admin, agent, reseller) are always active
+    if (user.role !== 'customer') {
+      return 'active';
+    }
+
+    // For customers, check if a customer record exists
+    const customersList = Array.isArray(customers) ? customers : customers?.data;
+    const customerRecord = customersList?.find((c: any) => c.userId === user.id);
+    
+    return customerRecord ? 'active' : 'pending';
   };
 
   const formatLastLogin = (lastLoginAt: string | null | undefined) => {
@@ -159,8 +176,8 @@ export default function AdminUsers() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
-                        <Badge variant="default" className="capitalize">
-                          Active
+                        <Badge variant={getAccountStatus(user) === 'active' ? 'default' : 'secondary'} className="capitalize">
+                          {getAccountStatus(user)}
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
