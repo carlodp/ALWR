@@ -4224,32 +4224,34 @@ startxref
    */
   app.get("/api/admin/pending-registrations", requireAdmin, async (req: any, res: Response) => {
     try {
+      const allCustomers = await storage.listCustomers(1000, 0);
+
+      // Filter for customers with accountStatus='inactive' (pending approval)
+      const pendingCustomers = allCustomers?.filter((c: any) => c.accountStatus === 'inactive') || [];
+      
       const users = await storage.listAllUsers(1000, 0);
       if (!users) {
         return res.json([]);
       }
 
-      // Get all customers to check which users have been approved
-      const allCustomers = await storage.listCustomers(1000, 0);
-
-      // Filter for customers with role 'customer' that don't have a customer record yet (truly pending)
-      const pendingRegistrations = users
-        .filter((u: any) => u.role === 'customer')
-        .filter((u: any) => !allCustomers?.some((c: any) => c.userId === u.id))
-        .map((u: any) => {
+      // Map pending customers with their user info
+      const pendingRegistrations = pendingCustomers
+        .map((customer: any) => {
+          const user = users.find((u: any) => u.id === customer.userId);
           return {
-            userId: u.id,
-            email: u.email,
-            firstName: u.firstName || '',
-            lastName: u.lastName || '',
-            phone: (u as any).phone || '',
-            title: (u as any).title || '',
-            organization: (u as any).organization || '',
-            city: (u as any).city || '',
-            state: (u as any).state || '',
-            createdAt: u.createdAt,
+            userId: customer.userId,
+            email: user?.email || '',
+            firstName: user?.firstName || '',
+            lastName: user?.lastName || '',
+            phone: customer.dayPhone || customer.eveningPhone || '',
+            title: customer.title || '',
+            organization: customer.organization || '',
+            city: customer.city || '',
+            state: customer.state || '',
+            createdAt: customer.createdAt,
           };
-        });
+        })
+        .filter((p: any) => p.email); // Only include if user found
 
       res.json(pendingRegistrations);
     } catch (error) {
