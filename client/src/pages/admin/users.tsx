@@ -81,11 +81,12 @@ export default function AdminUsers() {
       return 'active';
     }
 
-    // For customers, check if a customer record exists
+    // For customers, check the accountStatus field
     const customersList = Array.isArray(customers) ? customers : customers?.data;
     const customerRecord = customersList?.find((c: any) => c.userId === user.id);
     
-    return customerRecord ? 'active' : 'pending';
+    // Return the actual accountStatus from the customer record, or default to 'pending'
+    return customerRecord?.accountStatus || 'pending';
   };
 
   const formatLastLogin = (lastLoginAt: string | null | undefined) => {
