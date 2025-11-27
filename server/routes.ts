@@ -4147,33 +4147,21 @@ startxref
       const passwordHash = await hashPassword(password);
 
       // Create user with pending status (needs admin approval)
+      // Store extended info on User object so it's available for approval
       const user = await storage.upsertUser({
         email,
         firstName: firstName || '',
         lastName: lastName || '',
         role: 'customer',
         passwordHash,
-      });
-
-      // Create customer profile with extended info
-      const customerData: any = {
-        userId: user.id,
         title: req.body.title || null,
         organization: req.body.organization || null,
-        address1: req.body.address1 || null,
-        address2: req.body.address2 || null,
+        phone: req.body.dayPhone || req.body.eveningPhone || null,
         city: req.body.city || null,
         state: req.body.state || null,
-        zip: req.body.zip || null,
-        dayPhone: req.body.dayPhone || null,
-        eveningPhone: req.body.eveningPhone || null,
-      };
+      });
 
-      try {
-        await storage.createCustomer(customerData);
-      } catch (e) {
-        // Customer may already exist, continue
-      }
+      // DO NOT create customer record yet - that happens when admin approves
 
       // Log action - registration is now pending approval (wrapped to prevent enum errors)
       try {
