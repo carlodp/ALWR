@@ -36,6 +36,7 @@ import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { seedMockData } from "./seed-mock-data";
+import { seedMemStorage } from "./storage";
 import { logger } from "./logger";
 import { globalLimiter, setSecureHeaders, sanitizeError, userLimiter, sensitiveUserLimiter } from "./security";
 import { swaggerSpec } from "./swagger";
@@ -333,6 +334,9 @@ export default async function runApp(
 
   // Seed mock data on app startup (development only)
   if (process.env.NODE_ENV === 'development') {
+    // First, seed the in-memory storage with admin user
+    await seedMemStorage().catch(err => console.error('Failed to seed MemStorage:', err));
+    // Then try to seed database if available
     await seedMockData().catch(err => console.error('Failed to seed mock data:', err));
   }
 

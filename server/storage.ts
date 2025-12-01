@@ -2132,3 +2132,33 @@ export class MemStorage implements IStorage {
 
 // Use MemStorage (in-memory) since database is not available on free tier
 export const storage = new MemStorage();
+
+/**
+ * Seed the in-memory storage with default admin user
+ * Called on app startup when using MemStorage
+ */
+export async function seedMemStorage() {
+  const bcrypt = await import('bcryptjs').then(m => m.default);
+  
+  // Check if admin already exists
+  const existingAdmin = await storage.getUserByEmail('carlo@wdmorgan.com');
+  if (existingAdmin) {
+    console.log('✅ Admin user already exists in memory');
+    return;
+  }
+
+  // Hash the password
+  const hashedPassword = await bcrypt.hash('Carlo123!', 10);
+  
+  // Create the admin user
+  const adminUser = await storage.upsertUser({
+    email: 'carlo@wdmorgan.com',
+    firstName: 'Carlo',
+    lastName: 'Morgan',
+    password: hashedPassword,
+    role: 'super_admin',
+    accountStatus: 'active',
+  });
+  
+  console.log(`✅ Created super admin in memory: carlo@wdmorgan.com`);
+}
