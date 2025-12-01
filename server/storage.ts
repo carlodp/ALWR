@@ -2155,7 +2155,7 @@ export async function seedMemStorage() {
     email: 'carlo@wdmorgan.com',
     firstName: 'Carlo',
     lastName: 'Morgan',
-    password: hashedPassword,
+    passwordHash: hashedPassword,
     role: 'super_admin',
     accountStatus: 'active',
   });
