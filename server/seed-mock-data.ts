@@ -9,6 +9,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function seedMockData() {
+  // Skip seeding if database is not available (using in-memory storage)
+  if (!db) {
+    console.log("⏭️  Skipping mock data seeding (using in-memory storage)");
+    return;
+  }
+
   console.log("🌱 Seeding mock admin users...");
 
   try {

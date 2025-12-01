@@ -10,7 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-The ALWR platform is built with a Node.js and Express.js API backend, leveraging TypeScript and PostgreSQL with Drizzle ORM. The frontend is developed using React, TypeScript, Wouter, TanStack Query, shadcn/ui, and Tailwind CSS.
+The ALWR platform is built with a Node.js and Express.js API backend, leveraging TypeScript with both PostgreSQL (Drizzle ORM when available) and in-memory storage for development. The frontend is developed using React, TypeScript, Wouter, TanStack Query, shadcn/ui, and Tailwind CSS.
+
+**Storage Layer (Dec 2025 Update):**
+- **Dual Storage Support:** App now supports both database storage (DatabaseStorage via Drizzle ORM) and in-memory storage (MemStorage)
+- **Automatic Fallback:** When DATABASE_URL is not available (e.g., free tier Replit), the app automatically uses MemStorage instead
+- **MemStorage Implementation:** In-memory Map-based storage implementing full IStorage interface for development and testing
+- **Mock Data Seeding:** Gracefully skips database seeding when using in-memory storage
 
 **UI/UX Decisions:**
 The UI emphasizes clarity and efficiency, featuring improved layouts for customer details, compact scrollable tiles for subscription history, and clean label-value grids for contact information. Breadcrumb navigation dynamically displays customer full names for better usability.

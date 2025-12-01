@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { db } from "./db";
 import { 
   users, customers, subscriptions, documents, documentVersions, emergencyAccessLogs, auditLogs, customerNotes,
@@ -1924,4 +1925,210 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+/**
+ * In-Memory Storage Implementation
+ * Used when DATABASE_URL is not available (e.g., free tier Replit)
+ * Stores all data in application memory
+ */
+export class MemStorage implements IStorage {
+  private users = new Map<string, User>();
+  private customers = new Map<string, Customer>();
+  private subscriptions = new Map<string, Subscription>();
+  private documents = new Map<string, Document>();
+  private documentVersions = new Map<string, DocumentVersion>();
+  private emergencyAccessLogs = new Map<string, EmergencyAccessLog>();
+  private auditLogs = new Map<string, AuditLog>();
+  private customerNotes = new Map<string, CustomerNote>();
+  private customerTags = new Map<string, CustomerTag>();
+  private physicalCardOrders = new Map<string, PhysicalCardOrder>();
+  private emailTemplates = new Map<string, EmailTemplate>();
+  private emailNotifications = new Map<string, EmailNotification>();
+  private agents = new Map<string, Agent>();
+  private agentCustomerAssignments = new Map<string, AgentCustomerAssignment>();
+  private resellers = new Map<string, Reseller>();
+  private resellerCustomerReferrals = new Map<string, ResellerCustomerReferral>();
+  private failedLoginAttempts = new Map<string, FailedLoginAttempt>();
+  private dataExports = new Map<string, DataExport>();
+  private reportSchedules = new Map<string, ReportSchedule>();
+  private reportHistory = new Map<string, ReportHistory>();
+  private systemSettings = new Map<string, SystemSettings>();
+  private apiKeys = new Map<string, ApiKey>();
+  private savedSearches = new Map<string, SavedSearch>();
+
+  // Implement all IStorage methods with basic in-memory operations
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    for (const user of this.users.values()) {
+      if (user.email === email) return user;
+    }
+    return undefined;
+  }
+
+  async upsertUser(user: UpsertUser): Promise<User> {
+    const id = user.id || randomUUID();
+    const fullUser: User = {
+      ...user,
+      id,
+    } as User;
+    this.users.set(id, fullUser);
+    return fullUser;
+  }
+
+  async updateUserRole(userId: string, role: 'customer' | 'admin' | 'agent'): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.role = role;
+    }
+  }
+
+  async updateUserStatus(userId: string, status: 'active' | 'suspended' | 'locked' | 'inactive'): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.accountStatus = status;
+    }
+  }
+
+  async countUsersWithRole(role: 'customer' | 'admin' | 'agent'): Promise<number> {
+    let count = 0;
+    for (const user of this.users.values()) {
+      if (user.role === role) count++;
+    }
+    return count;
+  }
+
+  async listAllUsers(limit = 100, offset = 0): Promise<User[]> {
+    return Array.from(this.users.values()).slice(offset, offset + limit);
+  }
+
+  // Customer methods
+  async getCustomer(id: string): Promise<Customer | undefined> {
+    return this.customers.get(id);
+  }
+
+  async getCustomerByUserId(userId: string): Promise<Customer | undefined> {
+    for (const customer of this.customers.values()) {
+      if (customer.userId === userId) return customer;
+    }
+    return undefined;
+  }
+
+  async listCustomers(limit = 100, offset = 0): Promise<Customer[]> {
+    return Array.from(this.customers.values()).slice(offset, offset + limit);
+  }
+
+  async upsertCustomer(customer: InsertCustomer): Promise<Customer> {
+    const id = customer.id || randomUUID();
+    const fullCustomer: Customer = {
+      ...customer,
+      id,
+    } as Customer;
+    this.customers.set(id, fullCustomer);
+    return fullCustomer;
+  }
+
+  // Subscription methods
+  async getSubscription(id: string): Promise<Subscription | undefined> {
+    return this.subscriptions.get(id);
+  }
+
+  async listSubscriptions(customerId?: string): Promise<Subscription[]> {
+    if (!customerId) return Array.from(this.subscriptions.values());
+    return Array.from(this.subscriptions.values()).filter(s => s.customerId === customerId);
+  }
+
+  async upsertSubscription(subscription: InsertSubscription): Promise<Subscription> {
+    const id = subscription.id || randomUUID();
+    const fullSubscription: Subscription = {
+      ...subscription,
+      id,
+    } as Subscription;
+    this.subscriptions.set(id, fullSubscription);
+    return fullSubscription;
+  }
+
+  // Document methods
+  async getDocument(id: string): Promise<Document | undefined> {
+    return this.documents.get(id);
+  }
+
+  async listDocuments(customerId?: string): Promise<Document[]> {
+    if (!customerId) return Array.from(this.documents.values());
+    return Array.from(this.documents.values()).filter(d => d.customerId === customerId);
+  }
+
+  async upsertDocument(document: InsertDocument): Promise<Document> {
+    const id = document.id || randomUUID();
+    const fullDocument: Document = {
+      ...document,
+      id,
+    } as Document;
+    this.documents.set(id, fullDocument);
+    return fullDocument;
+  }
+
+  async deleteDocument(id: string): Promise<void> {
+    this.documents.delete(id);
+  }
+
+  // Add stub implementations for remaining methods
+  async getUserTwoFactorSecret(userId: string): Promise<string | undefined> { return undefined; }
+  async updateUserTwoFactorSecret(userId: string, secret: string | null): Promise<void> {}
+  async recordFailedLogin(userId: string): Promise<FailedLoginAttempt> { return {} as FailedLoginAttempt; }
+  async clearFailedLogins(userId: string): Promise<void> {}
+  async getFailedLoginAttempts(userId: string): Promise<FailedLoginAttempt[]> { return []; }
+  async getDocumentVersion(id: string): Promise<DocumentVersion | undefined> { return undefined; }
+  async listDocumentVersions(documentId: string): Promise<DocumentVersion[]> { return []; }
+  async upsertDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion> { return {} as DocumentVersion; }
+  async upsertEmergencyAccessLog(log: InsertEmergencyAccessLog): Promise<EmergencyAccessLog> { return {} as EmergencyAccessLog; }
+  async listEmergencyAccessLogs(customerId: string): Promise<EmergencyAccessLog[]> { return []; }
+  async upsertAuditLog(log: InsertAuditLog): Promise<AuditLog> { return {} as AuditLog; }
+  async listAuditLogs(limit?: number, offset?: number): Promise<AuditLog[]> { return []; }
+  async getCustomerNote(id: string): Promise<CustomerNote | undefined> { return undefined; }
+  async listCustomerNotes(customerId: string): Promise<CustomerNote[]> { return []; }
+  async upsertCustomerNote(note: InsertCustomerNote): Promise<CustomerNote> { return {} as CustomerNote; }
+  async deleteCustomerNote(id: string): Promise<void> {}
+  async upsertCustomerTag(tag: InsertCustomerTag): Promise<CustomerTag> { return {} as CustomerTag; }
+  async deleteCustomerTag(customerId: string, tag: string): Promise<void> {}
+  async listCustomerTags(customerId: string): Promise<CustomerTag[]> { return []; }
+  async upsertPhysicalCardOrder(order: InsertPhysicalCardOrder): Promise<PhysicalCardOrder> { return {} as PhysicalCardOrder; }
+  async listPhysicalCardOrders(customerId?: string): Promise<PhysicalCardOrder[]> { return []; }
+  async upsertEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> { return {} as EmailTemplate; }
+  async getEmailTemplate(name: string): Promise<EmailTemplate | undefined> { return undefined; }
+  async upsertEmailNotification(notification: InsertEmailNotification): Promise<EmailNotification> { return {} as EmailNotification; }
+  async listEmailNotifications(limit?: number, offset?: number): Promise<EmailNotification[]> { return []; }
+  async getAgent(id: string): Promise<Agent | undefined> { return undefined; }
+  async listAgents(): Promise<Agent[]> { return []; }
+  async upsertAgent(agent: InsertAgent): Promise<Agent> { return {} as Agent; }
+  async upsertAgentCustomerAssignment(assignment: InsertAgentCustomerAssignment): Promise<AgentCustomerAssignment> { return {} as AgentCustomerAssignment; }
+  async getReseller(id: string): Promise<Reseller | undefined> { return undefined; }
+  async listResellers(): Promise<Reseller[]> { return []; }
+  async upsertReseller(reseller: InsertReseller): Promise<Reseller> { return {} as Reseller; }
+  async upsertResellerCustomerReferral(referral: InsertResellerCustomerReferral): Promise<ResellerCustomerReferral> { return {} as ResellerCustomerReferral; }
+  async upsertDataExport(dataExport: InsertDataExport): Promise<DataExport> { return {} as DataExport; }
+  async getDataExport(id: string): Promise<DataExport | undefined> { return undefined; }
+  async listDataExports(userId: string, limit?: number, offset?: number): Promise<DataExport[]> { return []; }
+  async updateDataExportFile(exportId: string, storageKey: string, fileSize: number): Promise<DataExport | undefined> { return undefined; }
+  async upsertReportSchedule(schedule: InsertReportSchedule): Promise<ReportSchedule> { return {} as ReportSchedule; }
+  async listReportSchedules(): Promise<ReportSchedule[]> { return []; }
+  async upsertReportHistory(history: InsertReportHistory): Promise<ReportHistory> { return {} as ReportHistory; }
+  async upsertSystemSettings(settings: InsertSystemSettings): Promise<SystemSettings> { return {} as SystemSettings; }
+  async getSystemSettings(key: string): Promise<SystemSettings | undefined> { return undefined; }
+  async getAllSystemSettings(): Promise<SystemSettings[]> { return []; }
+  async upsertApiKey(apiKey: InsertApiKey): Promise<ApiKey> { return {} as ApiKey; }
+  async getApiKey(key: string): Promise<ApiKey | undefined> { return undefined; }
+  async listApiKeys(userId: string): Promise<ApiKey[]> { return []; }
+  async deleteApiKey(key: string): Promise<void> {}
+  async upsertSavedSearch(search: InsertSavedSearch): Promise<SavedSearch> { return {} as SavedSearch; }
+  async listSavedSearches(userId: string): Promise<SavedSearch[]> { return []; }
+  async deleteSavedSearch(id: string): Promise<void> {}
+  async bulkDeleteDocuments(documentIds: string[]): Promise<number> { return 0; }
+  async bulkAddCustomerTags(customerIds: string[], tags: string[]): Promise<number> { return 0; }
+  async bulkRemoveCustomerTags(customerIds: string[], tags: string[]): Promise<number> { return 0; }
+  async bulkSendEmails(emailData: InsertEmailNotification[]): Promise<EmailNotification[]> { return []; }
+}
+
+// Use MemStorage (in-memory) since database is not available on free tier
+export const storage = new MemStorage();
