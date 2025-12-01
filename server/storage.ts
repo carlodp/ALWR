@@ -2130,8 +2130,8 @@ export class MemStorage implements IStorage {
   async bulkSendEmails(emailData: InsertEmailNotification[]): Promise<EmailNotification[]> { return []; }
 }
 
-// Use MemStorage (in-memory) since database is not available on free tier
-export const storage = new MemStorage();
+// Use DatabaseStorage if database is available, otherwise fall back to MemStorage
+export const storage = db ? new DatabaseStorage() : new MemStorage();
 
 /**
  * Seed the in-memory storage with default admin user
